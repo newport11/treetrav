@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+    {% for folder in folders %}
+        {% include '_folder.html' %}
+    {% endfor %}
+
+    {% for post in posts %}
+        {% include '_post_userpage.html' %}
+    {% endfor %}
+
+{% endblock %}

@@ -1,0 +1,47 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+<table class="table table-hover">
+    <tr>
+        <td width="25px">
+            <a href="{{ url_for('main.user', username=post.author.username) }}">
+                
+                {% set favicon = post.favicon_file_name %}
+                {% if favicon %}
+                    <img src="{{ url_for( 'static', filename='/favicons/' + favicon) }}" />
+                {% else %}
+                        <img src="{{  post.author.avatar(25)  }}" />
+                {% endif %}
+
+            </a>
+        </td>
+        <td>
+            {% block post %}
+            {% if post.body %} <a href="{{ post.link}}" target="_blank" class="posted-link-text">
+                {{ post.body }}
+            </a> {% else %}   <a href="{{ post.link}}" target="_blank" class="posted-link-text">
+                {{ post.link }} </a> {% endif %}
+            {% endblock %}
+            
+            {% set when_text = moment(post.timestamp).fromNow(true) %}
+            {{ _('<em class="when-text"> • %(when)s</em>', when=when_text )}}
+        </td>
+
+        <td> 
+            {% block delete %}
+            {% if current_user.id == post.user_id%}
+            
+            <div style="text-align: right;"> 
+            <form method="post" action="{{ url_for('main.delete_post', post_id=post.id ) }}">
+                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
+                    <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" />
+                   </button>
+            </form>
+            </div>
+
+            {% endif %}
+            {% endblock %}
+        </td>
+
+
+        
+    </tr>
+</table>

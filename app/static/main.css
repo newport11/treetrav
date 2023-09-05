@@ -1,0 +1,80 @@
+.table {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 0px; 
+}
+
+.table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th, .table>thead>tr>td, .table>thead>tr>th {
+    padding: 8px;
+    line-height: 1.42857143;
+    vertical-align: top;
+    border-top: none;
+}
+
+/* Customize textboxes */
+.my-form textarea {
+    height: 34px; /* Adjust the width as needed */
+}
+
+.navbar-default .navbar-brand {
+    color: #5a9b16;
+}
+
+.when-text {
+    opacity: 0.7; /* You can adjust the opacity value */
+    font-weight: lighter; /* You can adjust the font-weight value */
+}
+
+.folder-path-link {
+    color: #888; /* Use the desired grey color code */
+    font-weight: lighter;
+    text-decoration: none; /* Remove underline from links */
+}
+.folder-path-link:hover {
+    text-decoration: none; /* Remove underline from links */
+}
+
+
+.user-link {
+    color: #888;
+    font-weight: 600;
+}
+.user-link:hover {
+    text-decoration: none
+}
+
+/*
+.posted-link-text:hover {
+    text-decoration: none
+}
+*/
+
+.userpage-folder-text{
+    color: #888;
+    font-weight: 600;
+    text-decoration: none;
+}
+.userpage-folder-text:hover{
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.username-profile-text {
+    margin-top: 5px;
+    margin-bottom: 0px;
+    margin-right: 0px;
+}
+
+.userpage-counts-text {
+    color: #888;
+}
+
+.userpage-counts {
+    color: #000000;
+    font-weight: 600;
+}
+
+.green-check-icon{
+    margin-left: 0px;
+    vertical-align: top;
+}

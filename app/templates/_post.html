@@ -1,0 +1,81 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+<table class="table table-hover">
+    <tr>
+        <td width="25px">
+            <a href="{{ url_for('main.user', username=post.author.username) }}" >
+                
+                {% set favicon = post.favicon_file_name %}
+                {% if favicon %}
+                    <img src="{{ url_for( 'static', filename='/favicons/' + favicon) }}" />
+                {% else %}
+                        <img src="{{  post.author.avatar(25)  }}" />
+                {% endif %}
+
+
+
+            </a>
+        </td>
+        <td>
+            {% set user_link %}
+                <a href="{{ url_for('main.user', username=post.author.username) }}" class="user-link">
+                    {{ post.author.username }}
+                    {% if post.author.verified == True %} <img src="{{ url_for( 'static', filename='green_check16.png') }}" /> 
+                    {% endif %}
+                </a>
+            {% endset %}
+            {{ _(' %(username)s <em class="when-text"> • %(when)s </em>',
+                username=user_link, when=moment(post.timestamp).fromNow(true)) }}
+            <br>
+            
+            {% block post %}
+            {% if post.body %} <a href="{{ post.link}}" target="_blank" class="posted-link-text">
+                {{ post.body }}
+            </a> {% else %}   <a href="{{ post.link}}" target="_blank" class="posted-link-text">
+                {{ post.link }} </a> {% endif %}
+            {% endblock %}
+            
+
+        </td>
+
+        <td style="text-align: right;"> 
+        {% block folder_path %}
+        {% if current_user.id != post.user_id%}
+        {% set folder_path = post.folder_link %}
+            
+                {% if folder_path == "/" or not folder_path%}
+                    <a href="{{ url_for('main.user', username=post.author.username) }}"  class="folder-path-link" > 
+                        {{ _('<em class="folder-path-text"> %(folder_path)s</em>', folder_path=folder_path )}}
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('main.user_subfolder', username=post.author.username, path=folder_path) }}"  class="folder-path-link"> 
+                        {{ _('<em class="folder-path-text"> %(folder_path)s</em>', folder_path=folder_path )}}
+                    </a>
+                {% endif %}
+            
+            
+        {% endif %}
+        {% endblock %}
+        </td>
+
+        
+        {% block delete %}
+        {% if current_user.id == post.user_id%}
+        <td> 
+            <div style="text-align: right;"> 
+            <form method="post" action="{{ url_for('main.delete_post', post_id=post.id ) }}">
+                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
+                    <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" />
+                   </button>
+            </form>
+            </div>
+
+            {% endif %}
+        </td>
+
+        {% endblock %}
+        
+
+
+        
+    </tr>
+</table>
