@@ -6,7 +6,7 @@
                 
                 {% set favicon = post.favicon_file_name %}
                 {% if favicon %}
-                    <img src="{{ url_for( 'static', filename='/favicons/' + favicon) }}" />
+                    <img src="{{ url_for( 'static', filename='favicons/' + favicon) }}" />
                 {% else %}
                         <img src="{{  post.author.avatar(25)  }}" />
                 {% endif %}
