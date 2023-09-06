@@ -29,10 +29,11 @@ Flask-Login==0.6.2
 Flask-Mail==0.9.1
 Flask-Migrate==4.0.4
 Flask-Moment==1.0.5
-flask-sqlalchemy==3.0.4
+Flask-SQLAlchemy==3.0.4
 Flask-WTF==1.1.1
 frozenlist==1.4.0
 greenlet==2.0.2
+gunicorn==21.2.0
 httpie==3.2.2
 idna==3.4
 importlib-metadata==6.6.0
@@ -51,6 +52,7 @@ Pillow==10.0.0
 pycparser==2.21
 Pygments==2.16.1
 PyJWT==2.7.0
+PyMySQL==1.1.0
 PySocks==1.7.1
 python-dotenv==1.0.0
 pytz==2023.3
@@ -61,7 +63,7 @@ six==1.16.0
 soupsieve==2.4.1
 SQLAlchemy==2.0.16
 tqdm==4.66.1
-typing-extensions==4.6.3
+typing_extensions==4.6.3
 urllib3==1.26.16
 validators==0.21.2
 visitor==0.1.3
