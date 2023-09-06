@@ -2,7 +2,7 @@
 <table class="table table-hover">
     <tr>
         <td width="25px">
-            <a href="{{ post.link }}" >
+            <a href="{{ post.link }}" target="_blank">
                 
                 {% set favicon = post.favicon_file_name %}
                 {% if favicon %}
@@ -24,31 +24,50 @@
                 </a>
             {% endset %}
             {{ _(' %(username)s <em class="when-text"> • %(when)s </em>',
-                username=user_link, when=moment(post.timestamp).fromNow(true)) }}
+                username=user_link, when=moment(post.timestamp).fromNow()) }}
             <br>
             
             {% block post %}
-            {% if post.body %} <a href="{{ post.link}}" target="_blank" class="posted-link-text">
-                {{ post.body }}
-            </a> {% else %}   <a href="{{ post.link}}" target="_blank" class="posted-link-text">
-                {{ post.link }} </a> {% endif %}
+                {% if post.body %} <a href="{{ post.link}}" target="_blank" class="posted-link-text">
+                    {% if post.body | length > 75 %}
+                        {{ post.body[:75] }}...
+                    {% else %}
+                        {{ post.body }}
+                    {% endif %}
+                </a> 
+                {% else %}   <a href="{{ post.link}}" target="_blank" class="posted-link-text">
+                    {% if post.link | length > 75 %}
+                        {{ post.link[:75] }}...
+                    {% else %}
+                        {{ post.link }}
+                    {% endif %}
+                </a> 
+                {% endif %}
             {% endblock %}
             
 
         </td>
+        <td style="text-align: right;">
 
-        <td style="text-align: right;"> 
         {% block folder_path %}
         {% if current_user.id != post.user_id%}
         {% set folder_path = post.folder_link %}
             
                 {% if folder_path == "/" or not folder_path%}
                     <a href="{{ url_for('main.user', username=post.author.username) }}"  class="folder-path-link" > 
-                        {{ _('<em class="folder-path-text"> %(folder_path)s</em>', folder_path=folder_path )}}
+                        {{ _('<em class="folder-path-text"> %(folder_path)s </em>', folder_path=folder_path )}}
                     </a>
                 {% else %}
-                    <a href="{{ url_for('main.user_subfolder', username=post.author.username, path=folder_path) }}"  class="folder-path-link"> 
-                        {{ _('<em class="folder-path-text"> /%(folder_path)s</em>', folder_path=folder_path )}}
+                    <a href="{{ url_for('main.user_subfolder', username=post.author.username, path=folder_path) }}"  class="folder-path-link">
+                        {% if folder_path | length >= 30 %} 
+                            {{ _('<em class="folder-path-text">
+                                ...%(folder_path)s
+                            </em>', folder_path=folder_path[-30:] )}}
+                        {% else %}
+                            {{ _('<em class="folder-path-text">
+                                %(folder_path)s
+                            </em>', folder_path=folder_path )}}                        
+                        {% endif %}
                     </a>
                 {% endif %}
             

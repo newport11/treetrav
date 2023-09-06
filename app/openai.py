@@ -4,7 +4,7 @@ api_endpoint = 'https://api.openai.com/v1/chat/completions'
 
 
 def generate_link_summary(url, api_key):
-    prompt = f"summarize the following url in 100 characters or less: {url}"
+    prompt = f"summarize the following url in 74 characters or less: {url}"
     max_summary_length = 25
 
     response = requests.post(

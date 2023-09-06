@@ -5,7 +5,7 @@
     {% if user_home_page %}
     <form method="post" action="{{ url_for('main.user', username=user.username ) }}">
         <div style="display: inline-block; vertical-align: text-top;">
-            <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
+            <button class="btn" type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
                 <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="30" height="30" name="back" />
             </button>
         </div>
@@ -14,7 +14,7 @@
     {% else %}
     <form method="post" action="{{ url_for('main.user_subfolder', username=user.username, path=prevPath  ) }}">
         <div style="display: inline-block; vertical-align: text-top;">
-            <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
+            <button class="btn" type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
                 <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="30" height="30" name="back" />
             </button>
         </div>
