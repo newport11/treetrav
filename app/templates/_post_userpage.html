@@ -16,9 +16,20 @@
         <td>
             {% block post %}
             {% if post.body %} <a href="{{ post.link}}" target="_blank" class="posted-link-text">
-                {{ post.body }}
-            </a> {% else %}   <a href="{{ post.link}}" target="_blank" class="posted-link-text">
-                {{ post.link }} </a> {% endif %}
+                {% if post.body | length > 75 %}
+                    {{ post.body[:75] }}...
+                {% else %}
+                    {{ post.body }}
+                {% endif %}
+            </a> 
+            {% else %}   <a href="{{ post.link}}" target="_blank" class="posted-link-text">
+                {% if post.link | length > 75 %}
+                    {{ post.link[:75] }}...
+                {% else %}
+                    {{ post.link }}
+                {% endif %}
+            </a> 
+            {% endif %}
             {% endblock %}
             
             {% set when_text = moment(post.timestamp).fromNow(true) %}
