@@ -22,12 +22,12 @@
 
 .when-text {
     opacity: 0.7; /* You can adjust the opacity value */
-    font-weight: lighter; /* You can adjust the font-weight value */
+    font-weight: 250; /* You can adjust the font-weight value */
 }
 
 .folder-path-link {
     color: #888; /* Use the desired grey color code */
-    font-weight: lighter;
+    font-weight: 250;
     text-decoration: none; /* Remove underline from links */
 }
 .folder-path-link:hover {
@@ -78,3 +78,7 @@
     margin-left: 0px;
     vertical-align: top;
 }
+
+/* .current_folder{
+    color: #888;
+} */

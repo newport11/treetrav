@@ -105,8 +105,8 @@ def explore():
                            prev_url=prev_url)
 
 
-@bp.route('/user/<username>/')
-@bp.route('/user/<username>')
+@bp.route('/user/<username>/', methods=['POST','GET'])
+@bp.route('/user/<username>', methods=['POST','GET'] )
 @login_required
 def user(username):
     user = User.query.filter_by(username=username).first_or_404()
@@ -166,7 +166,7 @@ def get_following(username):
                            next_url=next_url, prev_url=prev_url)
 
 
-@bp.route('/user/<username>/<path:path>')
+@bp.route('/user/<username>/<path:path>', methods=['POST','GET'])
 @login_required
 def user_subfolder(username, path):
     user = User.query.filter_by(username=username).first_or_404()
@@ -183,10 +183,17 @@ def user_subfolder(username, path):
             if post.folder_name != "" and post.folder_name not in visited_folders:
                 visited_folders.append(post.folder_name)
                 folders.append(post)
+    splitPath = path.rstrip("/").rsplit("/", 1)
+    prevPath = splitPath[0]
+    current_folder = splitPath[-1]
+    if len(path.split("/")) <= 1:
+        user_home_page = True
+    else:
+        user_home_page = False
 
     form = EmptyForm()
     return render_template('user_subfolder.html', user=user, posts=posts,
-                        form=form, folders=folders)
+                        form=form, folders=folders, prevPath=prevPath, user_home_page=user_home_page, current_folder=current_folder)
 
 
 @bp.route('/edit_profile', methods=['GET', 'POST'])

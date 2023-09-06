@@ -1,6 +1,28 @@
 {% extends "base.html" %}
 
 {% block app_content %}
+<div style="text-align: left;" class="subfolder_back">
+    {% if user_home_page %}
+    <form method="post" action="{{ url_for('main.user', username=user.username ) }}">
+        <div style="display: inline-block; vertical-align: text-top;">
+            <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
+                <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="30" height="30" name="back" />
+            </button>
+        </div>
+        <h2 class="current_folder" style="display: inline-block; vertical-align: middle; margin-left: 10px;">/{{ current_folder }}</h2>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('main.user_subfolder', username=user.username, path=prevPath  ) }}">
+        <div style="display: inline-block; vertical-align: text-top;">
+            <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
+                <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="30" height="30" name="back" />
+            </button>
+        </div>
+        <h2 class="current_folder" style="display: inline-block; vertical-align: middle; margin-left: 10px;">/{{ current_folder }}</h2>
+    </form>
+    {% endif %}
+</div>
+
     {% for folder in folders %}
         {% include '_folder.html' %}
     {% endfor %}

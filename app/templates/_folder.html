@@ -3,7 +3,7 @@
 <table class="table table-hover">
     <tr>
         <td width="25px">
-            <a href="{{ url_for('main.user', username=folder.author.username) }}">
+            <a href="{{ url_for('main.user_subfolder', username=folder.author.username, path=folder.folder_link) }}">
                 <img width="25" height="25" src="https://img.icons8.com/3d-fluency/25/folder-invoices--v1.png" alt="folder-invoices--v1"/>
             </a>
         </td>

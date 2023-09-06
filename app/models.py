@@ -207,7 +207,7 @@ def load_user(id):
 class Post(SearchableMixin, db.Model):
     __searchable__ = ['body']
     id = db.Column(db.Integer, primary_key=True)
-    link = db.Column(db.String(255))
+    link = db.Column(db.String(2048))
     body = db.Column(db.String(140))
     folder_name = db.Column(db.String(255))
     folder_link = db.Column(db.String(255))
