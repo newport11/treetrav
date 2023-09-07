@@ -42,7 +42,7 @@ class PostForm(FlaskForm):
             raise ValidationError(_(f'Must be 75 characters or less, currently {length}'))
         
     post_link = TextAreaField(_l('Post a link'), validators=[DataRequired(), validate_post])
-    post_body = TextAreaField(_l('Text to be displayed'), validators=[validate_body])
+    post_body = TextAreaField(_l('Description'), validators=[validate_body])
     post_folder= TextAreaField(_l('Folder'))
     submit = SubmitField(_l('Submit'))
 

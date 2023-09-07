@@ -15,7 +15,7 @@
             </a> 
             {% endblock %}
 
-            {{ _('<em class="when-text"> • %(when)s </em>', when=moment(folder.timestamp).fromNow(true)) }}
+            {{ _('<em class="when-text"> • %(when)s </em>', when=moment(folder.timestamp).fromNow()) }}
 
         </td>
 

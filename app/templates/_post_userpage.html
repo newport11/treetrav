@@ -32,7 +32,7 @@
             {% endif %}
             {% endblock %}
             
-            {% set when_text = moment(post.timestamp).fromNow(true) %}
+            {% set when_text = moment(post.timestamp).fromNow() %}
             {{ _('<em class="when-text"> • %(when)s</em>', when=when_text )}}
         </td>
 

@@ -10,7 +10,7 @@
                 <h1 class="username-profile-text">{{ user.username }} {% if user.verified == True %}<img src="{{ url_for( 'static', filename='green_check32.png') }}" class="green-check-icon" /> {% endif %} </h1>
                 {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
                 {% if user.last_seen %}
-                <p>{{ _('Last seen') }}: {{ moment(user.last_seen).format('LLL') }}</p>
+                <p>{{ _('Last seen') }}: {{ moment(user.last_seen).format('LL') }}</p>
                 {% endif %}
                 <p>
                     <a href="{{ url_for('main.get_following', username=user.username) }}"> 
@@ -25,7 +25,7 @@
                         <span class="userpage-counts-text">links</span>
                 </p>
                 {% if user == current_user %}
-                <p><a href="{{ url_for('main.edit_profile') }}">{{ _('Edit your profile') }}</a></p>
+                <p><a href="{{ url_for('main.edit_profile') }}">{{ _('Edit Profile') }}</a></p>
                 {% elif not current_user.is_following(user) %}
                 <p>
                     <form action="{{ url_for('main.follow', username=user.username) }}" method="post">
