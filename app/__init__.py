@@ -26,6 +26,13 @@ moment = Moment()
 babel = Babel()
 htmx = HTMX()
 
+def shorten_folder_path(path):
+    shortened_path = path[-30:]
+    shortened_path_list = shortened_path.split("/", 1)
+    if len(shortened_path_list) > 1:
+        return shortened_path_list[1]
+    else:
+        return shortened_path
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -53,6 +60,8 @@ def create_app(config_class=Config):
 
     from app.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix='/api')
+
+    app.jinja_env.globals.update(shorten_folder_path=shorten_folder_path)
 
     if not app.debug and not app.testing:
         if app.config['MAIL_SERVER']:

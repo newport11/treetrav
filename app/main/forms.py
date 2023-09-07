@@ -34,10 +34,15 @@ class EmptyForm(FlaskForm):
 class PostForm(FlaskForm):
     def validate_post(self, form):
         if validators.url(self.data['post_link']) is not True:
-            raise ValidationError(_('Post must be a valid link.'))
+            raise ValidationError(_('Must post valid link'))
+        
+    def validate_body(self, form):
+        length = len(self.data['post_body'])
+        if length > 75:
+            raise ValidationError(_(f'Must be 75 characters or less, currently {length}'))
         
     post_link = TextAreaField(_l('Post a link'), validators=[DataRequired(), validate_post])
-    post_body = TextAreaField(_l('Text to be displayed'))
+    post_body = TextAreaField(_l('Text to be displayed'), validators=[validate_body])
     post_folder= TextAreaField(_l('Folder'))
     submit = SubmitField(_l('Submit'))
 

@@ -36,7 +36,7 @@ def index():
             post.favicon_file_name = favicon_file_name
         db.session.add(post)
         db.session.commit()
-        flash(_('Your post is now live!'))
+        flash(_('Your link is now posted!'))
         return redirect(url_for('main.index'))
     ''' 
     if request.method == 'POST' and request.headers.get('HX-Request'):
@@ -69,7 +69,7 @@ def delete_post(post_id):
     if current_user.id == post.user_id:
         db.session.delete(post)
         db.session.commit()
-        flash('Post deleted.')
+        flash('Link deleted.')
         return redirect(request.referrer)
 
 @bp.route('/folder/delete/<path:folder_link>', methods=['POST'])

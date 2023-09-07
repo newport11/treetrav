@@ -61,11 +61,11 @@
                     <a href="{{ url_for('main.user_subfolder', username=post.author.username, path=folder_path) }}"  class="folder-path-link">
                         {% if folder_path | length >= 30 %} 
                             {{ _('<em class="folder-path-text">
-                                ...%(folder_path)s
-                            </em>', folder_path=folder_path[-30:] )}}
+                                .../%(folder_path)s
+                            </em>', folder_path=shorten_folder_path(folder_path) )}}
                         {% else %}
                             {{ _('<em class="folder-path-text">
-                                %(folder_path)s
+                                /%(folder_path)s
                             </em>', folder_path=folder_path )}}                        
                         {% endif %}
                     </a>
