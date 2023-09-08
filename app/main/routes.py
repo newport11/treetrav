@@ -107,7 +107,6 @@ def explore():
 
 @bp.route('/user/<username>/', methods=['POST','GET'])
 @bp.route('/user/<username>', methods=['POST','GET'] )
-@login_required
 def user(username):
     user = User.query.filter_by(username=username).first_or_404()
     page = request.args.get('page', 1, type=int)
@@ -134,7 +133,6 @@ def user(username):
 
 
 @bp.route('/followers/<username>')
-@login_required
 def get_followers(username):
     user = User.query.filter_by(username=username).first_or_404()
     page = request.args.get('page', 1, type=int)
@@ -150,7 +148,6 @@ def get_followers(username):
                            next_url=next_url, prev_url=prev_url)
 
 @bp.route('/following/<username>')
-@login_required
 def get_following(username):
     user = User.query.filter_by(username=username).first_or_404()
     page = request.args.get('page', 1, type=int)
@@ -167,7 +164,6 @@ def get_following(username):
 
 
 @bp.route('/user/<username>/<path:path>', methods=['POST','GET'])
-@login_required
 def user_subfolder(username, path):
     user = User.query.filter_by(username=username).first_or_404()
     posts = user.posts.filter_by(folder_link=path).order_by(Post.timestamp.desc())

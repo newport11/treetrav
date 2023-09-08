@@ -47,10 +47,10 @@ class PostForm(FlaskForm):
             if len(folder) > 30:
                 raise ValidationError(_(f'Individual folder length must be under 30 characters, currently {len(folder)}'))
         
-    post_link = TextAreaField(_l('Post a link'), validators=[DataRequired(), validate_post])
+    post_link = TextAreaField(_l('Link*'), validators=[DataRequired(), validate_post])
     post_body = TextAreaField(_l('Description'), validators=[validate_body])
     post_folder= TextAreaField(_l('Folder'), validators=[validate_folder])
-    submit = SubmitField(_l('Submit'))
+    submit = SubmitField(_l('Post'))
 
 
 class SearchForm(FlaskForm):

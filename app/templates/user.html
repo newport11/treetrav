@@ -24,22 +24,24 @@
                         <span class="userpage-counts"> {{ _('%(count)d', count=user.posts.count()) }} </span>
                         <span class="userpage-counts-text">links</span>
                 </p>
-                {% if user == current_user %}
-                <p><a href="{{ url_for('main.edit_profile') }}">{{ _('Edit Profile') }}</a></p>
-                {% elif not current_user.is_following(user) %}
-                <p>
-                    <form action="{{ url_for('main.follow', username=user.username) }}" method="post">
-                        {{ form.hidden_tag() }}
-                        {{ form.submit(value=_('Follow'), class_='btn btn-default') }}
-                    </form>
-                </p>
-                {% else %}
-                <p>
-                    <form action="{{ url_for('main.unfollow', username=user.username) }}" method="post">
-                        {{ form.hidden_tag() }}
-                        {{ form.submit(value=_('Unfollow'), class_='btn btn-default') }}
-                    </form>
-                </p>
+                {% if current_user.get_id() %}
+                    {% if user == current_user %}
+                    <p><a href="{{ url_for('main.edit_profile') }}">{{ _('Edit Profile') }}</a></p>
+                    {% elif not current_user.is_following(user) %}
+                    <p>
+                        <form action="{{ url_for('main.follow', username=user.username) }}" method="post">
+                            {{ form.hidden_tag() }}
+                            {{ form.submit(value=_('Follow'), class_='btn btn-default') }}
+                        </form>
+                    </p>
+                    {% else %}
+                    <p>
+                        <form action="{{ url_for('main.unfollow', username=user.username) }}" method="post">
+                            {{ form.hidden_tag() }}
+                            {{ form.submit(value=_('Unfollow'), class_='btn btn-default') }}
+                        </form>
+                    </p>
+                    {% endif %}
                 {% endif %}
             </td>
         </tr>
