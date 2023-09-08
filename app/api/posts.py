@@ -17,15 +17,17 @@ def get_post(id):
 @token_auth.login_required
 def post_link():
     data = request.get_json() or {}
-    if 'link' not in data or 'text' not in data:
-        return bad_request('must include link and text fields')
+    if 'link' not in data or data['link'] == "":
+        return bad_request('must include link field')
+    if 'text' not in data or data['text'] == "":
+        text = data['link']
+    else:
+        text = data['text']
     if 'folder' not in data:
         folder=None
     else:
         folder=data['folder']
     link = data['link']
-    text = data['text']
-    print(token_auth.current_user())
     post = Post(link=link, body=text, folder_link=folder.strip().strip("/") if folder else "/", author=token_auth.current_user())
     favicon_file_name = get_favicon(post.link)
     if favicon_file_name:
