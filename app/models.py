@@ -60,6 +60,12 @@ followers = db.Table(
     db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
 )
 
+user_favorites = db.Table(
+    'user_favorites',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('post_id', db.Integer, db.ForeignKey('post.id'))
+)
+
 class PaginatedAPIMixin(object):
     @staticmethod
     def to_collection_dict(query, page, per_page, endpoint, **kwargs):
@@ -100,6 +106,11 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
         primaryjoin=(followers.c.follower_id == id),
         secondaryjoin=(followers.c.followed_id == id),
         backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
+    favorites = db.relationship(
+        'Post', secondary='user_favorites',
+        primaryjoin=(user_favorites.c.user_id == id),
+        backref=db.backref('user_favorites', lazy='dynamic'), lazy='dynamic')
+    
 
     def to_dict(self, include_email=False):
         data = {
@@ -183,6 +194,25 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
                 followers.c.follower_id == self.id)
         own = Post.query.filter_by(user_id=self.id)
         return followed.union(own).order_by(Post.timestamp.desc())
+
+    def favorite(self, post):
+        if not self.is_favorite(post):
+            self.favorites.append(post)
+
+    def unfavorite(self, post):
+        if self.is_favorite(post):
+            self.favorites.remove(post)
+
+    def is_favorite(self, post):
+        return self.favorites.filter(
+            user_favorites.c.post_id == post.id).count() > 0
+    
+    def favorite_posts(self):
+        favorites = Post.query.join(
+            user_favorites, (user_favorites.c.post_id == Post.id)).filter(
+                user_favorites.c.user_id == self.id)
+        own = Post.query.filter_by(user_id=self.id)
+        return favorites.union(own).order_by(Post.timestamp.desc())
 
     def get_reset_password_token(self, expires_in=600):
         return jwt.encode(

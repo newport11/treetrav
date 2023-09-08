@@ -72,6 +72,7 @@ def delete_post(post_id):
         flash('Link deleted.')
         return redirect(request.referrer)
 
+
 @bp.route('/folder/delete/<path:folder_link>', methods=['POST'])
 @login_required
 def delete_folder(folder_link):
@@ -87,6 +88,27 @@ def delete_folder(folder_link):
     return redirect(url_for('main.user', username=current_user.username)) if previous_folder == "/" else redirect(url_for('main.user_subfolder', 
                                                                                                                       username=current_user.username,
                                                                                                                       path=previous_folder))
+
+
+@bp.route('/post/favorite/<int:post_id>', methods=['POST'])
+@login_required
+def favorite_post(post_id):
+    post = Post.query.filter_by(id=post_id).first_or_404()
+    if current_user.id != post.user_id:
+        current_user.favorite(post)
+        db.session.commit()
+        return redirect(request.referrer)
+
+
+@bp.route('/post/unfavorite/<int:post_id>', methods=['POST'])
+@login_required
+def unfavorite_post(post_id):
+    post = Post.query.filter_by(id=post_id).first_or_404()
+    if current_user.id != post.user_id:
+        current_user.unfavorite(post)
+        db.session.commit()
+        return redirect(request.referrer)
+
 
 @bp.route('/explore/')
 @bp.route('/explore')
@@ -140,9 +162,9 @@ def get_followers(username):
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False)
     
-    next_url = url_for('main.user', username=user.username,
+    next_url = url_for('main.get_followers', username=user.username,
                        page=followers.next_num) if followers.has_next else None
-    prev_url = url_for('main.user', username=user.username,
+    prev_url = url_for('main.get_followers', username=user.username,
                        page=followers.prev_num) if followers.has_prev else None
     return render_template('followers.html', user=user, followers=followers.items,
                            next_url=next_url, prev_url=prev_url)
@@ -155,11 +177,27 @@ def get_following(username):
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False)
     
-    next_url = url_for('main.user', username=user.username,
+    next_url = url_for('main.get_following', username=user.username,
                        page=following.next_num) if following.has_next else None
-    prev_url = url_for('main.user', username=user.username,
+    prev_url = url_for('main.get_following', username=user.username,
                        page=following.prev_num) if following.has_prev else None
     return render_template('following.html', user=user, following=following.items,
+                           next_url=next_url, prev_url=prev_url)
+
+
+@bp.route('/favorites/<username>')
+def get_favorites(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    page = request.args.get('page', 1, type=int)
+    favorites = user.favorites.order_by(Post.id.desc()).paginate(
+        page=page, per_page=current_app.config['POSTS_PER_PAGE'],
+        error_out=False)
+    
+    next_url = url_for('main.get_favorites', username=user.username,
+                       page=favorites.next_num) if favorites.has_next else None
+    prev_url = url_for('main.get_favorites', username=user.username,
+                       page=favorites.prev_num) if favorites.has_prev else None
+    return render_template('favorites.html', user=user, posts=favorites.items,
                            next_url=next_url, prev_url=prev_url)
 
 

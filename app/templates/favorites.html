@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+
+{% block app_content %}
+<div style="text-align: left;" class="subfolder_back">
+    <form method="post" action="{{ url_for('main.user', username=user.username ) }}">
+        <div style="display: inline-block; vertical-align: text-top;">
+            <button class="btn" type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
+                <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="30" height="30" name="back" />
+            </button>
+        </div>
+    <h1>{{ _('Favorites') }}</h1>
+</div>
+    {% for post in posts %}
+        {% include '_post.html' %}
+    {% endfor %}
+
+<nav aria-label="...">
+    <ul class="pager">
+        <li class="previous{% if not prev_url %} disabled{% endif %}">
+            <a href="{{ prev_url or '#' }}">
+                <span aria-hidden="true">&larr;</span> {{ _('Newer Posts') }}
+            </a>
+        </li>
+        <li class="next{% if not next_url %} disabled{% endif %}">
+            <a href="{{ next_url or '#' }}">
+                {{ _('Older Posts') }} <span aria-hidden="true">&rarr;</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endblock %}

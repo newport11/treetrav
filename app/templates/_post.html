@@ -47,18 +47,20 @@
             
 
         </td>
-        <td style="text-align: right;">
+        
 
         {% block folder_path %}
         {% if current_user.id != post.user_id%}
-        {% set folder_path = post.folder_link %}
-            
+            {% set folder_path = post.folder_link %}
+            <td style="text-align: right;">
+                <div style="display: inline-flex; justify-content: space-between;"> 
+
                 {% if folder_path == "/" or not folder_path%}
-                    <a href="{{ url_for('main.user', username=post.author.username) }}"  class="folder-path-link" > 
+                    <a href="{{ url_for('main.user', username=post.author.username) }}"  class="folder-path-link" style="margin-right: 15px;" > 
                         {{ _('<em class="folder-path-text"> %(folder_path)s </em>', folder_path=folder_path )}}
                     </a>
                 {% else %}
-                    <a href="{{ url_for('main.user_subfolder', username=post.author.username, path=folder_path) }}"  class="folder-path-link">
+                    <a href="{{ url_for('main.user_subfolder', username=post.author.username, path=folder_path) }}"  class="folder-path-link" style="margin-right: 15px;">
                         {% if folder_path | length >= 30 %} 
                             {{ _('<em class="folder-path-text">
                                 .../%(folder_path)s
@@ -70,29 +72,40 @@
                         {% endif %}
                     </a>
                 {% endif %}
-            
+        
+                {% if current_user.is_favorite(post) %}
+                <form method="post" action="{{ url_for('main.unfavorite_post', post_id=post.id ) }}">
+                    <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
+                        <img width="25" height="25" src="https://img.icons8.com/fluency/25/filled-star.png" name="favorite"/>
+                        </button>
+                </form>
+                {% else %}
+                <form method="post" action="{{ url_for('main.favorite_post', post_id=post.id ) }}">
+                    <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
+                        <img width="25" height="25" src="https://img.icons8.com/windows/25/star--v1.png" name="unfavorite"/>
+                        </button>
+                </form>
+                {% endif %}
+                </div>
+            </td>
             
         {% endif %}
         {% endblock %}
-        </td>
+
 
         
         {% block delete %}
         {% if current_user.id == post.user_id%}
-        <td> 
-            <div style="text-align: right;"> 
+        <td style="text-align: right;"> 
             <form method="post" action="{{ url_for('main.delete_post', post_id=post.id ) }}">
                 <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
                     <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" />
                    </button>
             </form>
-            </div>
-
-            {% endif %}
+        {% endif %}
         </td>
-
         {% endblock %}
-        
+ 
 
 
         
