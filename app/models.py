@@ -211,8 +211,7 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
         favorites = Post.query.join(
             user_favorites, (user_favorites.c.post_id == Post.id)).filter(
                 user_favorites.c.user_id == self.id)
-        own = Post.query.filter_by(user_id=self.id)
-        return favorites.union(own).order_by(Post.timestamp.desc())
+        return favorites.order_by(Post.timestamp.desc())
 
     def get_reset_password_token(self, expires_in=600):
         return jwt.encode(

@@ -192,7 +192,6 @@ def get_favorites(username):
     favorites = user.favorites.order_by(Post.id.desc()).paginate(
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False)
-    
     next_url = url_for('main.get_favorites', username=user.username,
                        page=favorites.next_num) if favorites.has_next else None
     prev_url = url_for('main.get_favorites', username=user.username,
