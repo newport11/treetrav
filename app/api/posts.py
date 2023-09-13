@@ -19,12 +19,12 @@ def post_link():
     data = request.get_json() or {}
     if 'link' not in data or data['link'] == "":
         return bad_request('must include link field')
-    if 'text' not in data or data['text'] == "":
-        text = data['link']
+    if 'text' not in data or data['text'].strip() == "":
+        text = None
     else:
         text = data['text']
     if 'folder' not in data:
-        folder=None
+        folder = None
     else:
         folder=data['folder']
     link = data['link']
