@@ -367,6 +367,26 @@ def request_follow(username):
         return redirect(url_for('main.home'))
 
 
+@bp.route('/cancel_request_follow/<username>', methods=['POST'])
+@login_required
+def cancel_request_follow(username):
+    form = EmptyForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=username).first()
+        if user is None:
+            flash(_('User %(username)s not found.', username=username))
+            return redirect(url_for('main.home'))
+        if user == current_user:
+            flash(_('You cannot cancel request for yourself!'))
+            return redirect(url_for('main.user', username=username))
+        current_user.unrequest_follow(user)
+        db.session.commit()
+        flash(_('Cancelled request to follow %(username)s!', username=username))
+        return redirect(url_for('main.user', username=username))
+    else:
+        return redirect(url_for('main.home'))
+    
+
 @bp.route('/unfollow/<username>', methods=['POST'])
 @login_required
 def unfollow(username):

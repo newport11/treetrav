@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block app_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
     <h1>{{ _('Search Results') }}</h1>
     {% for post in posts %}
         {% include '_post.html' %}

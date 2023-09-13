@@ -38,7 +38,12 @@
                         </form>
                     </p>
                     {% else %}
-                        <a href="{{ url_for('main.user', username=user.username) }}" class="green-button"> {{ _('Request Sent!') }}</a>
+                    <p>
+                        <form action="{{ url_for('main.cancel_request_follow', username=user.username) }}" method="post">
+                            {{ form.hidden_tag() }}
+                            {{ form.submit(value=_('Cancel Follow Request'), class_='btn btn-default') }}
+                        </form>
+                    </p>
                     {% endif %}
                 {% endif %}
             {% endif %}
