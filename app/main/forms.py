@@ -1,6 +1,6 @@
 from flask import request
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField 
+from wtforms import StringField, SubmitField, TextAreaField, BooleanField
 from wtforms.validators import ValidationError, DataRequired, Length
 from flask_babel import _, lazy_gettext as _l
 from app.models import User, Post
@@ -8,16 +8,17 @@ import validators
 
 
 
-class EditProfileForm(FlaskForm):
+class SettingsForm(FlaskForm):
     username = StringField(_l('Username'), validators=[DataRequired()])
     email = TextAreaField(_l('Email'),
                              validators=[Length(min=0, max=140)])
     about_me = TextAreaField(_l('About me'),
                              validators=[Length(min=0, max=140)])
+    private_mode = BooleanField(_l('Private Mode'), default=False)
     submit = SubmitField(_l('Save'))
 
     def __init__(self, original_username, *args, **kwargs):
-        super(EditProfileForm, self).__init__(*args, **kwargs)
+        super(SettingsForm, self).__init__(*args, **kwargs)
         self.original_username = original_username
 
     def validate_username(self, username):

@@ -60,6 +60,12 @@ followers = db.Table(
     db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
 )
 
+follower_requests = db.Table(
+    'follower_requests',
+    db.Column('requestor_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('requestee_id', db.Integer, db.ForeignKey('user.id'))
+)
+
 user_favorites = db.Table(
     'user_favorites',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
@@ -99,6 +105,7 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     verified = db.Column(db.Boolean, default=False)
+    private_mode = db.Column(db.Boolean, default=False)
     token = db.Column(db.String(32), index=True, unique=True)
     token_expiration = db.Column(db.DateTime)
     followed = db.relationship(
@@ -106,6 +113,11 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
         primaryjoin=(followers.c.follower_id == id),
         secondaryjoin=(followers.c.followed_id == id),
         backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
+    follow_requests = db.relationship(
+        'User', secondary=follower_requests,
+        primaryjoin=(follower_requests.c.requestor_id == id),
+        secondaryjoin=(follower_requests.c.requestee_id == id),
+        backref=db.backref('follower_requests', lazy='dynamic'), lazy='dynamic')
     favorites = db.relationship(
         'Post', secondary='user_favorites',
         primaryjoin=(user_favorites.c.user_id == id),
@@ -179,7 +191,7 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
     def follow(self, user):
         if not self.is_following(user):
             self.followed.append(user)
-
+    
     def unfollow(self, user):
         if self.is_following(user):
             self.followed.remove(user)
@@ -187,6 +199,24 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
     def is_following(self, user):
         return self.followed.filter(
             followers.c.followed_id == user.id).count() > 0
+
+    def request_follow(self, user):
+        if not self.is_requested(user):
+            self.follow_requests.append(user)
+
+    def unrequest_follow(self, user):
+        if  self.is_requested(user):
+            self.follow_requests.remove(user)       
+
+    def is_requested(self, user):
+        return self.follow_requests.filter(
+            follower_requests.c.requestee_id == user.id).count() > 0
+    
+    def get_follow_requestors(self):
+        requests = User.query.join(
+            follower_requests, (follower_requests.c.requestor_id == User.id)).filter(
+                follower_requests.c.requestee_id == self.id)
+        return requests.order_by(User.id.desc())
 
     def followed_posts(self):
         followed = Post.query.join(

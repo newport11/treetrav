@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+
+{% block app_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+
+<table class="table table-hover">
+    <tr>
+        <td width="180px"><img src="{{ user.avatar(155) }}"></td>
+        <td>
+            <h1 class="username-profile-text">{{ user.username }} {% if user.verified == True %}<img src="{{ url_for( 'static', filename='green_check32.png') }}" class="green-check-icon" /> {% endif %} </h1>
+            {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
+            <p>
+                <a href="{{ url_for('main.get_following', username=user.username) }}"> 
+                    <span class="userpage-counts">
+                            {{ _('%(count)d', count=user.followed.count()) }}  </span>
+                    <span class="userpage-counts-text">following</span></a>, 
+                <a href="{{ url_for('main.get_followers', username=user.username) }}">
+                    <span class="userpage-counts">
+                            {{ _('%(count)d', count=user.followers.count()) }}</span>
+                    <span class="userpage-counts-text">followers</span></a>,
+                <a href="{{ url_for('main.user', username=user.username) }}"> 
+                    <span class="userpage-counts">
+                                {{ _('%(count)d', count=user.favorites.count()) }}  </span>
+                    <span class="userpage-counts-text">favorites</span></a>, 
+                    <span class="userpage-counts"> {{ _('%(count)d', count=user.posts.count()) }} </span>
+                    <span class="userpage-counts-text">links</span>
+            </p>
+            {% if current_user.get_id() %}
+                {% if user == current_user %}
+                <p><a href="{{ url_for('main.settings') }}">{{ _('Settings') }}</a></p>
+                {% elif not current_user.is_following(user) %}
+                    {% if not current_user.is_requested(user) %}
+                    <p>
+                        <form action="{{ url_for('main.request_follow', username=user.username) }}" method="post">
+                            {{ form.hidden_tag() }}
+                            {{ form.submit(value=_('Send Follow Request'), class_='btn btn-default') }}
+                        </form>
+                    </p>
+                    {% else %}
+                        <a href="{{ url_for('main.user', username=user.username) }}" class="green-button"> {{ _('Request Sent!') }}</a>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+
+           
+        </td>
+    </tr>
+</table>
+<hr> </hr>
+<p style="font-family: Helvetica, sans-serif;">This user is private. Request to follow them.</p>
+<hr> </hr>
+
+{% endblock %}
+

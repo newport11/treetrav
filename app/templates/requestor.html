@@ -1,0 +1,38 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+
+<table class="table table-hover">
+    <tr>
+        {% block requestor %}
+
+        
+        <td> 
+            <div class="approve-button-container" style="display: inline-flex; justify-content: space-between;">
+                <form action="{{ url_for('main.approve_follow', username=requestor.username) }}" method="post">
+                    {{ form.hidden_tag() }}
+                    {{ form.submit(value=_('Approve'), class_='btn btn-default') }}
+                </form>
+
+                <form action="{{ url_for('main.deny_follow', username=requestor.username) }}" method="post">
+                    {{ form.hidden_tag() }}
+                    {{ form.submit(value=_('Deny'), class_='btn btn-default') }}
+                </form>
+
+            </div>
+
+            <div class="requestor-info-container" style="display: inline-flex; justify-content: space-between;">
+                <a href="{{ url_for('main.user', username=requestor.username) }}" >
+                            <img src="{{  requestor.avatar(25)  }}" />
+                </a>
+
+                <a href="{{ url_for('main.user', username=requestor.username) }}">
+                    {{ requestor.username }}  {% if requestor.verified == True %} <img src="{{ url_for( 'static', filename='green_check16.png') }}"  /> {% endif %}
+                </a>
+            </div>
+
+        </td>
+
+
+
+        {% endblock %}
+    </tr>
+</table>

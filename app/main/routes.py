@@ -3,8 +3,9 @@ from flask import render_template, flash, redirect, url_for, request, g, \
     jsonify, current_app
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
+from sqlalchemy import and_
 from app import db
-from app.main.forms import EditProfileForm, EmptyForm, PostForm, SearchForm
+from app.main.forms import SettingsForm, EmptyForm, PostForm, SearchForm
 from app.models import User, Post
 from app.main import bp
 from app.favicon import get_favicon
@@ -115,9 +116,12 @@ def unfavorite_post(post_id):
 @login_required
 def explore():
     page = request.args.get('page', 1, type=int)
-    posts = Post.query.order_by(Post.timestamp.desc()).paginate(
+    posts = db.session.query(Post).join(User).filter(User.private_mode == False).order_by(Post.timestamp.desc()).paginate(
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False)
+    #    posts = Post.query.filter_by(Post.author.private_mode=False).order_by(Post.timestamp.desc()).paginate(
+    #    page=page, per_page=current_app.config['POSTS_PER_PAGE'],
+    #    error_out=False)
     next_url = url_for('main.explore', page=posts.next_num) \
         if posts.has_next else None
     prev_url = url_for('main.explore', page=posts.prev_num) \
@@ -131,27 +135,35 @@ def explore():
 @bp.route('/user/<username>', methods=['POST','GET'] )
 def user(username):
     user = User.query.filter_by(username=username).first_or_404()
-    page = request.args.get('page', 1, type=int)
-    posts = user.posts.filter_by(folder_link="/").order_by(Post.timestamp.desc()).paginate(
-        page=page, per_page=current_app.config['POSTS_PER_PAGE'],
-        error_out=False)
-    
-    folders_tmp = user.posts.filter(Post.folder_link !="/").order_by(Post.timestamp.desc()).all()
-    folders = []
-    visited_folders = []
-    for post in folders_tmp:
-        post.folder_name = post.folder_link = post.folder_link.split("/")[0]
-        if post.folder_name != "" and post.folder_name not in visited_folders:
-            visited_folders.append(post.folder_name)
-            folders.append(post)
-    
-    next_url = url_for('main.user', username=user.username,
-                       page=posts.next_num) if posts.has_next else None
-    prev_url = url_for('main.user', username=user.username,
-                       page=posts.prev_num) if posts.has_prev else None
+    followers = user.followers
     form = EmptyForm()
-    return render_template('user.html', user=user, posts=posts.items,
-                           next_url=next_url, prev_url=prev_url, form=form, folders=folders)
+    if current_user.get_id():
+        is_following = current_user in followers
+    else:
+        is_following = False
+    if (user.private_mode == True and user != current_user and not is_following)  :
+        return render_template('user_private.html', user=user, form=form)
+    else:
+        page = request.args.get('page', 1, type=int)
+        posts = user.posts.filter_by(folder_link="/").order_by(Post.timestamp.desc()).paginate(
+            page=page, per_page=current_app.config['POSTS_PER_PAGE'],
+            error_out=False)
+        
+        folders_tmp = user.posts.filter(Post.folder_link !="/").order_by(Post.timestamp.desc()).all()
+        folders = []
+        visited_folders = []
+        for post in folders_tmp:
+            post.folder_name = post.folder_link = post.folder_link.split("/")[0]
+            if post.folder_name != "" and post.folder_name not in visited_folders:
+                visited_folders.append(post.folder_name)
+                folders.append(post)
+        
+        next_url = url_for('main.user', username=user.username,
+                        page=posts.next_num) if posts.has_next else None
+        prev_url = url_for('main.user', username=user.username,
+                        page=posts.prev_num) if posts.has_prev else None
+        return render_template('user.html', user=user, posts=posts.items,
+                            next_url=next_url, prev_url=prev_url, form=form, folders=folders)
 
 
 @bp.route('/followers/<username>')
@@ -200,52 +212,80 @@ def get_favorites(username):
                            next_url=next_url, prev_url=prev_url)
 
 
+@bp.route('/follow_requests/<username>')
+def get_follow_requests(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    page = request.args.get('page', 1, type=int)
+    requests = user.get_follow_requestors().paginate(
+        page=page, per_page=current_app.config['POSTS_PER_PAGE'],
+        error_out=False)
+    next_url = url_for('main.get_favorites', username=user.username,
+                       page=requests.next_num) if requests.has_next else None
+    prev_url = url_for('main.get_favorites', username=user.username,
+                       page=requests.prev_num) if requests.has_prev else None
+    form = EmptyForm()
+
+    return render_template('follow_requests.html', user=user, requestors=requests.items,
+                           next_url=next_url, prev_url=prev_url, form=form)
+
+
 @bp.route('/user/<username>/<path:path>', methods=['POST','GET'])
 def user_subfolder(username, path):
     user = User.query.filter_by(username=username).first_or_404()
-    posts = user.posts.filter_by(folder_link=path).order_by(Post.timestamp.desc())
-    folders_tmp = user.posts.filter(Post.folder_link !=path ).order_by(Post.timestamp.desc()).all()
-    folders = []
-    visited_folders = []
-    for post in folders_tmp:
-        if path not in post.folder_link:
-            continue
-        else:
-            post.folder_name = post.folder_link.removeprefix(path).strip("/").split("/")[0]
-            post.folder_link =  path + "/" + post.folder_name
-            if post.folder_name != "" and post.folder_name not in visited_folders:
-                visited_folders.append(post.folder_name)
-                folders.append(post)
-    splitPath = path.rstrip("/").rsplit("/", 1)
-    prevPath = splitPath[0]
-    current_folder = splitPath[-1]
-    if len(path.split("/")) <= 1:
-        user_home_page = True
-    else:
-        user_home_page = False
-
+    followers = user.followers
     form = EmptyForm()
-    return render_template('user_subfolder.html', user=user, posts=posts,
-                        form=form, folders=folders, prevPath=prevPath, user_home_page=user_home_page, current_folder=current_folder)
+    if current_user.get_id():
+        is_following = current_user in followers
+    else:
+        is_following = False
+    if (user.private_mode == True and user != current_user and not is_following)  :
+        return render_template('user_private.html', user=user, form=form)
+    else:
+        posts = user.posts.filter_by(folder_link=path).order_by(Post.timestamp.desc())
+        folders_tmp = user.posts.filter(Post.folder_link !=path ).order_by(Post.timestamp.desc()).all()
+        folders = []
+        visited_folders = []
+        for post in folders_tmp:
+            if path not in post.folder_link:
+                continue
+            else:
+                post.folder_name = post.folder_link.removeprefix(path).strip("/").split("/")[0]
+                post.folder_link =  path + "/" + post.folder_name
+                if post.folder_name != "" and post.folder_name not in visited_folders:
+                    visited_folders.append(post.folder_name)
+                    folders.append(post)
+        splitPath = path.rstrip("/").rsplit("/", 1)
+        prevPath = splitPath[0]
+        current_folder = splitPath[-1]
+        if len(path.split("/")) <= 1:
+            user_home_page = True
+        else:
+            user_home_page = False
+
+        return render_template('user_subfolder.html', user=user, posts=posts,
+                            form=form, folders=folders, prevPath=prevPath, user_home_page=user_home_page, current_folder=current_folder)
 
 
-@bp.route('/edit_profile', methods=['GET', 'POST'])
+@bp.route('/settings', methods=['GET', 'POST'])
 @login_required
-def edit_profile():
-    form = EditProfileForm(current_user.username)
+def settings():
+    form = SettingsForm(current_user.username)
     if form.validate_on_submit():
         current_user.username = form.username.data
         current_user.email = form.email.data
         current_user.about_me = form.about_me.data
+        current_user.private_mode = form.private_mode.data
         db.session.commit()
         flash(_('Your changes have been saved.'))
-        return redirect(url_for('main.edit_profile'))
+        return redirect(url_for('main.settings'))
     elif request.method == 'GET':
         form.username.data = current_user.username
         form.email.data = current_user.email
         form.about_me.data = current_user.about_me
-    return render_template('edit_profile.html', title=_('Edit Profile'),
+        form.private_mode.data = current_user.private_mode
+    return render_template('settings.html', title=_('Settings'),
                            form=form)
+
 
 
 @bp.route('/follow/<username>', methods=['POST'])
@@ -263,6 +303,65 @@ def follow(username):
         current_user.follow(user)
         db.session.commit()
         flash(_('You are following %(username)s!', username=username))
+        return redirect(url_for('main.user', username=username))
+    else:
+        return redirect(url_for('main.home'))
+
+
+@bp.route('/approve_follow/<username>', methods=['POST'])
+@login_required
+def approve_follow(username):
+    form = EmptyForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=username).first()
+        if user is None:
+            flash(_('User %(username)s not found.', username=username))
+            return redirect(url_for('main.home'))
+        if user == current_user:
+            flash(_('You cannot approve yourself'))
+            return redirect(request.referrer)
+        user.follow(current_user)
+        user.unrequest_follow(current_user)
+        db.session.commit()
+        return redirect(request.referrer)
+    else:
+        return redirect(request.referrer)
+    
+
+@bp.route('/deny_follow/<username>', methods=['POST'])
+@login_required
+def deny_follow(username):
+    form = EmptyForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=username).first()
+        if user is None:
+            flash(_('User %(username)s not found.', username=username))
+            return redirect(url_for('main.home'))
+        if user == current_user:
+            flash(_('You cannot deny yourself'))
+            return redirect(request.referrer)
+        user.unrequest_follow(current_user)
+        db.session.commit()
+        return redirect(request.referrer)
+    else:
+        return redirect(request.referrer)
+    
+
+@bp.route('/request_follow/<username>', methods=['POST'])
+@login_required
+def request_follow(username):
+    form = EmptyForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=username).first()
+        if user is None:
+            flash(_('User %(username)s not found.', username=username))
+            return redirect(url_for('main.home'))
+        if user == current_user:
+            flash(_('You cannot follow yourself!'))
+            return redirect(url_for('main.user', username=username))
+        current_user.request_follow(user)
+        db.session.commit()
+        flash(_('Requested to follow %(username)s!', username=username))
         return redirect(url_for('main.user', username=username))
     else:
         return redirect(url_for('main.home'))

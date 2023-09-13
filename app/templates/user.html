@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 
 {% block app_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
     <table class="table table-hover">
         <tr>
             <td width="180px"><img src="{{ user.avatar(155) }}"></td>
@@ -30,7 +30,13 @@
                 </p>
                 {% if current_user.get_id() %}
                     {% if user == current_user %}
-                    <p><a href="{{ url_for('main.edit_profile') }}">{{ _('Edit Profile') }}</a></p>
+                    <div class="green-button-container">
+                        <a href="{{ url_for('main.settings') }}" class="green-button"> {{ _('Settings') }}</a>
+                        {% if user.get_follow_requestors().count() > 0 %}
+                            <a href="{{ url_for('main.get_follow_requests', username=user.username) }}" class="green-button"> {{ _('Requests') }}</a>
+                        {% endif %}
+                    </div>
+
                     {% elif not current_user.is_following(user) %}
                     <p>
                         <form action="{{ url_for('main.follow', username=user.username) }}" method="post">
