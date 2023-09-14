@@ -145,13 +145,3 @@
     gap: 10px; 
     margin-left: 20px;
 }
-
-.garbage-copy-container{
-    display: flex;
-    gap: 10px;
-}
-
-.favorite-copy-container{
-    display: flex;
-    gap: 10px;
-}

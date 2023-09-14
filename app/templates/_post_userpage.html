@@ -38,7 +38,7 @@
                 
         
         <td style="text-align: right;"> 
-            <div class="favorite-copy-container" style="display: flex; align-items: center; justify-content: flex-end;"> 
+            <div class="favorite-copy-container" style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;"> 
             {% if current_user.get_id() %}
                 {% block options %}
                 {% if current_user.id == post.user_id%}
