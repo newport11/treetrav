@@ -15,7 +15,7 @@
 
             </a>
         </td>
-        <td>
+        <td style="max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             {% set user_link %}
                 <a href="{{ url_for('main.user', username=post.author.username) }}" class="user-link">
                     {{ post.author.username }}
@@ -53,7 +53,7 @@
         {% if current_user.id != post.user_id%}
             {% set folder_path = post.folder_link %}
             <td style="text-align: right;">
-                <div style="display: inline-flex; justify-content: space-between;"> 
+                <div class="favorite-copy-container" style="display: flex; align-items: center; justify-content: flex-end;"> 
 
                 {% if folder_path == "/" or not folder_path%}
                     <a href="{{ url_for('main.user', username=post.author.username) }}"  class="folder-path-link" style="margin-right: 15px;" > 
@@ -88,6 +88,11 @@
                     </form>
                     {% endif %}
                 {% endif %}
+
+                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;" onClick="copyToClipboard('{{post.link}}')">
+                    <img width="25" height="25" src="https://img.icons8.com/glyph-neue/25/copy.png" alt="copy"/>
+                </button>
+
                 </div>
             </td>
             
@@ -99,14 +104,30 @@
         {% block delete %}
         {% if current_user.id == post.user_id%}
         <td style="text-align: right;"> 
-            <form method="post" action="{{ url_for('main.delete_post', post_id=post.id ) }}">
-                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
-                    <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" />
-                   </button>
-            </form>
-        {% endif %}
+            <div class="garbage-copy-container" style="display: flex; align-items: center; justify-content: flex-end;">
+                <form method="post" action="{{ url_for('main.delete_post', post_id=post.id ) }}">
+                    <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; margin-right: 0px;">
+                        <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" />
+                    </button>
+                </form>
+            
+                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;" onClick="copyToClipboard('{{post.link}}')">
+                    <img width="25" height="25" src="https://img.icons8.com/glyph-neue/25/copy.png" alt="copy"/>
+                </button>
+            </div>
+           
         </td>
+        {% endif %}
         {% endblock %}
- 
+      
     </tr>
 </table>
+
+
+{% block scripts %}
+<script>
+    function copyToClipboard(link) {
+        navigator.clipboard.writeText(link)
+    }
+</script>
+{% endblock %}

@@ -70,7 +70,7 @@ def delete_post(post_id):
     if current_user.id == post.user_id:
         db.session.delete(post)
         db.session.commit()
-        flash('Link deleted.')
+        flash('Link deleted')
         return redirect(request.referrer)
 
 
@@ -82,7 +82,7 @@ def delete_folder(folder_link):
         if  post.folder_link != None and post.folder_link.startswith(folder_link) and current_user.id == post.user_id:
             db.session.delete(post)
             db.session.commit()
-    flash('Folder deleted.')
+    flash('Folder deleted')
     previous_folder = folder_link.rstrip("/").rsplit("/", 1)[0]
     if len(folder_link.split("/")) <= 1:
         previous_folder = "/"
@@ -98,6 +98,7 @@ def favorite_post(post_id):
     if current_user.id != post.user_id:
         current_user.favorite(post)
         db.session.commit()
+        flash('Link added to favorites')
         return redirect(request.referrer)
 
 

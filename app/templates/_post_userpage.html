@@ -36,38 +36,46 @@
             {{ _('<em class="when-text"> • %(when)s</em>', when=when_text )}}
         </td>
                 
-        {% if current_user.get_id() %}
-        <td> 
-            {% block options %}
-            <div style="text-align: right;"> 
-            {% if current_user.id == post.user_id%}
-            
+        
+        <td style="text-align: right;"> 
+            <div class="favorite-copy-container" style="display: flex; align-items: center; justify-content: flex-end;"> 
+            {% if current_user.get_id() %}
+                {% block options %}
+                {% if current_user.id == post.user_id%}
                 
-                <form method="post" action="{{ url_for('main.delete_post', post_id=post.id ) }}">
-                    <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
-                        <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" />
-                    </button>
-                </form>
-            {% else %}
-                {% if current_user.is_favorite(post)  %}
-                <form method="post" action="{{ url_for('main.unfavorite_post', post_id=post.id ) }}">
-                    <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
-                        <img width="25" height="25" src="https://img.icons8.com/fluency/25/filled-star.png" name="favorite"/>
+                    
+                    <form method="post" action="{{ url_for('main.delete_post', post_id=post.id ) }}">
+                        <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
+                            <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" />
                         </button>
-                </form>
+                    </form>
                 {% else %}
-                <form method="post" action="{{ url_for('main.favorite_post', post_id=post.id ) }}">
-                    <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
-                        <img width="25" height="25" src="https://img.icons8.com/windows/25/star--v1.png" name="unfavorite"/>
-                        </button>
-                </form>
-            {% endif %}
-            </div>
+                    {% if current_user.is_favorite(post)  %}
+                    <form method="post" action="{{ url_for('main.unfavorite_post', post_id=post.id ) }}">
+                        <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
+                            <img width="25" height="25" src="https://img.icons8.com/fluency/25/filled-star.png" name="favorite"/>
+                            </button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{{ url_for('main.favorite_post', post_id=post.id ) }}">
+                        <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
+                            <img width="25" height="25" src="https://img.icons8.com/windows/25/star--v1.png" name="unfavorite"/>
+                            </button>
+                    </form>
+                {% endif %}
+                
+
+                {% endif %}
+                {% endblock %}
 
             {% endif %}
-            {% endblock %}
+
+            <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;" onClick="copyToClipboard('{{post.link}}')">
+                <img width="25" height="25" src="https://img.icons8.com/glyph-neue/25/copy.png" alt="copy"/>
+            </button>
+            </div>
         </td>
-        {% endif %}
+        
 
 
         
