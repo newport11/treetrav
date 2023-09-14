@@ -5,6 +5,7 @@ from wtforms.validators import ValidationError, DataRequired, Length
 from flask_babel import _, lazy_gettext as _l
 from app.models import User, Post
 import validators
+import re
 
 
 
@@ -24,15 +25,19 @@ class SettingsForm(FlaskForm):
 
     def validate_username(self, username):
         if username.data != self.original_username:
-            user = User.query.filter_by(username=self.username.data).first()
+            user = User.query.filter_by(username=self.username.data.strip()).first()
             if user is not None:
-                raise ValidationError(_('Please use a different username.'))
+                raise ValidationError(_('username already exists.'))
+            if not re.match(r'^[a-zA-Z0-9]+$', username.data.strip()):
+                raise ValidationError(_('must only contain letters and numbers'))
+            if not re.match(r'^[a-zA-Z][a-zA-Z0-9]*$', username.data.strip()):
+                raise ValidationError(_('must start with letter'))
 
     def validate_email(self, email):
         if email.data != self.original_email:
-            user = User.query.filter_by(email=self.email.data).first()
+            user = User.query.filter_by(email=self.email.data.strip()).first()
             if user is not None:
-                raise ValidationError(_('Please use a different email.'))
+                raise ValidationError(_('please use a different email.'))
 
 
 class EmptyForm(FlaskForm):
@@ -42,18 +47,18 @@ class EmptyForm(FlaskForm):
 class PostForm(FlaskForm):
     def validate_post(self, form):
         if validators.url(self.data['post_link']) is not True:
-            raise ValidationError(_('Must post valid link'))
+            raise ValidationError(_('must post valid link'))
         
     def validate_body(self, form):
         length = len(self.data['post_body'])
         if length > 75:
-            raise ValidationError(_(f'Must be 75 characters or less, currently {length}'))
+            raise ValidationError(_(f'must be 75 characters or less, currently {length}'))
         
     def validate_folder(self, form):
         folders = self.data['post_folder'].strip().strip("/").split("/")
         for folder in folders:
             if len(folder) > 30:
-                raise ValidationError(_(f'Individual folder length must be under 30 characters, currently {len(folder)}'))
+                raise ValidationError(_(f'individual folder length must be under 30 characters, currently {len(folder)}'))
         
     post_link = TextAreaField(_l('Link*'), validators=[DataRequired(), validate_post])
     post_body = TextAreaField(_l('Description'), validators=[validate_body])

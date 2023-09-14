@@ -3,6 +3,7 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, regexp
 from flask_babel import _, lazy_gettext as _l
 from app.models import User
+import re
 
 
 class LoginForm(FlaskForm):
@@ -24,12 +25,16 @@ class RegistrationForm(FlaskForm):
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data.strip()).first()
         if user is not None:
-            raise ValidationError(_('Please use a different username.'))
-
+            raise ValidationError(_('username already exists.'))
+        if not re.match(r'^[a-zA-Z0-9]+$', username.data.strip()):
+            raise ValidationError(_('must only contain letters and numbers'))
+        if not re.match(r'^[a-zA-Z][a-zA-Z0-9]*$', username.data.strip()):
+            raise ValidationError(_('must start with letter'))
+        
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data.strip()).first()
         if user is not None:
-            raise ValidationError(_('Please use a different email address.'))
+            raise ValidationError(_('please use a different email address.'))
 
 
 class ResetPasswordRequestForm(FlaskForm):
