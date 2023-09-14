@@ -81,3 +81,12 @@
         
     </tr>
 </table>
+
+
+{% block scripts %}
+<script>
+    function copyToClipboard(link) {
+        navigator.clipboard.writeText(link)
+    }
+</script>
+{% endblock %}
