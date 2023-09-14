@@ -270,7 +270,7 @@ def user_subfolder(username, path):
 @bp.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
-    form = SettingsForm(current_user.username)
+    form = SettingsForm(current_user.username, current_user.email)
     if form.validate_on_submit():
         current_user.username = form.username.data
         current_user.email = form.email.data
