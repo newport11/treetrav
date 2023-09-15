@@ -52,8 +52,8 @@ def get_favicon(domain):
     if domain is not None:
         if favicon_exists(domain):
             return favicon_exists
-        icons = favicon.get(domain)
         try:
+            icons = favicon.get(domain)
             icon_link = icons[0].url
         except:
             icon_link = None
