@@ -17,11 +17,12 @@ class SearchableMixin(object):
         ids, total = query_index(cls.__tablename__, expression, page, per_page)
         if total == 0:
             return cls.query.filter_by(id=0), 0
-        when = []
+        when = {}
         for i in range(len(ids)):
-            when.append((ids[i], i))
+            when[ids[i]] = i
         return cls.query.filter(cls.id.in_(ids)).order_by(
             db.case(when, value=cls.id)), total
+  
 
     @classmethod
     def before_commit(cls, session):
@@ -96,7 +97,8 @@ class PaginatedAPIMixin(object):
         }
         return data
     
-class User(UserMixin, PaginatedAPIMixin, db.Model):
+class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
+    __searchable__ = ['username']
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
