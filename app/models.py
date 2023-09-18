@@ -265,8 +265,8 @@ def load_user(id):
     return User.query.get(int(id))
 
 
-class Post(SearchableMixin, db.Model):
-    __searchable__ = ['body']
+class Post(db.Model):
+    #__searchable__ = ['body']
     id = db.Column(db.Integer, primary_key=True)
     link = db.Column(db.String(2048))
     body = db.Column(db.String(140))
