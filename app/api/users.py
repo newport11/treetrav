@@ -14,6 +14,11 @@ def get_user(id):
         abort(403)
     return jsonify(User.query.get_or_404(id).to_dict())
 
+@bp.route('/users/get_current_username', methods=['GET'])
+@token_auth.login_required
+def get_current_username():
+    print(token_auth.current_user().username)
+    return jsonify(User.query.get_or_404(token_auth.current_user().id).to_dict())
 
 @bp.route('/users', methods=['GET'])
 @token_auth.login_required

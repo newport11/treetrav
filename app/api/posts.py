@@ -40,6 +40,39 @@ def post_link():
     return response
 
 
+@bp.route('/post_multiple_links', methods=['POST'])
+@token_auth.login_required
+def post_multiple_links():
+    data = request.get_json() or {}
+    if 'links' not in data or data['links'] == "":
+        return bad_request('must include link field')
+    if 'text' not in data or data['text'].strip() == "":
+        text = None
+    else:
+        text = data['text']
+    if 'folder' not in data:
+        folder = None
+    else:
+        folder=data['folder']
+
+    tabs = data['links']
+    successful_count = 0
+    for tab in tabs:
+        try:
+            post = Post(link=tab["url"], body=text, folder_link=folder.strip().strip("/") if folder else "/", author=token_auth.current_user())
+            favicon_file_name = get_favicon(post.link)
+            if favicon_file_name:
+                post.favicon_file_name = favicon_file_name
+            db.session.add(post)
+            db.session.commit()
+            successful_count+= 1
+        except:
+            pass
+    if successful_count > 0:
+        return jsonify({"Success Count": successful_count, "status": 200})
+    else:
+        return jsonify({"Success Count": successful_count, "status": 401, "error": "Links were not posted successfully"})
+
 
 @bp.route('/posts/get_num_posts', methods=['GET'])
 def get_num_posts():
