@@ -74,6 +74,17 @@ def delete_post(post_id):
         return redirect(request.referrer)
 
 
+@bp.route('/account/delete/<int:user_id>', methods=['POST'])
+@login_required
+def delete_account(user_id):
+    user = User.query.filter_by(id=user_id).first_or_404()
+    if current_user.id == user.id:
+        db.session.delete(user)
+        db.session.commit()
+        flash('Account deleted')
+        return redirect(url_for('main.home'))
+    
+
 @bp.route('/folder/delete/<path:folder_link>', methods=['POST'])
 @login_required
 def delete_folder(folder_link):
