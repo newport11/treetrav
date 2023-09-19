@@ -28,8 +28,8 @@ class SettingsForm(FlaskForm):
             user = User.query.filter_by(username=self.username.data.strip()).first()
             if user is not None:
                 raise ValidationError(_('username already exists.'))
-            if not re.match(r'^[a-zA-Z0-9]+$', username.data.strip()):
-                raise ValidationError(_('must only contain letters and numbers'))
+            if not re.match(r'^[a-zA-Z0-9_-]+$', username.data.strip()):
+                raise ValidationError(_('must only contain letters, numbers, underscores, and hyphens'))
             if not re.match(r'^[a-zA-Z][a-zA-Z0-9]*$', username.data.strip()):
                 raise ValidationError(_('must start with letter'))
 
