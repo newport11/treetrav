@@ -4,35 +4,67 @@
 {% block app_content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 <div style="text-align: left;" class="settings_back"> 
-    <form method="post" action="{{ url_for('main.user', username=form.username.data ) }}">
+    <form method="post" action="{{ url_for('main.user', username=form.username.data) }}">
         <button class="btn" type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
-            <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="25" height="25" name="back" />
+            <img src="{{ url_for('static', filename='backarrow.png') }}" width="25" height="25" name="back" />
         </button>
     </form>
 </div>
     <h1>{{ _('Settings') }}</h1>
     <div class="row">
         <div class="col-md-4">
-            {{ wtf.quick_form(form, extra_classes='my-form') }}
+            {{ wtf.qui  ck_form(form, extra_classes='my-form') }}
         </div>
     </div>
     <br>
-    <form id="delete-account-form" action="{{ url_for('main.delete_account', user_id=current_user.id) }}" method="post">
+    <form id="delete-account-form" action="{{ url_for('main.delete_account', user_id=current_user.id) }}" method="post" onsubmit="return false;">
         {{ form.hidden_tag() }}
-        <input type="submit" value="{{ _('Delete Account') }}" class="btn btn-delete" onclick="return confirmDelete();" />
+        <input type="button" value="{{ _('Delete Account') }}" class="btn btn-delete" onclick="showConfirmationPopup()" />
     </form>
-    <br>
-
-{% endblock %}
-
+    
+    <div id="confirmation-popup" class="hidden">
+        <div class="popup-content">
+            <span class="popup-message">Are you sure you want to delete your account? This action cannot be undone.</span>
+            <button class="btn btn-delete" onclick="deleteAccount('{{current_user.id}}')">Yes, Delete Account</button>
+            <button class="btn green-button" onclick="hideConfirmationPopup()">Cancel</button>
+        </div>
+    </div>
+    
 <script>
-    function confirmDelete() {
-        if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-            // The user confirmed, proceed with form submission
-            return true;
-        } else {
-            // The user canceled, do not submit the form
-            return false;
-        }
+    function showConfirmationPopup() {
+        const confirmationPopup = document.getElementById('confirmation-popup');
+        confirmationPopup.classList.remove('hidden');
+    }
+
+    function hideConfirmationPopup() {
+        const confirmationPopup = document.getElementById('confirmation-popup');
+        confirmationPopup.classList.add('hidden');
+    }
+
+    function deleteAccount(user_id) {
+        // Handle account deletion logic here
+        const url = `/account/delete/${user_id}`;
+
+        fetch(url, {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Response from Flask:', data);
+            // Handle the response data here
+            // For demonstration purposes, let's just log a message
+            console.log('Account deleted.');
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Handle errors here
+        });
+        
+        hideConfirmationPopup();
     }
 </script>
+
+{% endblock %}

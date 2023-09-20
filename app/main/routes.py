@@ -82,7 +82,8 @@ def delete_account(user_id):
         db.session.delete(user)
         db.session.commit()
         flash('Account deleted')
-        return redirect(url_for('main.home'))
+        redirect_url = url_for('auth.login')
+        return jsonify({'message': 'Account deleted successfully', 'redirect_url': redirect_url})
     
 
 @bp.route('/folder/delete/<path:folder_link>', methods=['POST'])

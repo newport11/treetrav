@@ -85,8 +85,35 @@
 
 {% block scripts %}
 <script>
-    function copyToClipboard(link) {
+    function copyToClipboard(link, button) {
+        // Disable the button
+        button.disabled = true;
+
         navigator.clipboard.writeText(link)
+
+        // Get the button's position relative to its offset parent
+        const buttonRect = button.getBoundingClientRect();
+
+        // Create a new element for the popup
+        const copyPopup = document.createElement('div');
+        copyPopup.textContent = 'Copied!';
+        copyPopup.classList.add('copy-popup');
+
+        // Set the position of the popup
+        const popupTop = button.offsetTop - copyPopup.offsetHeight - 10;
+        const popupLeft = button.offsetLeft + (button.offsetWidth - copyPopup.offsetWidth) / 2;
+        copyPopup.style.top = popupTop + 'px';
+        copyPopup.style.left = popupLeft + 'px';
+
+        // Append the popup to the button's parent element
+        button.parentElement.parentElement.appendChild(copyPopup);
+        
+        // Hide the popup after a short delay (e.g., 2 seconds)
+        setTimeout(() => {
+            copyPopup.classList.add("hidden");
+            // Enable the button
+            button.disabled = false;
+        }, 2000);
     }
 </script>
 {% endblock %}

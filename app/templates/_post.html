@@ -89,10 +89,9 @@
                     {% endif %}
                 {% endif %}
 
-                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;" onClick="copyToClipboard('{{post.link}}')">
+                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;" onClick="copyToClipboard('{{post.link}}',this)">
                     <img width="25" height="25" src="https://img.icons8.com/glyph-neue/25/copy.png" alt="copy"/>
                 </button>
-
                 </div>
             </td>
             
@@ -111,23 +110,51 @@
                     </button>
                 </form>
             
-                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;" onClick="copyToClipboard('{{post.link}}')">
+                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;" onClick="copyToClipboard('{{post.link}}',this)">
                     <img width="25" height="25" src="https://img.icons8.com/glyph-neue/25/copy.png" alt="copy"/>
                 </button>
-            </div>
-           
+            </div>           
         </td>
+
         {% endif %}
         {% endblock %}
       
     </tr>
+
 </table>
 
 
 {% block scripts %}
 <script>
-    function copyToClipboard(link) {
+    function copyToClipboard(link, button) {
+        // Disable the button
+        button.disabled = true;
+
         navigator.clipboard.writeText(link)
+
+        // Get the button's position relative to its offset parent
+        const buttonRect = button.getBoundingClientRect();
+
+        // Create a new element for the popup
+        const copyPopup = document.createElement('div');
+        copyPopup.textContent = 'Copied!';
+        copyPopup.classList.add('copy-popup');
+
+        // Set the position of the popup
+        const popupTop = button.offsetTop - copyPopup.offsetHeight - 10;
+        const popupLeft = button.offsetLeft + (button.offsetWidth - copyPopup.offsetWidth) / 2;
+        copyPopup.style.top = popupTop + 'px';
+        copyPopup.style.left = popupLeft + 'px';
+
+        // Append the popup to the button's parent element
+        button.parentElement.parentElement.appendChild(copyPopup);
+        
+        // Hide the popup after a short delay (e.g., 2 seconds)
+        setTimeout(() => {
+            copyPopup.classList.add("hidden");
+            // Enable the button
+            button.disabled = false;
+        }, 2000);
     }
 </script>
 {% endblock %}
