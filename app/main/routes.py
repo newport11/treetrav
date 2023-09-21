@@ -441,3 +441,7 @@ def search():
 def privacy_policy():
     return render_template('privacy_policy.html')
     
+
+@bp.route('google7b9073e6e37dad3e.html')
+def verify_google():
+    return render_template('google7b9073e6e37dad3e.html')
