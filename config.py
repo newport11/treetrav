@@ -17,6 +17,6 @@ class Config(object):
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
     ADMIN_API_KEY = os.environ.get('ADMIN_API_KEY')
-    ADMINS = ['linkydinky400@example.com']
+    ADMINS = ['treetrav.info@gmail.com']
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
     POSTS_PER_PAGE = 25
