@@ -13,7 +13,7 @@
 
             </a>
         </td>
-        <td>
+        <td style="max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             {% block post %}
             {% if post.body %} <a href="{{ post.link}}" target="_blank" class="posted-link-text">
                 {% if post.body | length > 75 %}
