@@ -434,3 +434,10 @@ def search():
         if page > 1 else None
     return render_template('search.html', title=_('Search'), users=users,
                            next_url=next_url, prev_url=prev_url)
+
+
+
+@bp.route('/privacy_policy')
+def privacy_policy():
+    return render_template('privacy_policy.html')
+    
