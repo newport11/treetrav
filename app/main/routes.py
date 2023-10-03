@@ -39,17 +39,6 @@ def home():
         db.session.commit()
         flash(_('Your link is now posted!'))
         return redirect(url_for('main.home'))
-    ''' 
-    if request.method == 'POST' and request.headers.get('HX-Request'):
-        # This is an HTMX request to load more posts
-        page=posts.next_num if posts.has_next else None
-        page = request.json.get('page', page)
-        posts = current_user.followed_posts().paginate(
-            page=page, per_page=current_app.config['POSTS_PER_PAGE'],
-            error_out=False)
-        return render_template('home2.html', title=_('Home'), form=form,
-                           posts=posts.items)
-    '''
     page = request.args.get('page', 1, type=int)
     posts = current_user.followed_posts().paginate(
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
@@ -132,9 +121,6 @@ def explore():
     posts = db.session.query(Post).join(User).filter(User.private_mode == False).order_by(Post.timestamp.desc()).paginate(
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False)
-    #    posts = Post.query.filter_by(Post.author.private_mode=False).order_by(Post.timestamp.desc()).paginate(
-    #    page=page, per_page=current_app.config['POSTS_PER_PAGE'],
-    #    error_out=False)
     next_url = url_for('main.explore', page=posts.next_num) \
         if posts.has_next else None
     prev_url = url_for('main.explore', page=posts.prev_num) \
@@ -259,7 +245,7 @@ def user_subfolder(username, path):
         folders = []
         visited_folders = []
         for post in folders_tmp:
-            if path not in post.folder_link:
+            if not post.folder_link.startswith(path):
                 continue
             else:
                 post.folder_name = post.folder_link.removeprefix(path).strip("/").split("/")[0]
@@ -267,6 +253,7 @@ def user_subfolder(username, path):
                 if post.folder_name != "" and post.folder_name not in visited_folders:
                     visited_folders.append(post.folder_name)
                     folders.append(post)
+
         splitPath = path.rstrip("/").rsplit("/", 1)
         prevPath = splitPath[0]
         current_folder = splitPath[-1]
