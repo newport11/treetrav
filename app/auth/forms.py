@@ -14,7 +14,7 @@ class LoginForm(FlaskForm):
 
 
 class RegistrationForm(FlaskForm):
-    username = StringField(_l('Username'), validators=[DataRequired()])
+    username = StringField(_l('Username'), validators=[DataRequired(), Length(max=30)])
     email = StringField(_l('Email'), validators=[DataRequired(), Email()])
     password = PasswordField(_l('Password'), validators=[DataRequired(), Length(min=8, message="Password is too short"), Length(max=80), regexp("^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$")])
     password2 = PasswordField(
@@ -28,7 +28,7 @@ class RegistrationForm(FlaskForm):
             raise ValidationError(_('username already exists.'))
         if not re.match(r'^[a-zA-Z0-9_-]+$', username.data.strip()):
             raise ValidationError(_('must only contain letters, numbers, underscores, and hyphens'))
-        if not re.match(r'^[a-zA-Z][a-zA-Z0-9]*$', username.data.strip()):
+        if not re.match(r'^[a-zA-Z].*$', username.data.strip()):
             raise ValidationError(_('must start with letter'))
         
     def validate_email(self, email):

@@ -10,7 +10,7 @@ import re
 
 
 class SettingsForm(FlaskForm):
-    username = StringField(_l('Username'), validators=[DataRequired()])
+    username = StringField(_l('Username'), validators=[DataRequired(), Length(max=30)])
     email = TextAreaField(_l('Email'),
                              validators=[Length(min=0, max=140)])
     about_me = TextAreaField(_l('About me'),
@@ -30,7 +30,7 @@ class SettingsForm(FlaskForm):
                 raise ValidationError(_('username already exists.'))
             if not re.match(r'^[a-zA-Z0-9_-]+$', username.data.strip()):
                 raise ValidationError(_('must only contain letters, numbers, underscores, and hyphens'))
-            if not re.match(r'^[a-zA-Z][a-zA-Z0-9]*$', username.data.strip()):
+            if not re.match(r'^[a-zA-Z].*$', username.data.strip()):
                 raise ValidationError(_('must start with letter'))
 
     def validate_email(self, email):
