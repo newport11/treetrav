@@ -7,10 +7,10 @@
         <tr>
             <td width="180px"><img src="{{ user.avatar(155) }}"></td>
             <td>
-                <div class="horizontal-align-container">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
                     <h1 class="username-profile-text">{{ user.username }} {% if user.verified == True %}<img src="{{ url_for( 'static', filename='green_check32.png') }}" class="green-check-icon" /> {% endif %} </h1>
                     {% if user == current_user %}
-                        <div style="display: flex; gap: 10px; justify-content: flex-end !important;">>
+                        <div style="display: flex; gap: 10px; justify-content: flex-end !important;">
                             <a href="{{ url_for('main.settings') }}" class="green-button"> {{ _('&#10687 &#10687 &#10687') }}</a>
                         </div>
                         {% endif %}
