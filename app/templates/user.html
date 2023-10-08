@@ -10,9 +10,7 @@
                 <div class="horizontal-align-container">
                     <h1 class="username-profile-text">{{ user.username }} {% if user.verified == True %}<img src="{{ url_for( 'static', filename='green_check32.png') }}" class="green-check-icon" /> {% endif %} </h1>
                     {% if user == current_user %}
-                        <div class="green-button-container-top-left">
-                            <a href="{{ url_for('main.settings') }}" class="green-button"> {{ _('&#10687 &#10687 &#10687') }}</a>
-                        </div>
+                            <a href="{{ url_for('main.settings') }}" class="green-button-container-top-left"> {{ _('&#10687 &#10687 &#10687') }}</a>
                         {% endif %}
                 </div>
                     {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
