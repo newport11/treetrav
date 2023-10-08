@@ -359,8 +359,8 @@ class ShareFolder(db.Model):
 
     sharer_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True, nullable=False)
     sharee_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True, nullable=False)
-    sharer_folder_path = db.Column(db.String(3000), primary_key=True, nullable=False)
-    sharee_folder_path = db.Column(db.String(3000), primary_key=True, nullable=False)
+    sharer_folder_path = db.Column(db.String(1000), primary_key=True, nullable=False)
+    sharee_folder_path = db.Column(db.String(1000), primary_key=True, nullable=False)
 
 
     def __init__(self, sharer_id, sharee_id, sharer_folder_path, sharee_folder_path):
