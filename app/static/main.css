@@ -156,13 +156,7 @@
 .green-button-container-top-right {
     display: flex;
     gap: 10px;
-    justify-content: flex-end !important;
-}
-
-.green-button-container-top-right a.green-button {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end !important;
+    justify-content: flex-end;
 }
 
 .approve-button-container {
