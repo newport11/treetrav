@@ -157,7 +157,12 @@
     display: flex;
     gap: 10px;
     justify-content: flex-end !important;
-    text-align: right;
+}
+
+.green-button-container-top-right a.green-button {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end !important;
 }
 
 .approve-button-container {
