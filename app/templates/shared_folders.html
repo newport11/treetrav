@@ -4,7 +4,7 @@
 {% block app_content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 <div style="text-align: left;" class="settings_back"> 
-    <form method="post" action="{{ url_for('main.user', username=form.username.data) }}">
+    <form method="post" action="{{ url_for('main.user', username=username) }}">
         <button class="btn" type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; ">
             <img src="{{ url_for('static', filename='backarrow.png') }}" width="25" height="25" name="back" />
         </button>
@@ -14,7 +14,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Settings</title>
+    <title>Shared Folders</title>
     <style>
         /* Styles for the tabs */
         .tab {
@@ -54,49 +54,51 @@
 <body>
 
 <div class="tab">
-    <button class="tablinks active" onclick="openTab(event, 'Settings')">Settings</button>
-    <button class="static_link" onclick="navigateToSharedFolders()">Shared Folders</button>
+    <button class="static_link" onclick="navigateToSettings()">Settings</button>
+    <button class="tablinks active" onclick="openTab(event, 'Shared Folders')">Shared Folders</button>
     <button class="static_link" onclick="navigateToActions()">Actions</button>
 
 </div>
 
-<div id="Settings" class="tabcontent" style="display: block;">
+
+<div id="Shared Folders" class="tabcontent" style="display: block;">
     <div class="row">
         <div class="col-md-4">
-            {{ wtf.quick_form(form, extra_classes='my-form') }}
-        </div>
-    </div>
-    <br>
-    <form id="delete-account-form" action="{{ url_for('main.delete_account', user_id=current_user.id) }}" method="post" onsubmit="return false;">
-        {{ form.hidden_tag() }}
-        <input type="button" value="{{ _('Delete Account') }}" class="btn btn-delete" onclick="showConfirmationPopup()" />
-    </form>
-    
-    <div id="confirmation-popup" class="hidden">
-        <div class="popup-content">
-            <span class="popup-message">Are you sure you want to delete your account? This action cannot be undone.</span>
-            <button class="btn btn-delete" onclick="deleteAccount('{{current_user.id}}')">Yes, Delete Account</button>
-            <button class="btn green-button" onclick="hideConfirmationPopup()">Cancel</button>
+            {{ wtf.quick_form(share_folder_form, extra_classes='my-form') }}
         </div>
     </div>
 </div>
 
+{% if outbound_shares.count() > 0 %}
+    <h4>{{ _('Outbound Shares:') }}</h4>
+    {% for share in outbound_shares %}
+        {% include 'outbound_share.html' %}
+    {% endfor %}
+    <br>
+    <br>
+{% endif %}
 
+{% if inbound_shares.count() > 0  %}
+    <h4>{{ _('Inbound Shares:') }}</h4>
+    {% for share in inbound_shares %}
+        {% include 'inbound_share.html' %}
+    {% endfor %}
+{% endif %}
 
 <script>
-    function navigateToSharedFolders() {
-        var url = "{{ url_for('main.shared_folders') }}";
-        window.location.href = url;
+    function navigateToSettings() {
+        var settingsUrl = "{{ url_for('main.settings') }}";
+        window.location.href = settingsUrl;
     }
 
     function navigateToActions() {
         var url = "{{ url_for('main.actions') }}";
         window.location.href = url;
     }
-
 </script>
 
 <script>
+    // JavaScript to handle tab switching
     function openTab(evt, tabName) {
         var i, tabcontent, tablinks;
 
@@ -118,41 +120,5 @@
     document.getElementsByClassName("tablinks")[0].click();
 </script>
     
-<script>
-    function showConfirmationPopup() {
-        const confirmationPopup = document.getElementById('confirmation-popup');
-        confirmationPopup.classList.remove('hidden');
-    }
-
-    function hideConfirmationPopup() {
-        const confirmationPopup = document.getElementById('confirmation-popup');
-        confirmationPopup.classList.add('hidden');
-    }
-
-    function deleteAccount(user_id) {
-        // Handle account deletion logic here
-        const url = `/account/delete/${user_id}`;
-
-        fetch(url, {
-            method: 'POST',
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Response from Flask:', data);
-            // Handle the response data here
-            // For demonstration purposes, let's just log a message
-            console.log('Account deleted.');
-            if (data.redirect_url) {
-                window.location.href = data.redirect_url;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            // Handle errors here
-        });
-        
-        hideConfirmationPopup();
-    }
-</script>
 </body>
 {% endblock %}

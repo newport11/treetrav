@@ -1,0 +1,49 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+
+<table class="table table-hover">
+    <tr>
+        {% block request %}
+
+        
+        <td> 
+            <div class="approve-button-container" style="display: inline-flex; justify-content: space-between;">
+                    <form action="{{ url_for('main.accept_share',  requestee_id=request.requestee.id, requestor_id=request.requestor.id, request_folder=request.shared_folder_path) }}" method="post">
+                        {{ form.hidden_tag() }}
+                
+                        <!-- Text field input -->
+                        <input type="text" name="mount_path" placeholder="Enter mount folder path" required>
+                
+                        <!-- Accept button -->
+                        {{ form.submit(value=_('Accept'), class_='btn btn-default') }}
+                    </form>
+                
+                <form action="{{ url_for('main.decline_share', requestee_id=request.requestee.id, requestor_id=request.requestor.id, request_folder=request.shared_folder_path) }}" method="post">
+                    {{ form.hidden_tag() }}
+                    {{ form.submit(value=_('Decline'), class_='btn btn-delete') }}
+                </form>
+
+            </div>
+
+            <div class="requestor-info-container" style="display: inline-flex; justify-content: space-between;">
+                <a href="{{ url_for('main.user', username=request.requestor.username) }}" >
+                            <img src="{{  request.requestor.avatar(25)  }}" />
+                </a>
+
+                <a href="{{ url_for('main.user', username=request.requestor.username) }}">
+                    {{ request.requestor.username }}  {% if request.requestor.verified == True %} <img src="{{ url_for( 'static', filename='green_check16.png') }}"  /> {% endif %}
+                </a>
+            </div>
+
+            <div class="requestor-info-container" style="display: inline-flex; justify-content: space-between;">
+                <a href="{{ url_for('main.user_subfolder', username=request.requestor.username, path=request.shared_folder_path) }}" >
+                          /{{ request.shared_folder_path }}
+                </a>
+            </div>
+
+        </td>
+
+
+
+        {% endblock %}
+    </tr>
+</table>

@@ -9,12 +9,12 @@
             <div class="approve-button-container" style="display: inline-flex; justify-content: space-between;">
                 <form action="{{ url_for('main.approve_follow', username=requestor.username) }}" method="post">
                     {{ form.hidden_tag() }}
-                    {{ form.submit(value=_('Approve'), class_='btn btn-default') }}
+                    {{ form.submit(value=_('Accept'), class_='btn btn-default') }}
                 </form>
 
                 <form action="{{ url_for('main.deny_follow', username=requestor.username) }}" method="post">
                     {{ form.hidden_tag() }}
-                    {{ form.submit(value=_('Deny'), class_='btn btn-default') }}
+                    {{ form.submit(value=_('Decline'), class_='btn btn-delete') }}
                 </form>
 
             </div>

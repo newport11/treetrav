@@ -3,13 +3,14 @@ from flask import render_template, flash, redirect, url_for, request, g, \
     jsonify, current_app
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
-from sqlalchemy import and_
+from sqlalchemy import and_, func, union, union_all
 from app import db
-from app.main.forms import SettingsForm, EmptyForm, PostForm, SearchForm
-from app.models import User, Post
+from app.main.forms import CopyFolder, MoveFolder, RenameFolder, SettingsForm, EmptyForm, PostForm, SearchForm, ShareFolderForm
+from app.models import ShareFolder, ShareFolderRequest, User, Post
 from app.main import bp
 from app.favicon import get_favicon
 from app.openai import generate_link_summary
+from app.utils import copy_folder_util, is_subpath, move_folder_util, rename_folder_util, validate_folder_path
 
 
 @bp.before_app_request
@@ -144,6 +145,58 @@ def user(username):
         return render_template('user_private.html', user=user, form=form)
     else:
         page = request.args.get('page', 1, type=int)
+        ''' 
+        if current_user == user:
+            inbound_shares = current_user.inbound_shares
+            post_list = []
+            for share in inbound_shares:
+                sharer_folder_path = share.sharer_folder_path
+                sharee_folder_path = share.sharee_folder_path
+                sharer = User.query.filter_by(id=share.sharer_id).first_or_404()
+                if sharer is None:
+                    continue
+                sharer_posts = sharer.posts.filter(Post.folder_link.like( sharer_folder_path + '%'))
+                for post in sharer_posts:
+                    post.folder_link = sharee_folder_path + '/' + sharer_folder_path
+                    post.author = current_user
+                    post.user_id = current_user.id
+                    print(post.link)
+                    print("######")
+                post_list.append(sharer_posts)
+            if post_list:
+                original_query = user.posts.filter_by(folder_link="/")
+                post_list.append(original_query)
+                combined_query = union_all(*post_list)
+                page = request.args.get('page', 1, type=int)  # Get the page number from the request
+                per_page = current_app.config['POSTS_PER_PAGE']  # Number of items per page
+                #posts = Pagination(query=combined_query, page=page, per_page=per_page, error_out=False)
+
+                posts = original_query.order_by(Post.timestamp.desc()).paginate(
+                    page=page, per_page=current_app.config['POSTS_PER_PAGE'],
+                    error_out=False)
+            else:
+                posts = user.posts.filter_by(folder_link="/").order_by(Post.timestamp.desc()).paginate(
+                    page=page, per_page=current_app.config['POSTS_PER_PAGE'],
+                    error_out=False)
+        
+            folders_tmp = user.posts.filter(Post.folder_link !="/").order_by(Post.timestamp.desc()).all()
+            folders = []
+            visited_folders = []
+            for post in folders_tmp:
+                post.folder_name = post.folder_link = post.folder_link.split("/")[0]
+                if post.folder_name != "" and post.folder_name not in visited_folders:
+                    visited_folders.append(post.folder_name)
+                    folders.append(post)
+            
+            next_url = url_for('main.user', username=user.username,
+                            page=posts.next_num) if posts.has_next else None
+            prev_url = url_for('main.user', username=user.username,
+                            page=posts.prev_num) if posts.has_prev else None
+            return render_template('user.html', user=user, posts=posts.items,
+                            next_url=next_url, prev_url=prev_url, form=form, folders=folders)
+                
+        '''
+        # original code ----------------------------------------------------------------------
         posts = user.posts.filter_by(folder_link="/").order_by(Post.timestamp.desc()).paginate(
             page=page, per_page=current_app.config['POSTS_PER_PAGE'],
             error_out=False)
@@ -218,9 +271,9 @@ def get_follow_requests(username):
     requests = user.get_follow_requestors().paginate(
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False)
-    next_url = url_for('main.get_favorites', username=user.username,
+    next_url = url_for('main.get_follow_requests', username=user.username,
                        page=requests.next_num) if requests.has_next else None
-    prev_url = url_for('main.get_favorites', username=user.username,
+    prev_url = url_for('main.get_follow_requests', username=user.username,
                        page=requests.prev_num) if requests.has_prev else None
     form = EmptyForm()
 
@@ -245,7 +298,7 @@ def user_subfolder(username, path):
         folders = []
         visited_folders = []
         for post in folders_tmp:
-            if not post.folder_link.startswith(path):
+            if not is_subpath(path, post.folder_link):
                 continue
             else:
                 post.folder_name = post.folder_link.removeprefix(path).strip("/").split("/")[0]
@@ -275,17 +328,132 @@ def settings():
         current_user.email = form.email.data.strip()
         current_user.about_me = form.about_me.data.strip()
         current_user.private_mode = form.private_mode.data
+        current_user.dark_mode = form.dark_mode.data
         db.session.commit()
         flash(_('Your changes have been saved.'))
         return redirect(url_for('main.settings'))
+
     elif request.method == 'GET':
         form.username.data = current_user.username
         form.email.data = current_user.email
         form.about_me.data = current_user.about_me
         form.private_mode.data = current_user.private_mode
+        form.dark_mode.data = current_user.dark_mode
+        
     return render_template('settings.html', title=_('Settings'),
                            form=form)
 
+@bp.route('/shared_folders', methods=['GET', 'POST'])
+@login_required
+def shared_folders():
+    share_folder_form = ShareFolderForm(current_user.username)
+    if share_folder_form.validate_on_submit():
+        recipients = share_folder_form.recipients.data.strip().split(",")
+        folder_path = share_folder_form.folder_path.data.strip().strip("/")
+        sent_request = False
+        for recipient in recipients:
+            user = User.query.filter_by(username=recipient.strip()).first_or_404()
+            if not current_user.is_share_requested(user, folder_path ):
+                new_request = ShareFolderRequest(
+                    requestor_id=current_user.id,
+                    requestee_id=user.id,
+                    shared_folder_path=folder_path
+                )
+                db.session.add(new_request)
+                db.session.commit()
+                sent_request=True
+        if sent_request:
+            flash(_('Outbound share request sent.'))
+        return redirect(request.referrer)
+    inbound_shares = current_user.inbound_shares
+    outbound_shares = current_user.outbound_shares
+    return render_template('shared_folders.html', title=_('Shared Folders'),
+                           share_folder_form=share_folder_form, inbound_shares=inbound_shares, outbound_shares=outbound_shares,
+                             username=current_user.username)
+
+
+@bp.route('/share_requests_received/<username>')
+def get_share_requests_received(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    page = request.args.get('page', 1, type=int)
+    requests = user.share_requests_received.paginate(
+        page=page, per_page=current_app.config['POSTS_PER_PAGE'],
+        error_out=False)
+    next_url = url_for('main.get_share_requests_received', username=user.username,
+                       page=requests.next_num) if requests.has_next else None
+    prev_url = url_for('main.get_share_requests_received', username=user.username,
+                       page=requests.prev_num) if requests.has_prev else None
+    form = EmptyForm()
+    return render_template('share_requests_received.html', user=user, requests=requests.items,
+                           next_url=next_url, prev_url=prev_url, form=form)
+
+
+@bp.route('/accept_share/<int:requestee_id>/<int:requestor_id>/<path:request_folder>', methods=['POST'])
+@login_required
+def accept_share(requestee_id, requestor_id, request_folder):
+    if current_user.id == requestee_id:
+        form = EmptyForm()
+        if form.validate_on_submit():
+            mount_path = request.form.get('mount_path').strip()
+            if mount_path != "/":
+                mount_path = mount_path.strip("/")
+                posts = current_user.posts.all()
+                filtered_posts = filter(lambda post: is_subpath(mount_path, post.folder_link), posts)
+                filtered_posts_list = list(filtered_posts)
+                if not filtered_posts_list:
+                        flash(_('Mount folder path does not exist'))
+                        return redirect(request.referrer)
+            requestor = User.query.filter_by(id=requestor_id).first()
+            if requestor is None:
+                flash(_('User not found.'))
+            share_request = ShareFolderRequest.query.filter_by(
+                requestor_id=requestor.id, requestee_id=requestee_id, shared_folder_path=request_folder).first()
+            if share_request is None:
+                flash(_('Share request not found.'))
+            sharer_id=requestor.id
+            sharee_id=current_user.id
+            sharer_folder_path=request_folder
+            sharee_folder_path=mount_path
+            if not current_user.is_share(sharer_id, sharer_folder_path, sharee_folder_path ):
+                new_share= ShareFolder(
+                        sharer_id,
+                        sharee_id,
+                        sharer_folder_path,
+                        sharee_folder_path,
+                    )
+                db.session.add(new_share)
+                db.session.delete(share_request)
+                db.session.commit()
+                flash(_('New Inbound Share Added.'))
+                return redirect(request.referrer)
+        else:
+            return redirect(request.referrer)
+    return redirect(request.referrer)
+
+@bp.route('/decline_share/<int:requestee_id>/<int:requestor_id>/<path:request_folder>', methods=['POST'])
+@login_required
+def decline_share(requestee_id, requestor_id, request_folder):
+    if current_user.id == requestee_id:
+        form = EmptyForm()
+        if form.validate_on_submit():
+            requestor = User.query.filter_by(id=requestor_id).first()
+            if requestor is None:
+                flash(_('User not found.'))
+                return redirect(request.referrer)
+            if requestor == current_user:
+                flash(_('You cannot decline yourself'))
+                return redirect(request.referrer)
+            share_request = ShareFolderRequest.query.filter_by(
+                requestor_id=requestor.id, requestee_id=requestee_id, shared_folder_path=request_folder).first()
+            if share_request is None:
+                flash(_('Share request not found.'))
+                return redirect(request.referrer)
+            db.session.delete(share_request)
+            db.session.commit()
+            return redirect(request.referrer)
+        else:
+            return redirect(request.referrer) 
+    return redirect(request.referrer)
 
 
 @bp.route('/follow/<username>', methods=['POST'])
@@ -423,7 +591,83 @@ def search():
                            next_url=next_url, prev_url=prev_url)
 
 
+@bp.route('/actions', methods=['GET', 'POST'])
+@login_required
+def actions():
+    if request.method == "POST":
+        form_type = request.form['form_type']
+
+        if form_type == 'rename_folder_form':
+            folder_path = request.form['folder_path'].strip()
+            folder_name = request.form['new_folder_name']
+            if  folder_path == '/' or not validate_folder_path(current_user.username, folder_path):
+                flash('Folder path is not valid. Try again', 'error')
+                return render_template('actions.html', title=_('Actions'),
+                           username=current_user.username)
+            if len(folder_name) > 30:
+                flash('New folder name must be 30 characters or less. Try again', 'error')
+                return render_template('actions.html', title=_('Actions'),
+                           username=current_user.username)
+            rename_folder_util(current_user.username, folder_path.strip('/'), folder_name.strip())
+            flash(f'Folder was successfully renamed to {folder_name}')
+
+        if form_type == 'copy_folder_form':
+            origin_path = request.form['origin_path'].strip()
+            dest_path = request.form['dest_path'].strip()
+            if origin_path != '/':
+                origin_path.strip('/')
+            if dest_path != '/':
+                dest_path.strip('/')
+            if not validate_folder_path(current_user.username, origin_path):
+                flash('Origin path is not valid. Try again', 'error')
+                return render_template('actions.html', title=_('Actions'),
+                           username=current_user.username)
+            if not validate_folder_path(current_user.username, dest_path):
+                flash('Destination path is not valid. Try again', 'error')
+                return render_template('actions.html', title=_('Actions'),
+                           username=current_user.username)
+            copy_folder_util(current_user, origin_path, dest_path)
+            flash(f'Folder was successfully copied to {dest_path}')
+
+        if form_type == 'move_folder_form':
+            origin_path = request.form['origin_path'].strip()
+            dest_path = request.form['dest_path'].strip()
+            if origin_path != '/':
+                origin_path.strip('/')
+            if dest_path != '/':
+                dest_path.strip('/')
+            if origin_path == '/' or not validate_folder_path(current_user.username, origin_path):
+                flash('Origin path is not valid. Try again', 'error')
+                return render_template('actions.html', title=_('Actions'),
+                           username=current_user.username)
+            if not validate_folder_path(current_user.username, dest_path):
+                flash('Destination path is not valid. Try again', 'error')
+                return render_template('actions.html', title=_('Actions'),
+                           username=current_user.username)
+            move_folder_util(current_user, origin_path, dest_path)
+            flash(f'Folder was successfully moved to {dest_path}')
+            
+
+    return render_template('actions.html', title=_('Actions'),
+                           username=current_user.username)
 
 @bp.route('/privacy_policy')
 def privacy_policy():
     return render_template('privacy_policy.html')
+
+
+# Action Routes ---------------------------------------------------------
+@bp.route('/rename_folder', methods=['GET','POST'])
+def rename_folder():
+    form = RenameFolder()
+    return render_template('rename_folder.html', form=form)
+
+@bp.route('/copy_folder', methods=['GET','POST'])
+def copy_folder():
+    form = CopyFolder()
+    return render_template('copy_folder.html', form=form)
+
+@bp.route('/move_folder', methods=['GET','POST'])
+def move_folder():
+    form = MoveFolder()
+    return render_template('move_folder.html', form=form)

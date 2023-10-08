@@ -5,6 +5,7 @@ from hashlib import md5
 from time import time
 from flask import current_app, url_for
 from flask_login import UserMixin
+from sqlalchemy import PrimaryKeyConstraint
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from app import db, login
@@ -108,6 +109,7 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     verified = db.Column(db.Boolean, default=False)
     private_mode = db.Column(db.Boolean, default=False)
+    dark_mode = db.Column(db.Boolean, default=False)
     token = db.Column(db.String(32), index=True, unique=True)
     token_expiration = db.Column(db.DateTime)
     followed = db.relationship(
@@ -124,7 +126,38 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
         'Post', secondary='user_favorites',
         primaryjoin=(user_favorites.c.user_id == id),
         backref=db.backref('user_favorites', lazy='dynamic'), lazy='dynamic')
-    
+    share_requests_made = db.relationship(
+        'ShareFolderRequest',
+        primaryjoin=(
+            "User.id == ShareFolderRequest.requestor_id"
+        ),
+        backref='requestor',
+        lazy='dynamic'
+    )
+    share_requests_received = db.relationship(
+        'ShareFolderRequest',
+        primaryjoin=(
+            "User.id == ShareFolderRequest.requestee_id"
+        ),
+        backref='requestee',
+        lazy='dynamic'
+    )
+    outbound_shares = db.relationship(
+        'ShareFolder',
+        primaryjoin=(
+            "User.id == ShareFolder.sharer_id"
+        ),
+        backref='sharer',
+        lazy='dynamic'
+    )
+    inbound_shares = db.relationship(
+        'ShareFolder',
+        primaryjoin=(
+            "User.id == ShareFolder.sharee_id"
+        ),
+        backref='sharee',
+        lazy='dynamic'
+    )
 
     def to_dict(self, include_email=False):
         data = {
@@ -220,6 +253,18 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
                 follower_requests.c.requestee_id == self.id)
         return requests.order_by(User.id.desc())
 
+    # Share request function for pushing shared folders
+    def is_share_requested(self, user, folder_path):
+        existing_request = ShareFolderRequest.query.filter_by(
+            requestor_id=self.id, requestee_id=user.id, shared_folder_path=folder_path).first()
+        return existing_request
+    
+    # check if share already exists
+    def is_share(self, sharer_id, sharer_folder_path, sharee_folder_path ):
+        existing_share = ShareFolder.query.filter_by(
+            sharer_id=sharer_id, sharee_id=self.id, sharer_folder_path=sharer_folder_path, sharee_folder_path=sharee_folder_path).first()
+        return existing_share
+    
     def followed_posts(self):
         followed = Post.query.join(
             followers, (followers.c.followed_id == Post.user_id)).filter(
@@ -271,8 +316,8 @@ class Post(db.Model):
     link = db.Column(db.String(2048))
     body = db.Column(db.String(140))
     folder_name = db.Column(db.String(255))
-    folder_link = db.Column(db.String(255))
-    favicon_file_name = db.Column(db.String(255))
+    folder_link = db.Column(db.String(1000))
+    favicon_file_name = db.Column(db.String(500))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
@@ -295,3 +340,31 @@ class Post(db.Model):
 
     def __repr__(self):
         return '<Post {}>'.format(self.body)
+
+
+class ShareFolderRequest(db.Model):
+    __tablename__ = 'share_requests'
+
+    requestor_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True, nullable=False)
+    requestee_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True, nullable=False)
+    shared_folder_path = db.Column(db.String(3000), primary_key=True, nullable=False)
+
+    def __init__(self, requestor_id, requestee_id, shared_folder_path):
+        self.requestor_id = requestor_id
+        self.requestee_id = requestee_id
+        self.shared_folder_path = shared_folder_path
+
+class ShareFolder(db.Model):
+    __tablename__ = 'shares'
+
+    sharer_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True, nullable=False)
+    sharee_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True, nullable=False)
+    sharer_folder_path = db.Column(db.String(3000), primary_key=True, nullable=False)
+    sharee_folder_path = db.Column(db.String(3000), primary_key=True, nullable=False)
+
+
+    def __init__(self, sharer_id, sharee_id, sharer_folder_path, sharee_folder_path):
+        self.sharer_id = sharer_id
+        self.sharee_id = sharee_id
+        self.sharer_folder_path = sharer_folder_path
+        self.sharee_folder_path = sharee_folder_path

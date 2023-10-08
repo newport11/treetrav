@@ -1,3 +1,11 @@
+body {
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+    line-height: 1.42857143;
+    color: #333;
+    background-color: #333;
+}
+
 .table {
     width: 100%;
     max-width: 100%;
@@ -42,13 +50,76 @@
     background-color: rgb(230, 230, 230);
 }
 
+.navbar-default {
+    background-color: #333;
+    border-color: #e7e7e7;
+}
+
 .navbar-default .navbar-brand {
     color: #5a9b16;
 }
 
+td {
+    color: #e7e7e7;
+}
+tr:hover {
+    display: table-row;
+    vertical-align: inherit;
+    border-color: inherit;
+    background-color: #142305 !important ;
+
+}
 .when-text {
     opacity: 0.7; /* You can adjust the opacity value */
     font-weight: 250; /* You can adjust the font-weight value */
+    color: #e7e7e7
+}
+
+.navbar-default .navbar-nav>li>a:hover {
+    color: #e7e7e7  !important;
+}
+
+.tab button  {
+    overflow: hidden;
+    border-bottom: 1px solid #ccc;
+    background-color: #333 !important;
+    color: #e7e7e7 !important;
+}
+
+.tabcontent {
+    display: none;
+    padding: 20px;
+    border: 1px solid #333 !important;
+}
+
+.tab button.active {
+    background-color: #fff;
+    border-bottom: none  !important ;
+    
+}
+
+.row {
+    color: #e7e7e7 !important;
+}
+
+h1{
+    color: #e7e7e7 !important;
+}
+
+h2{
+    color: #e7e7e7 !important;
+}
+
+h3{
+    color: #e7e7e7 !important;
+}
+
+h4{
+    color: #e7e7e7 !important;
+}
+
+.form-group {
+    color: #e7e7e7 !important;
 }
 
 .folder-path-link {
@@ -104,7 +175,7 @@
 }
 
 .userpage-counts {
-    color: #000000;
+    color: #aea6a6 !important;
     font-weight: 600;
 }
 

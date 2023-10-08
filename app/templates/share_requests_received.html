@@ -11,10 +11,10 @@
             </button>
     </form>
         </div>
-    <h3>{{ _('Follow Requests') }}</h3>
+    <h3>{{ _('Inbound Share Requests') }}</h3>
 </div>
-    {% for requestor in requestors %}
-        {% include 'follow_requestor.html' %}
+    {% for request in requests %}
+        {% include 'share_requestor.html' %}
     {% endfor %}
 
 <nav aria-label="...">

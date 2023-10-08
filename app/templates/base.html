@@ -10,10 +10,14 @@
     {% if title %}{{ title }} - treetrav{% else %}{{ _('Welcome to treetrav') }}{% endif %}
 {% endblock %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 
 
 {% block navbar %}
+{% if current_user.dark_mode == True  %}
+<link rel="stylesheet" href="{{ url_for('static', filename='dark.css') }}">
+{% else %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+{% endif %}
     <nav class="navbar navbar-default">
         <div class="container">
             <div class="navbar-header">
