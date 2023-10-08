@@ -60,15 +60,18 @@ def get_favicon(domain):
         if icon_link is None:
             if 'http' not in domain:
                 domain = 'http://' + domain
-            page = requests.get(domain)
-            soup = BeautifulSoup(page.text, "lxml")
-            icon_link = soup.find("link", rel="shortcut icon")
-            if icon_link is None:
-                icon_link = soup.find("link", rel="icon")
-            if icon_link is None:
-                icon_link = get_domain_from_url(domain) + 'favicon.ico'
-            else:
-                icon_link = icon_link["href"]
+            try:
+                page = requests.get(domain)
+                soup = BeautifulSoup(page.text, "lxml")
+                icon_link = soup.find("link", rel="shortcut icon")
+                if icon_link is None:
+                    icon_link = soup.find("link", rel="icon")
+                if icon_link is None:
+                    icon_link = get_domain_from_url(domain) + 'favicon.ico'
+                else:
+                    icon_link = icon_link["href"]
+            except:
+                return None
         try:
             response = requests.get(icon_link)
             if response.status_code == 200:
