@@ -347,7 +347,7 @@ class ShareFolderRequest(db.Model):
 
     requestor_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True, nullable=False)
     requestee_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True, nullable=False)
-    shared_folder_path = db.Column(db.String(3000), primary_key=True, nullable=False)
+    shared_folder_path = db.Column(db.String(1000), primary_key=True, nullable=False)
 
     def __init__(self, requestor_id, requestee_id, shared_folder_path):
         self.requestor_id = requestor_id
