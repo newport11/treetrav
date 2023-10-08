@@ -21,8 +21,8 @@ def upgrade():
     op.create_table('shares',
     sa.Column('sharer_id', sa.Integer(), nullable=False),
     sa.Column('sharee_id', sa.Integer(), nullable=False),
-    sa.Column('sharer_folder_path', sa.String(length=1000), nullable=False),
-    sa.Column('sharee_folder_path', sa.String(length=1000), nullable=False),
+    sa.Column('sharer_folder_path', sa.String(length=255), nullable=False),
+    sa.Column('sharee_folder_path', sa.String(length=255), nullable=False),
     sa.ForeignKeyConstraint(['sharee_id'], ['user.id'], ),
     sa.ForeignKeyConstraint(['sharer_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('sharer_id', 'sharee_id', 'sharer_folder_path', 'sharee_folder_path')
