@@ -304,9 +304,9 @@ def user_subfolder(username, path):
         else:
             user_home_page = False
 
-        if current_user.leafs:
+        if user.leafs:
             if path != '/':
-                for leaf in current_user.leafs:
+                for leaf in user.leafs:
                     file_name = leaf.file_name
                     if current_folder == file_name:
                         get_leaf = Leaf.query.filter_by(user_id=user.id, folder_path = prevPath, file_name=file_name).first()
