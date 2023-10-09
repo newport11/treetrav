@@ -11,6 +11,10 @@ import favicon
 def hash_url(url):
     return hashlib.md5(url.encode('utf-8')).hexdigest()
 
+# duplicated function in case this needs to change in future
+def hash_profile_pic(filename):
+    return hashlib.md5(filename.encode('utf-8')).hexdigest()
+
 
 def get_domain_from_url(url):
     try:
@@ -47,6 +51,7 @@ def resize_favicon(url):
             print(f"Error: Unable to fetch favicon from {url}")
     except Exception as e:
         print(f"An error occurred: {str(e)}")
+
 
 def get_favicon(domain):
     if domain is not None:

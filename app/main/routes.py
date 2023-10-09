@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 from flask import render_template, flash, redirect, url_for, request, g, \
     jsonify, current_app
 from flask_login import current_user, login_required
@@ -8,11 +9,13 @@ from app import db
 from app.main.forms import CopyFolder, MoveFolder, PageDownForm, RenameFolder, SettingsForm, EmptyForm, PostForm, SearchForm, ShareFolderForm
 from app.models import Leaf, ShareFolder, ShareFolderRequest, User, Post
 from app.main import bp
-from app.favicon import get_favicon
+from app.favicon import get_favicon, hash_profile_pic
 from app.openai import generate_link_summary
 from app.utils import copy_folder_util, is_subpath, move_folder_util, rename_folder_util, validate_folder_path
 import markdown
-
+from werkzeug.utils import secure_filename
+from PIL import Image
+from io import BytesIO
 
 
 
@@ -340,11 +343,27 @@ def user_subfolder(username, path):
 def settings():
     form = SettingsForm(current_user.username, current_user.email)
     if form.validate_on_submit():
+        print(form.picture.data)
         current_user.username = form.username.data.strip()
         current_user.email = form.email.data.strip()
         current_user.about_me = form.about_me.data.strip()
         current_user.private_mode = form.private_mode.data
         current_user.dark_mode = form.dark_mode.data
+        picture = form.picture.data
+        if picture:
+            #try:
+            tmp_filename = current_user.username + secure_filename(picture.filename)
+            filename = hash_profile_pic(tmp_filename)
+            current_user.profile_pic = f'{filename}.png'
+            img = Image.open(picture)
+            resized_picture = img.resize((155, 155), Image.LANCZOS)
+            output_buffer = BytesIO()
+            resized_picture.save(output_buffer, format='PNG')  # You can change the format as needed
+            output_buffer.seek(0)
+            print(filename)
+            resized_picture.save(os.path.join('app/static/profile_pics', f'{filename}.png'))
+            #except:
+                #flash(_('Error in uploading image. Please try again'))
         db.session.commit()
         flash(_('Your changes have been saved.'))
         return redirect(url_for('main.settings'))

@@ -1,7 +1,7 @@
 from flask import request
 from flask_wtf import FlaskForm
 from sqlalchemy import func, text
-from wtforms import StringField, SubmitField, TextAreaField, BooleanField, HiddenField
+from wtforms import StringField, SubmitField, TextAreaField, BooleanField, HiddenField, FileField
 from wtforms.validators import ValidationError, DataRequired, Length
 from flask_babel import _, lazy_gettext as _l
 from app.models import User, Post
@@ -20,6 +20,7 @@ class SettingsForm(FlaskForm):
                              validators=[Length(min=0, max=140)])
     about_me = TextAreaField(_l('About me'),
                              validators=[Length(min=0, max=140)])
+    picture = FileField('Update Profile Picture')
     private_mode = BooleanField(_l('Private Mode'), default=False)
     dark_mode = BooleanField(_l('Dark Mode'), default=False)
     form_type = HiddenField('Form Type', default='settings_form')  # Include the form_type field as HiddenField

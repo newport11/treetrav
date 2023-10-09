@@ -108,6 +108,7 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     verified = db.Column(db.Boolean, default=False)
+    profile_pic = db.Column(db.String(500))
     private_mode = db.Column(db.Boolean, default=False)
     dark_mode = db.Column(db.Boolean, default=False)
     token = db.Column(db.String(32), index=True, unique=True)
