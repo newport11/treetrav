@@ -703,6 +703,10 @@ def create_leaf():
             return render_template('leaf_creator.html', form=form, username=current_user.username)
         else:
             folder_path = folder_path.strip('/')
+        get_leaf = Leaf.query.filter_by(user_id=current_user.id, folder_path = folder_path, file_name=file_name).first()
+        if get_leaf:
+            flash('Leaf with same name already exists at that path. Try again', 'error')
+            return render_template('leaf_creator.html', form=form, username=current_user.username)
         leaf = Leaf(user_id=current_user.id, folder_path=folder_path, file_name=file_name, md_text = md)
         db.session.add(leaf)
         url = 'https://treetrav.com'
