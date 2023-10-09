@@ -213,3 +213,11 @@
     align-items: center;
     justify-content: space-between;
 }
+
+.leaf-form textarea{
+    height: 211px; /* Adjust the width as needed */
+    max-width: 1118px;
+    max-height: 211px;
+    min-width: 1118px;
+    min-height: 211px;
+}

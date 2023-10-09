@@ -7,8 +7,9 @@ from flask_babel import _, lazy_gettext as _l
 from app.models import User, Post
 import validators
 import re
-from flask_login import current_user
-
+from flask_wtf import Form
+from flask_pagedown.fields import PageDownField
+from wtforms.fields import SubmitField
 from app.utils import is_subpath
 
 
@@ -84,7 +85,7 @@ class SearchForm(FlaskForm):
 
 
 class ShareFolderForm(FlaskForm):
-    folder_path = StringField(_l('Folder Path:'), validators=[DataRequired(), Length(max=3000)])
+    folder_path = StringField(_l('Folder Path:'), validators=[DataRequired(), Length(max=1000)])
     recipients = TextAreaField(_l('Share With: (usernames seperated by commas)'), validators=[DataRequired()])
     form_type = HiddenField('Form Type', default='share_folder_form')  # Include the form_type field as HiddenField
     submit = SubmitField(_l('Share Folder'))
@@ -116,7 +117,7 @@ class ShareFolderForm(FlaskForm):
 
 
 class RenameFolder(FlaskForm):
-    folder_path = StringField(_l('Folder Path'), validators=[DataRequired(), Length(max=3000)])
+    folder_path = StringField(_l('Folder Path'), validators=[DataRequired(), Length(max=1000)])
     new_folder_name = StringField(_l('New Folder Name'), validators=[DataRequired()])
     form_type = HiddenField('Form Type', default='rename_folder_form') 
 
@@ -124,16 +125,24 @@ class RenameFolder(FlaskForm):
 
     
 class CopyFolder(FlaskForm):
-    origin_path = StringField(_l('Origin Folder Path'), validators=[DataRequired(), Length(max=3000)])
-    dest_path = StringField(_l('Destination Folder Path'), validators=[DataRequired(), Length(max=3000)])
+    origin_path = StringField(_l('Origin Folder Path'), validators=[DataRequired(), Length(max=1000)])
+    dest_path = StringField(_l('Destination Folder Path'), validators=[DataRequired(), Length(max=1000)])
     form_type = HiddenField('Form Type', default='copy_folder_form') 
 
     submit = SubmitField(_l('Copy'))
 
 
 class MoveFolder(FlaskForm):
-    origin_path = StringField(_l('Origin Folder Path'), validators=[DataRequired(), Length(max=3000)])
-    dest_path = StringField(_l('Destination Folder Path'), validators=[DataRequired(), Length(max=3000)])
+    origin_path = StringField(_l('Origin Folder Path'), validators=[DataRequired(), Length(max=1000)])
+    dest_path = StringField(_l('Destination Folder Path'), validators=[DataRequired(), Length(max=1000)])
     form_type = HiddenField('Form Type', default='move_folder_form') 
 
     submit = SubmitField(_l('Move'))
+
+
+
+class PageDownForm(FlaskForm):
+    folder_path = StringField(_l('Folder Path'), validators=[DataRequired(), Length(max=1000)])
+    file_name = StringField(_l('File Name'), validators=[DataRequired(), Length(max=75)])
+    pagedown = PageDownField('Enter your markdown',validators=[DataRequired()])
+    submit = SubmitField('Create Leaf Page')

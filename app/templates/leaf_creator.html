@@ -14,7 +14,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Shared Folders</title>
+    <title>Leaf Creator</title>
     <style>
         /* Styles for the tabs */
         .tab {
@@ -55,36 +55,31 @@
 
 <div class="tab">
     <button class="static_link" onclick="navigateToSettings()">Settings</button>
-    <button class="tablinks active" onclick="openTab(event, 'Shared Folders')">Shared Folders</button>
+    <button class="static_link" onclick="navigateToSharedFolders()">Shared Folders</button>
     <button class="static_link" onclick="navigateToActions()">Actions</button>
-    <button class="static_link" onclick="navigateToLeafs()">Leafs</button>
+    <button class="tablinks active" onclick="openTab(event, 'Leafs')">Leafs</button>
 
 </div>
 
 
-<div id="Shared Folders" class="tabcontent" style="display: block;">
-    <div class="row">
-        <div class="col-md-4">
-            {{ wtf.quick_form(share_folder_form, extra_classes='my-form') }}
+<div id="Leafs" class="tabcontent" style="display: block;">
+    <head>
+        {{ pagedown.html_head() }}
+    </head>
+        <div class="row">
+            <div class="col-md-4">
+                {{ wtf.quick_form(form, extra_classes='leaf-form') }}
+            </div>
         </div>
-    </div>
+        <body>
+            <br>
+            <br>
+            {{ temp_html | safe }}
+        </body>
 </div>
 
-{% if outbound_shares.count() > 0 %}
-    <h4>{{ _('Outbound Shares:') }}</h4>
-    {% for share in outbound_shares %}
-        {% include 'outbound_share.html' %}
-    {% endfor %}
-    <br>
-    <br>
-{% endif %}
 
-{% if inbound_shares.count() > 0  %}
-    <h4>{{ _('Inbound Shares:') }}</h4>
-    {% for share in inbound_shares %}
-        {% include 'inbound_share.html' %}
-    {% endfor %}
-{% endif %}
+
 
 <script>
     function navigateToSettings() {
@@ -92,15 +87,16 @@
         window.location.href = settingsUrl;
     }
 
+    function navigateToSharedFolders() {
+        var url = "{{ url_for('main.shared_folders') }}";
+        window.location.href = url;
+    }
+
     function navigateToActions() {
         var url = "{{ url_for('main.actions') }}";
         window.location.href = url;
     }
 
-    function navigateToLeafs() {
-        var url = "{{ url_for('main.create_leaf') }}";
-        window.location.href = url;
-    }
 
 </script>
 

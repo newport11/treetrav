@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+<div style="text-align: left;" class="subfolder_back">
+    {% if user_home_page %}
+    <form method="post" action="{{ url_for('main.user', username=user.username ) }}">
+        <div style="display: inline-block; vertical-align: text-top;">
+            <button class="btn" type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
+                <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="30" height="30" name="back" />
+            </button>
+        </div>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('main.user_subfolder', username=user.username, path=prevPath  ) }}">
+        <div style="display: inline-block; vertical-align: text-top;">
+            <button class="btn" type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
+                <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="30" height="30" name="back" />
+            </button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+
+<head>
+    {{ pagedown.html_head() }}
+</head>
+    <body>
+        {{ temp_html | safe }}
+    </body>
+
+{% endblock %}

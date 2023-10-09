@@ -12,6 +12,7 @@ from flask_moment import Moment
 from flask_babel import Babel, lazy_gettext as _l
 from elasticsearch import Elasticsearch
 from config import Config
+from flask_pagedown import PageDown
 
 
 
@@ -25,6 +26,8 @@ bootstrap = Bootstrap()
 moment = Moment()
 babel = Babel()
 htmx = HTMX()
+pagedown = PageDown()
+
 
 def shorten_folder_path(path):
     shortened_path = path[-30:]
@@ -46,6 +49,7 @@ def create_app(config_class=Config):
     moment.init_app(app)
     htmx.init_app(app)
     babel.init_app(app)
+    pagedown.init_app(app)
     app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']], verify_certs=False) \
         if app.config['ELASTICSEARCH_URL'] else None
 

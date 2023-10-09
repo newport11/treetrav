@@ -4,5 +4,4 @@ __pycache__/
 logs/
 *.log
 .env
-app/static/favicons/*
 app.db

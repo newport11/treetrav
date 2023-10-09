@@ -158,6 +158,14 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
         backref='sharee',
         lazy='dynamic'
     )
+    leafs = db.relationship(
+        'Leaf',
+        primaryjoin=(
+            "User.id == Leaf.user_id"
+        ),
+        backref='leaf',
+        lazy='dynamic'
+    )
 
     def to_dict(self, include_email=False):
         data = {
@@ -368,3 +376,18 @@ class ShareFolder(db.Model):
         self.sharee_id = sharee_id
         self.sharer_folder_path = sharer_folder_path
         self.sharee_folder_path = sharee_folder_path
+
+
+class Leaf(db.Model):
+    __tablename__ = 'leaf'
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True, nullable=False)
+    file_name = db.Column(db.String(75), primary_key=True, nullable=False)
+    folder_path = db.Column(db.String(255), primary_key=True, nullable=False)
+    md_text = db.Column(db.String(8000), nullable=False)
+
+
+    def __init__(self, user_id, file_name, folder_path, md_text):
+        self.user_id = user_id
+        self.file_name = file_name
+        self.folder_path = folder_path
+        self.md_text = md_text

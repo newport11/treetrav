@@ -57,6 +57,7 @@
     <button class="static_link" onclick="navigateToSettings()">Settings</button>
     <button class="static_link" onclick="navigateToSharedFolders()">Shared Folders</button>
     <button class="tablinks active" onclick="openTab(event, 'Actions')">Actions</button>
+    <button class="static_link" onclick="navigateToLeafs()">Leafs</button>
 </div>
 
 <div id="Actions" class="tabcontent" style="display: block;">
@@ -106,14 +107,19 @@
 
 
 <script>
+    function navigateToSettings() {
+        var settingsUrl = "{{ url_for('main.settings') }}";
+        window.location.href = settingsUrl;
+    }
+
     function navigateToSharedFolders() {
         var url = "{{ url_for('main.shared_folders') }}";
         window.location.href = url;
     }
 
-    function navigateToSettings() {
-        var settingsUrl = "{{ url_for('main.settings') }}";
-        window.location.href = settingsUrl;
+    function navigateToLeafs() {
+        var url = "{{ url_for('main.create_leaf') }}";
+        window.location.href = url;
     }
 </script>
 

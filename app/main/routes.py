@@ -5,12 +5,15 @@ from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 from sqlalchemy import and_, func, union, union_all
 from app import db
-from app.main.forms import CopyFolder, MoveFolder, RenameFolder, SettingsForm, EmptyForm, PostForm, SearchForm, ShareFolderForm
-from app.models import ShareFolder, ShareFolderRequest, User, Post
+from app.main.forms import CopyFolder, MoveFolder, PageDownForm, RenameFolder, SettingsForm, EmptyForm, PostForm, SearchForm, ShareFolderForm
+from app.models import Leaf, ShareFolder, ShareFolderRequest, User, Post
 from app.main import bp
 from app.favicon import get_favicon
 from app.openai import generate_link_summary
 from app.utils import copy_folder_util, is_subpath, move_folder_util, rename_folder_util, validate_folder_path
+import markdown
+
+
 
 
 @bp.before_app_request
@@ -293,6 +296,28 @@ def user_subfolder(username, path):
     if (user.private_mode == True and user != current_user and not is_following)  :
         return render_template('user_private.html', user=user, form=form)
     else:
+        splitPath = path.rstrip("/").rsplit("/", 1)
+        prevPath = splitPath[0]
+        current_folder = splitPath[-1]
+        if len(path.split("/")) <= 1:
+            user_home_page = True
+        else:
+            user_home_page = False
+
+        if current_user.leafs:
+            if path != '/':
+                for leaf in current_user.leafs:
+                    file_name = leaf.file_name
+                    if current_folder == file_name:
+                        get_leaf = Leaf.query.filter_by(user_id=user.id, folder_path = prevPath, file_name=file_name).first()
+                        if get_leaf is None:
+                            continue
+                        else:
+                            temp_html = markdown.markdown(get_leaf.md_text)
+                            return render_template('leaf_page.html', user=user, 
+                                form=form, user_home_page=user_home_page, temp_html=temp_html,  prevPath=prevPath)
+    
+
         posts = user.posts.filter_by(folder_link=path).order_by(Post.timestamp.desc())
         folders_tmp = user.posts.filter(Post.folder_link !=path ).order_by(Post.timestamp.desc()).all()
         folders = []
@@ -306,15 +331,6 @@ def user_subfolder(username, path):
                 if post.folder_name != "" and post.folder_name not in visited_folders:
                     visited_folders.append(post.folder_name)
                     folders.append(post)
-
-        splitPath = path.rstrip("/").rsplit("/", 1)
-        prevPath = splitPath[0]
-        current_folder = splitPath[-1]
-        if len(path.split("/")) <= 1:
-            user_home_page = True
-        else:
-            user_home_page = False
-
         return render_template('user_subfolder.html', user=user, posts=posts,
                             form=form, folders=folders, prevPath=prevPath, user_home_page=user_home_page, current_folder=current_folder)
 
@@ -671,3 +687,29 @@ def copy_folder():
 def move_folder():
     form = MoveFolder()
     return render_template('move_folder.html', form=form)
+
+@bp.route('/create_leaf', methods=['GET','POST'])
+def create_leaf():
+    form = PageDownForm()
+    if request.method == "POST":
+        md = request.form['pagedown']
+        folder_path = request.form['folder_path'].strip()
+        file_name = request.form['file_name'].strip()
+        if '/' in file_name:
+            flash('Cannot have / in file name. Try again', 'error')
+            return render_template('leaf_creator.html', form=form, username=current_user.username)
+        if folder_path == '/':
+            flash('Cannot create leaf page in home folder. Try again', 'error')
+            return render_template('leaf_creator.html', form=form, username=current_user.username)
+        else:
+            folder_path = folder_path.strip('/')
+        leaf = Leaf(user_id=current_user.id, folder_path=folder_path, file_name=file_name, md_text = md)
+        db.session.add(leaf)
+        url = 'https://treetrav.com'
+        link = f'{url}/user/{current_user.username}/{folder_path}/{file_name}'
+        post = Post(link=link, body=file_name, folder_link=folder_path ,author=current_user, favicon_file_name='leaf.png')
+        db.session.add(post)
+        db.session.commit()
+        flash(f'Leaf page was successfully created @ {folder_path}')
+
+    return render_template('leaf_creator.html', form=form, username=current_user.username)
