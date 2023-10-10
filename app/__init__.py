@@ -37,6 +37,21 @@ def shorten_folder_path(path):
     else:
         return shortened_path
 
+def set_mini_profile_pic_filename(filename):
+    try:
+        fn = filename.rstrip('.png')
+    except:
+        fn = ''
+    return fn
+
+def pic_exists(filename):
+    file = os.path.join('app/static/profile_pics', f'{filename}')
+    print(file)
+    if os.path.exists(file):
+        return True
+    return False
+
+
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -66,6 +81,8 @@ def create_app(config_class=Config):
     app.register_blueprint(api_bp, url_prefix='/api')
 
     app.jinja_env.globals.update(shorten_folder_path=shorten_folder_path)
+    app.jinja_env.globals.update(pic_exists=pic_exists)
+    app.jinja_env.globals.update(set_mini_profile_pic_filename=set_mini_profile_pic_filename)
 
     if not app.debug and not app.testing:
         if app.config['MAIL_SERVER']:

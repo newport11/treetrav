@@ -5,10 +5,14 @@
             <a href="{{ post.link }}" target="_blank">
                 
                 {% set favicon = post.favicon_file_name %}
+    
+                {% set profile_pic = set_mini_profile_pic_filename(post.author.profile_pic) ~ '_mini_25.png' %}
                 {% if favicon %}
                     <img src="{{ url_for( 'static', filename='/favicons/' + favicon) }}" />
+                {% elif profile_pic and pic_exists(profile_pic) %}
+                    <img src="{{ url_for( 'static', filename='/profile_pics/' + profile_pic) }}" />
                 {% else %}
-                        <img src="{{  post.author.avatar(25)  }}" />
+                    <img src="{{  post.author.avatar(25)  }}" />
                 {% endif %}
 
             </a>

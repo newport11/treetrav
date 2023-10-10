@@ -8,7 +8,13 @@
         <td> 
             <div class="requestor-info-container" style="display: inline-flex; justify-content: space-between;">
                 <a href="{{ url_for('main.user', username=share.sharer.username) }}" >
-                            <img src="{{  share.sharer.avatar(25)  }}" />
+                    {% set profile_pic = set_mini_profile_pic_filename( share.sharer.profile_pic) ~ '_mini_25.png' %}
+                    {% if profile_pic and pic_exists(profile_pic) %}
+                        <img src="{{ url_for( 'static', filename='/profile_pics/' + profile_pic) }}" />
+                    {% else %}
+                        <img src="{{  share.sharer.avatar(25)  }}" />
+                    {% endif %}
+                            
                 </a>
 
                 <a class=user-link href="{{ url_for('main.user', username=share.sharer.username) }}">

@@ -351,19 +351,37 @@ def settings():
         current_user.dark_mode = form.dark_mode.data
         picture = form.picture.data
         if picture:
-            #try:
+            
             tmp_filename = current_user.username + secure_filename(picture.filename)
             filename = hash_profile_pic(tmp_filename)
-            current_user.profile_pic = f'{filename}.png'
-            img = Image.open(picture)
-            resized_picture = img.resize((155, 155), Image.LANCZOS)
-            output_buffer = BytesIO()
-            resized_picture.save(output_buffer, format='PNG')  # You can change the format as needed
-            output_buffer.seek(0)
-            print(filename)
-            resized_picture.save(os.path.join('app/static/profile_pics', f'{filename}.png'))
-            #except:
-                #flash(_('Error in uploading image. Please try again'))
+            old_profile_pic = None
+            if current_user.profile_pic:
+                old_profile_pic = current_user.profile_pic.rstrip('.png')
+            try:
+                current_user.profile_pic = f'{filename}.png'
+                img = Image.open(picture)
+                resized_picture = img.resize((155, 155), Image.LANCZOS)
+                output_buffer = BytesIO()
+                resized_picture.save(output_buffer, format='PNG')  # You can change the format as needed
+                output_buffer.seek(0)
+                resized_picture.save(os.path.join('app/static/profile_pics', f'{filename}.png'))
+                
+                #resize to 25 as well
+                resized_picture_mini = img.resize((25, 25), Image.LANCZOS)
+                output_buffer = BytesIO()
+                resized_picture_mini.save(output_buffer, format='PNG')  # You can change the format as needed
+                output_buffer.seek(0)
+                resized_picture_mini.save(os.path.join('app/static/profile_pics', f'{filename}_mini_25.png'))
+
+                #delete old pics
+                if old_profile_pic:
+                    files_to_delete = [os.path.join('app/static/profile_pics', f'{old_profile_pic}_mini_25.png'),
+                        os.path.join('app/static/profile_pics', f'{old_profile_pic}.png')]
+                    for file in files_to_delete:
+                        if os.path.exists(file):
+                            os.remove(file)
+            except:
+                flash(_('Error in uploading image. Please try again'))
         db.session.commit()
         flash(_('Your changes have been saved.'))
         return redirect(url_for('main.settings'))
