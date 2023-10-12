@@ -233,7 +233,10 @@ def user(username):
                 ))
 
                 for post in sharer_posts:
-                    post.folder_link = post.folder_link
+                    if sharee_folder_path == '/':
+                        post.folder_link = post.folder_link
+                    else:
+                        post.folder_link = sharee_folder_path + '/' + post.folder_link
                     post.author = current_user
                     post.user_id = current_user.id
                     shared_id_list.append(post.id)
