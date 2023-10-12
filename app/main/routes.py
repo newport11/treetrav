@@ -200,7 +200,7 @@ def user(username):
         shared_id_list = []
         posts = user.posts.filter_by(folder_link="/").order_by(Post.timestamp.desc())
         #BEGIN OUTBOUND SHARE CODE
-        outbound_shares = current_user.outbound_shares            
+        outbound_shares = user.outbound_shares            
         for share in outbound_shares:
             sharer_folder_path = share.sharer_folder_path
             sharer = User.query.filter_by(id=share.sharer_id).first_or_404()
