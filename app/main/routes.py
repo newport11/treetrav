@@ -52,7 +52,10 @@ def home():
                 sharee_folder_path = share.sharee_folder_path
                 sharer_folder_path = share.sharer_folder_path
                 sharer_id = share.sharer_id
-                path_to_check = sharee_folder_path + '/' + sharer_folder_path.rstrip("/").rsplit("/", 1)[-1]
+                if sharee_folder_path == '/':
+                    path_to_check = sharer_folder_path.rstrip("/").rsplit("/", 1)[-1]
+                else:
+                    path_to_check = sharee_folder_path + '/' + sharer_folder_path.rstrip("/").rsplit("/", 1)[-1]
                 if is_subpath(path_to_check, folder_path):
                     sharer = User.query.filter_by(id=sharer_id).first()
                     if sharer is None:

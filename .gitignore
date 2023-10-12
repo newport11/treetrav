@@ -5,3 +5,5 @@ logs/
 *.log
 .env
 app.db
+static/favicons/*
+static/profile_pics/*
