@@ -20,7 +20,6 @@ from io import BytesIO
 
 
 
-
 @bp.before_app_request
 def before_request():
     if current_user.is_authenticated:
@@ -199,6 +198,7 @@ def user(username):
     else:  
         shared_id_list = []
         posts = user.posts.filter_by(folder_link="/").order_by(Post.timestamp.desc())
+
         #BEGIN OUTBOUND SHARE CODE
         outbound_shares = user.outbound_shares            
         for share in outbound_shares:
@@ -250,9 +250,8 @@ def user(username):
                 id_list = [post[0] for post in post_list ]
 
                 posts = Post.query.filter(Post.id.in_(id_list)).order_by(Post.timestamp.desc()).all()
-    
-
         # END INBOUND SHARE CODE
+
 
         page = request.args.get('page', 1, type=int)
         posts = posts.paginate(
@@ -380,7 +379,7 @@ def user_subfolder(username, path):
         shared_id_list = []
 
         #BEGIN OUTBOUND SHARE CODE
-        outbound_shares = current_user.outbound_shares            
+        outbound_shares = user.outbound_shares            
         for share in outbound_shares:
             sharer_folder_path = share.sharer_folder_path
             sharer = User.query.filter_by(id=share.sharer_id).first_or_404()
@@ -679,6 +678,32 @@ def remove_outbound_share(sharee_id, sharer_id, sharer_folder_path, sharee_folde
         flash(_('Outbound share removed'))
         return redirect(request.referrer)
 
+
+@bp.route('/update_inbound_share/<int:sharee_id>/<int:sharer_id>/<path:sharer_folder_path>', methods=['POST'])
+@bp.route('/update_inbound_share/<int:sharee_id>/<int:sharer_id>/<path:sharer_folder_path>/<path:sharee_folder_path>', methods=['POST'])
+@login_required
+def update_inbound_share(sharee_id, sharer_id, sharer_folder_path, sharee_folder_path='/'):
+    if request.method == "POST" and current_user.id == sharee_id:
+        mount_path = request.form.get('mount_path').strip()
+        if mount_path != "/":
+            mount_path = mount_path.strip("/")
+            posts = current_user.posts.all()
+            filtered_posts = filter(lambda post: is_subpath(mount_path, post.folder_link), posts)
+            filtered_posts_list = list(filtered_posts)
+            if not filtered_posts_list:
+                    flash(_('Mount folder path does not exist'))
+                    return redirect(request.referrer)
+        share = ShareFolder.query.filter_by(
+                                sharee_id=sharee_id, sharer_id=sharer_id, sharee_folder_path=sharee_folder_path,
+                                sharer_folder_path=sharer_folder_path).first()
+        if share is None:
+                flash(_('Share not found.'))
+                return redirect(request.referrer)
+        share.sharee_folder_path = mount_path
+        db.session.commit()
+        flash(_(f'Mount path changed to {mount_path}'))
+        return redirect(request.referrer)
+        
 
 @bp.route('/remove_all_outbound_shares/<username>', methods=['POST'])
 @login_required

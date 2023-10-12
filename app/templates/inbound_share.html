@@ -38,6 +38,28 @@
 
         </td>
         <td style="text-align: right;"> 
+            {% if share.sharee_folder_path != '/' %}
+            <form method="post" action="{{url_for('main.update_inbound_share',
+                    sharee_id=share.sharee_id, 
+                    sharer_id=share.sharer_id, 
+                    sharer_folder_path=share.sharer_folder_path,
+                    sharee_folder_path=share.sharee_folder_path) }}">
+                <input type="text" name="mount_path" placeholder="Enter new mount path" required>
+                <button type="submit" class="green-button" style="padding: 3px;  margin-right: 0px;">
+                    Update
+                </button>
+            </form>
+            {% else %}
+            <form method="post" action="{{url_for('main.update_inbound_share',
+                sharee_id=share.sharee_id, 
+                sharer_id=share.sharer_id, 
+                sharer_folder_path=share.sharer_folder_path) }}">
+            <input type="text" name="mount_path" placeholder="Enter new mount path" required>
+            <button type="submit" class="green-button" style="padding: 3px;  margin-right: 0px;">
+                Update
+            </button>
+            {% endif %}
+
             <div class="garbage-copy-container" style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
                 {% if share.sharee_folder_path != '/' %}
                 <form method="post" action="{{ url_for('main.remove_inbound_share',
