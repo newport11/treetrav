@@ -327,6 +327,7 @@ class Post(db.Model):
     folder_name = db.Column(db.String(255))
     folder_link = db.Column(db.String(1000))
     favicon_file_name = db.Column(db.String(500))
+    is_shared = db.Column(db.Boolean)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 

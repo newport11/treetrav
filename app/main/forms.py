@@ -104,6 +104,8 @@ class ShareFolderForm(FlaskForm):
             filtered_posts_list = list(filtered_posts)
             if not filtered_posts_list:
                 raise ValidationError(_(f'folder path {folder_path} does not exist.'))
+        else:
+            raise ValidationError(_(f'cannot share home folder.'))
 
     def validate_recipients(self, recipients):
         recipients_str = recipients.data.strip()
@@ -112,7 +114,10 @@ class ShareFolderForm(FlaskForm):
         
         recipients = recipients_str.split(",")
         for recipient in recipients:
-            user = User.query.filter_by(username=recipient.strip()).first()
+            recipient = recipient.strip()
+            if recipient == self.username:
+                 raise ValidationError(_(f'cannot share with yourself!'))
+            user = User.query.filter_by(username=recipient).first()
             if user is None:
                 raise ValidationError(_(f'username {recipient} does not exist.'))
 

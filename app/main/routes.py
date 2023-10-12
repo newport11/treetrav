@@ -4,7 +4,7 @@ from flask import render_template, flash, redirect, url_for, request, g, \
     jsonify, current_app
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
-from sqlalchemy import and_, func, union, union_all
+from sqlalchemy import and_, func, or_, select, union, union_all
 from app import db
 from app.main.forms import CopyFolder, MoveFolder, PageDownForm, RenameFolder, SettingsForm, EmptyForm, PostForm, SearchForm, ShareFolderForm
 from app.models import Leaf, ShareFolder, ShareFolderRequest, User, Post
@@ -16,6 +16,8 @@ import markdown
 from werkzeug.utils import secure_filename
 from PIL import Image
 from io import BytesIO
+
+
 
 
 
@@ -34,7 +36,8 @@ def before_request():
 def home():
     form = PostForm()
     if form.validate_on_submit():
-        post = Post(link=form.post_link.data, body=form.post_body.data, folder_link=form.post_folder.data.strip().strip("/") if form.post_folder.data else "/",
+        folder_path = form.post_folder.data.strip().strip("/") if form.post_folder.data else "/"
+        post = Post(link=form.post_link.data, body=form.post_body.data, folder_link=folder_path,
                        author=current_user)
         OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
         if not post.body and OPENAI_API_KEY:
@@ -42,6 +45,27 @@ def home():
         favicon_file_name = get_favicon(post.link)
         if favicon_file_name:
             post.favicon_file_name = favicon_file_name
+        
+        
+        if current_user.inbound_shares and folder_path != '/':
+            for share in current_user.inbound_shares:
+                sharee_folder_path = share.sharee_folder_path
+                sharer_folder_path = share.sharer_folder_path
+                sharer_id = share.sharer_id
+                path_to_check = sharee_folder_path + '/' + sharer_folder_path.rstrip("/").rsplit("/", 1)[-1]
+                if is_subpath(path_to_check, folder_path):
+                    sharer = User.query.filter_by(id=sharer_id).first()
+                    if sharer is None:
+                        continue
+                    else:
+                        post.author = sharer
+                        post.folder_link  = sharer_folder_path + post.folder_link[len(path_to_check):]
+                        db.session.add(post)
+                        db.session.commit()
+                        flash(_('Your link is now posted!'))
+                        return redirect(url_for('main.home'))
+
+                                                           
         db.session.add(post)
         db.session.commit()
         flash(_('Your link is now posted!'))
@@ -62,11 +86,22 @@ def home():
 @bp.route('/post/delete/<int:post_id>', methods=['POST'])
 @login_required
 def delete_post(post_id):
+    if current_user.inbound_shares:
+        for share in current_user.inbound_shares:
+            sharer_posts = Post.query.filter_by(user_id=share.sharer_id).all()
+            for post in sharer_posts:
+                if post.id == post_id:
+                    db.session.delete(post)
+                    db.session.commit()
+                    flash('Link deleted')
+                    return redirect(request.referrer)
     post = Post.query.filter_by(id=post_id).first_or_404()
     if current_user.id == post.user_id:
         db.session.delete(post)
         db.session.commit()
         flash('Link deleted')
+        return redirect(request.referrer)
+    else:
         return redirect(request.referrer)
 
 
@@ -86,10 +121,19 @@ def delete_account(user_id):
 @login_required
 def delete_folder(folder_link):
     posts = Post.query.filter_by(user_id=current_user.id).all()
+    if current_user.inbound_shares:
+        for share in current_user.inbound_shares:
+            sharee_folder_path = share.sharee_folder_path
+            sharer_posts = Post.query.filter_by(user_id=share.sharer_id).all()
+            for post in sharer_posts:
+                if post.folder_link != None and is_subpath( folder_link.lstrip(sharee_folder_path).strip('/'), 
+                                                           post.folder_link):
+                    db.session.delete(post)
     for post in posts:
-        if  post.folder_link != None and post.folder_link.startswith(folder_link) and current_user.id == post.user_id:
+        if  post.folder_link != None and is_subpath( folder_link, post.folder_link) and current_user.id == post.user_id:
             db.session.delete(post)
-            db.session.commit()
+    
+    db.session.commit()
     flash('Folder deleted')
     previous_folder = folder_link.rstrip("/").rsplit("/", 1)[0]
     if len(folder_link.split("/")) <= 1:
@@ -149,77 +193,84 @@ def user(username):
         is_following = False
     if (user.private_mode == True and user != current_user and not is_following)  :
         return render_template('user_private.html', user=user, form=form)
-    else:
-        page = request.args.get('page', 1, type=int)
-        ''' 
+    else:  
+        shared_id_list = []
+        posts = user.posts.filter_by(folder_link="/").order_by(Post.timestamp.desc())
+        #BEGIN OUTBOUND SHARE CODE
+        outbound_shares = current_user.outbound_shares            
+        for share in outbound_shares:
+            sharer_folder_path = share.sharer_folder_path
+            sharer = User.query.filter_by(id=share.sharer_id).first_or_404()
+            if sharer is None:
+                continue
+            sharer_posts = sharer.posts.filter(or_(
+                Post.folder_link.like(sharer_folder_path + '/%'),
+                Post.folder_link == sharer_folder_path
+            ))
+            for post in sharer_posts:
+                shared_id_list.append(post.id)
+
+        # END OUTBOUND SHARE CODE
+
+        
+        # CHECK FOR INBOUND SHARES
         if current_user == user:
             inbound_shares = current_user.inbound_shares
-            post_list = []
+            shared_folders_list = []
+            
             for share in inbound_shares:
                 sharer_folder_path = share.sharer_folder_path
                 sharee_folder_path = share.sharee_folder_path
                 sharer = User.query.filter_by(id=share.sharer_id).first_or_404()
                 if sharer is None:
                     continue
-                sharer_posts = sharer.posts.filter(Post.folder_link.like( sharer_folder_path + '%'))
+                sharer_posts = sharer.posts.filter(or_(
+                    Post.folder_link.like(sharer_folder_path + '/%'),
+                    Post.folder_link == sharer_folder_path
+                ))
+
                 for post in sharer_posts:
-                    post.folder_link = sharee_folder_path + '/' + sharer_folder_path
+                    post.folder_link = post.folder_link
                     post.author = current_user
                     post.user_id = current_user.id
-                    print(post.link)
-                    print("######")
-                post_list.append(sharer_posts)
-            if post_list:
-                original_query = user.posts.filter_by(folder_link="/")
-                post_list.append(original_query)
-                combined_query = union_all(*post_list)
-                page = request.args.get('page', 1, type=int)  # Get the page number from the request
-                per_page = current_app.config['POSTS_PER_PAGE']  # Number of items per page
-                #posts = Pagination(query=combined_query, page=page, per_page=per_page, error_out=False)
-
-                posts = original_query.order_by(Post.timestamp.desc()).paginate(
-                    page=page, per_page=current_app.config['POSTS_PER_PAGE'],
-                    error_out=False)
-            else:
-                posts = user.posts.filter_by(folder_link="/").order_by(Post.timestamp.desc()).paginate(
-                    page=page, per_page=current_app.config['POSTS_PER_PAGE'],
-                    error_out=False)
-        
-            folders_tmp = user.posts.filter(Post.folder_link !="/").order_by(Post.timestamp.desc()).all()
-            folders = []
-            visited_folders = []
-            for post in folders_tmp:
-                post.folder_name = post.folder_link = post.folder_link.split("/")[0]
-                if post.folder_name != "" and post.folder_name not in visited_folders:
-                    visited_folders.append(post.folder_name)
-                    folders.append(post)
-            
-            next_url = url_for('main.user', username=user.username,
-                            page=posts.next_num) if posts.has_next else None
-            prev_url = url_for('main.user', username=user.username,
-                            page=posts.prev_num) if posts.has_prev else None
-            return render_template('user.html', user=user, posts=posts.items,
-                            next_url=next_url, prev_url=prev_url, form=form, folders=folders)
+                    shared_id_list.append(post.id)
                 
-        '''
-        # original code ----------------------------------------------------------------------
-        posts = user.posts.filter_by(folder_link="/").order_by(Post.timestamp.desc()).paginate(
+            if shared_folders_list:
+                original_query = user.posts.filter_by(folder_link="/")
+                shared_folders_list.append(original_query)
+
+                combined_query = union_all(*shared_folders_list)
+                post_list = db.session.execute(combined_query).all()
+                id_list = [post[0] for post in post_list ]
+
+                posts = Post.query.filter(Post.id.in_(id_list)).order_by(Post.timestamp.desc()).all()
+    
+
+        # END INBOUND SHARE CODE
+
+        page = request.args.get('page', 1, type=int)
+        posts = posts.paginate(
             page=page, per_page=current_app.config['POSTS_PER_PAGE'],
             error_out=False)
-        
-        folders_tmp = user.posts.filter(Post.folder_link !="/").order_by(Post.timestamp.desc()).all()
-        folders = []
-        visited_folders = []
-        for post in folders_tmp:
-            post.folder_name = post.folder_link = post.folder_link.split("/")[0]
-            if post.folder_name != "" and post.folder_name not in visited_folders:
-                visited_folders.append(post.folder_name)
-                folders.append(post)
         
         next_url = url_for('main.user', username=user.username,
                         page=posts.next_num) if posts.has_next else None
         prev_url = url_for('main.user', username=user.username,
                         page=posts.prev_num) if posts.has_prev else None
+        
+        folders_tmp = user.posts.filter(Post.folder_link !="/").order_by(Post.timestamp.desc()).all()
+        folders = []
+        visited_folders = []
+
+        for post in folders_tmp:
+            post.folder_name = post.folder_link = post.folder_link.split("/")[0]
+            if shared_id_list:
+                        post.is_shared = True if post.id in shared_id_list else False
+            if post.folder_name != "" and post.folder_name not in visited_folders:
+                visited_folders.append(post.folder_name)
+                folders.append(post)
+        
+
         return render_template('user.html', user=user, posts=posts.items,
                             next_url=next_url, prev_url=prev_url, form=form, folders=folders)
 
@@ -319,7 +370,86 @@ def user_subfolder(username, path):
                             temp_html = markdown.markdown(get_leaf.md_text)
                             return render_template('leaf_page.html', user=user, 
                                 form=form, user_home_page=user_home_page, temp_html=temp_html,  prevPath=prevPath)
+        
+        shared_id_list = []
+
+        #BEGIN OUTBOUND SHARE CODE
+        outbound_shares = current_user.outbound_shares            
+        for share in outbound_shares:
+            sharer_folder_path = share.sharer_folder_path
+            sharer = User.query.filter_by(id=share.sharer_id).first_or_404()
+            if sharer is None:
+                continue
+            sharer_posts = sharer.posts.filter(or_(
+                Post.folder_link.like(sharer_folder_path + '/%'),
+                Post.folder_link == sharer_folder_path
+            ))
+            for post in sharer_posts:
+                shared_id_list.append(post.id)
+
+        # END OUTBOUND SHARE CODE
+
+        # CHECK FOR INBOUND SHARES
+        if current_user == user:
+            inbound_shares = current_user.inbound_shares
+            shared_folders_list = []
+            
+            for share in inbound_shares:
+                sharer_folder_path = share.sharer_folder_path
+                sharee_folder_path = share.sharee_folder_path
+                sharer = User.query.filter_by(id=share.sharer_id).first_or_404()
+                if sharer is None:
+                    continue
+                sharer_posts = sharer.posts.filter(or_(
+                    Post.folder_link.like(sharer_folder_path + '/%'),
+                    Post.folder_link == sharer_folder_path
+                ))
+
+                for post in sharer_posts:
+                    if sharee_folder_path == '/':
+                        post.folder_link = post.folder_link
+                    else:
+                        post.folder_link = sharee_folder_path + '/' + post.folder_link
+                    post.author = current_user
+                    post.user_id = current_user.id
+                    shared_id_list.append(post.id)
+                    
+                filtered_sharer_posts = sharer_posts.filter_by(folder_link=path)
+
+                shared_folders_list.append(filtered_sharer_posts)
+                
+            if shared_folders_list:
+                original_query = user.posts.filter_by(folder_link=path)
+                shared_folders_list.append(original_query)
+
+                combined_query = union_all(*shared_folders_list)
+                post_list = db.session.execute(combined_query).all()
+                id_list = [post[0] for post in post_list ]
+
+                posts = Post.query.filter(Post.id.in_(id_list)).order_by(Post.timestamp.desc()).all()
     
+            else:
+                posts = user.posts.filter_by(folder_link=path).order_by(Post.timestamp.desc())
+
+            folders_tmp = user.posts.filter(Post.folder_link !=path ).order_by(Post.timestamp.desc()).all()
+            folders = []
+            visited_folders = []
+            for post in folders_tmp:
+                if not is_subpath(path, post.folder_link):
+                    continue
+                else:
+                    post.folder_name = post.folder_link.removeprefix(path).strip("/").split("/")[0]
+                    post.folder_link =  path + "/" + post.folder_name
+                    if shared_id_list:
+                        post.is_shared = True if post.id in shared_id_list else False
+                    if post.folder_name != "" and post.folder_name not in visited_folders:
+                        visited_folders.append(post.folder_name)
+                        folders.append(post)
+
+            return render_template('user_subfolder.html', user=user, posts=posts,
+                                form=form, folders=folders, prevPath=prevPath, user_home_page=user_home_page, current_folder=current_folder)
+        # END INBOUND SHARE CODE
+
 
         posts = user.posts.filter_by(folder_link=path).order_by(Post.timestamp.desc())
         folders_tmp = user.posts.filter(Post.folder_link !=path ).order_by(Post.timestamp.desc()).all()
@@ -331,6 +461,8 @@ def user_subfolder(username, path):
             else:
                 post.folder_name = post.folder_link.removeprefix(path).strip("/").split("/")[0]
                 post.folder_link =  path + "/" + post.folder_name
+                if shared_id_list:
+                    post.is_shared = True if post.id in shared_id_list else False
                 if post.folder_name != "" and post.folder_name not in visited_folders:
                     visited_folders.append(post.folder_name)
                     folders.append(post)
@@ -343,7 +475,6 @@ def user_subfolder(username, path):
 def settings():
     form = SettingsForm(current_user.username, current_user.email)
     if form.validate_on_submit():
-        print(form.picture.data)
         current_user.username = form.username.data.strip()
         current_user.email = form.email.data.strip()
         current_user.about_me = form.about_me.data.strip()
@@ -508,6 +639,70 @@ def decline_share(requestee_id, requestor_id, request_folder):
             return redirect(request.referrer) 
     return redirect(request.referrer)
 
+
+@bp.route('/remove_inbound_share/<int:sharee_id>/<int:sharer_id>/<path:sharer_folder_path>', methods=['POST'])
+@bp.route('/remove_inbound_share/<int:sharee_id>/<int:sharer_id>/<path:sharer_folder_path>/<path:sharee_folder_path>', methods=['POST'])
+@login_required
+def remove_inbound_share(sharee_id, sharer_id, sharer_folder_path, sharee_folder_path='/'):
+    if current_user.id == sharee_id:
+        share = ShareFolder.query.filter_by(
+        sharee_id=sharee_id, sharer_id=sharer_id, sharee_folder_path=sharee_folder_path,
+             sharer_folder_path=sharer_folder_path).first()
+        if share is None:
+                flash(_('Share not found.'))
+                return redirect(request.referrer)
+        db.session.delete(share)
+        db.session.commit()
+        flash(_('Inbound share removed'))
+        return redirect(request.referrer)
+
+
+@bp.route('/remove_outbound_share/<int:sharee_id>/<int:sharer_id>/<path:sharer_folder_path>', methods=['POST'])
+@bp.route('/remove_outbound_share/<int:sharee_id>/<int:sharer_id>/<path:sharer_folder_path>/<path:sharee_folder_path>', methods=['POST'])
+@login_required
+def remove_outbound_share(sharee_id, sharer_id, sharer_folder_path, sharee_folder_path='/'):
+    if current_user.id == sharer_id:
+        share = ShareFolder.query.filter_by(
+        sharee_id=sharee_id, sharer_id=sharer_id, sharee_folder_path=sharee_folder_path,
+             sharer_folder_path=sharer_folder_path).first()
+        if share is None:
+                flash(_('Share not found.'))
+                return redirect(request.referrer)
+        db.session.delete(share)
+        db.session.commit()
+        flash(_('Outbound share removed'))
+        return redirect(request.referrer)
+
+
+@bp.route('/remove_all_outbound_shares/<username>', methods=['POST'])
+@login_required
+def remove_all_outbound_shares(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    if current_user.id == user.id:
+        for share in user.outbound_shares:
+            share_to_remove = ShareFolder.query.filter_by(
+            sharee_id=share.sharee_id, sharer_id=share.sharer_id, sharee_folder_path=share.sharee_folder_path,
+                sharer_folder_path=share.sharer_folder_path).first()
+            db.session.delete(share_to_remove)
+        db.session.commit()
+        flash(_('Outbound shares removed'))
+        return redirect(request.referrer)
+    
+
+@bp.route('/remove_all_inbound_shares/<username>', methods=['POST'])
+@login_required
+def remove_all_inbound_shares(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    if current_user.id == user.id:
+        for share in user.inbound_shares:
+            share_to_remove = ShareFolder.query.filter_by(
+            sharee_id=share.sharee_id, sharer_id=share.sharer_id, sharee_folder_path=share.sharee_folder_path,
+                sharer_folder_path=share.sharer_folder_path).first()
+            db.session.delete(share_to_remove)
+        db.session.commit()
+        flash(_('Inbound shares removed'))
+        return redirect(request.referrer)
+    
 
 @bp.route('/follow/<username>', methods=['POST'])
 @login_required

@@ -71,7 +71,18 @@
 </div>
 
 {% if outbound_shares.count() > 0 %}
-    <h4>{{ _('Outbound Shares:') }}</h4>
+<div style="display: flex; align-items: center;">
+    <h4 style="display: inline; margin-right: 10px;">{{ _('Outbound Shares:') }}</h4> 
+    <td style="text-align: right;"> 
+        <div class="garbage-copy-container" style="display: flex; align-items: center; justify-content: flex-end; flex: 1;">
+            <form method="post" action="{{ url_for('main.remove_all_outbound_shares', username=username) }}">
+                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; margin-right: 8px;">
+                    <img src="https://img.icons8.com/ios-filled/50/FA5252/clear-symbol.png" width="25" height="25" name="delete" />
+                </button>
+            </form>
+        </div>           
+    </td>
+</div> 
     {% for share in outbound_shares %}
         {% include 'outbound_share.html' %}
     {% endfor %}
@@ -80,7 +91,18 @@
 {% endif %}
 
 {% if inbound_shares.count() > 0  %}
+<div style="display: flex; align-items: center;"> 
     <h4>{{ _('Inbound Shares:') }}</h4>
+    <td style="text-align: right;"> 
+        <div class="garbage-copy-container" style="display: flex; align-items: center; justify-content: flex-end; flex: 1;">
+            <form method="post" action="{{ url_for('main.remove_all_inbound_shares', username=username) }}">
+                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; margin-right: 8px;">
+                    <img src="https://img.icons8.com/ios-filled/50/FA5252/clear-symbol.png" width="25" height="25" name="delete" />
+                </button>
+            </form>
+        </div>           
+    </td>
+</div> 
     {% for share in inbound_shares %}
         {% include 'inbound_share.html' %}
     {% endfor %}
