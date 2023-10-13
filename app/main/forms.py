@@ -97,8 +97,10 @@ class ShareFolderForm(FlaskForm):
 
     def validate_folder_path(self, folder_path):
         if folder_path.data.strip() != "/":
-            user = User.query.filter_by(username=self.username).first()
             folder_path = folder_path.data.strip().strip("/")
+            if len(folder_path) > 255:
+                    raise ValidationError(_(f'must be 255 characters or less'))              
+            user = User.query.filter_by(username=self.username).first()
             posts = user.posts.all()
             filtered_posts = filter(lambda post: is_subpath(folder_path, post.folder_link), posts)
             filtered_posts_list = list(filtered_posts)

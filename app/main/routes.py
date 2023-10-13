@@ -203,6 +203,8 @@ def user(username):
         outbound_shares = user.outbound_shares            
         for share in outbound_shares:
             sharer_folder_path = share.sharer_folder_path
+            if len(sharer_folder_path.split('/',1)) > 1:
+                continue
             sharer = User.query.filter_by(id=share.sharer_id).first_or_404()
             if sharer is None:
                 continue
@@ -586,6 +588,9 @@ def accept_share(requestee_id, requestor_id, request_folder):
             mount_path = request.form.get('mount_path').strip()
             if mount_path != "/":
                 mount_path = mount_path.strip("/")
+                if len(mount_path) > 255:
+                    flash(_('Mount path must be 255 characters or less'))
+                    return redirect(request.referrer)
                 posts = current_user.posts.all()
                 filtered_posts = filter(lambda post: is_subpath(mount_path, post.folder_link), posts)
                 filtered_posts_list = list(filtered_posts)
@@ -687,6 +692,9 @@ def update_inbound_share(sharee_id, sharer_id, sharer_folder_path, sharee_folder
         mount_path = request.form.get('mount_path').strip()
         if mount_path != "/":
             mount_path = mount_path.strip("/")
+            if len(mount_path) > 255:
+                    flash(_('Mount path must be 255 characters or less'))
+                    return redirect(request.referrer)
             posts = current_user.posts.all()
             filtered_posts = filter(lambda post: is_subpath(mount_path, post.folder_link), posts)
             filtered_posts_list = list(filtered_posts)
