@@ -942,6 +942,13 @@ def actions():
 def privacy_policy():
     return render_template('privacy_policy.html')
 
+@bp.route('/about_us')
+def about_us():
+    return render_template('about_us.html')
+
+@bp.route('/about_extension')
+def about_extension():
+    return render_template('about_extension.html')
 
 # Action Routes ---------------------------------------------------------
 @bp.route('/rename_folder', methods=['GET','POST'])
