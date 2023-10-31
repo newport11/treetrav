@@ -55,6 +55,7 @@ def pic_exists(filename):
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    app.config['SQLALCHEMY_POOL_RECYCLE'] = 20
 
     db.init_app(app)
     migrate.init_app(app, db)
