@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Action Functionality Documentation</title>
+</head>
+
+<body>
+  <h1>Action Functionality Documentation</h1>
+
+  <br>
+
+  <h2>Rename</h2>
+  <p>Rename allows a user to rename a folder. To perform this action:</p>
+  <ol>
+    <li>Type the origin folder path: Specify the current path of the folder you want to rename.</li>
+    <li>Type the new folder name: Enter the new name you want to assign to the folder.</li>
+    <li>The origin folder path must exist and be valid for the renaming to work.</li>
+  </ol>
+
+  <br>
+
+  <h2>Copy</h2>
+  <p>Copy allows users to duplicate the contents of one folder into another location. To use this action:</p>
+  <ol>
+    <li>Type the origin folder path: Specify the path of the folder whose contents you want to duplicate.</li>
+    <li>Type the destination folder path: Enter the path where you want to copy the contents to.</li>
+    <li>Both the origin and destination folder paths must exist and be valid for the copy operation to work.</li>
+  </ol>
+
+  <br>
+
+  <h2>Move</h2>
+  <p>Move is similar to copy, but instead of duplicating the contents of the folder, it moves the entire folder to the
+    destination path. To execute this action:</p>
+  <ol>
+    <li>Type the origin folder path: Specify the path of the folder you want to move.</li>
+    <li>Type the destination folder path: Enter the path where you want to move the folder to.</li>
+    <li>Both the origin and destination folder paths must exist and be valid for the move operation to be successful.
+      The folder is relocated to the new location, and it is no longer present in its original location.</li>
+  </ol>
+  <p>These actions provide essential functionality for managing folders, allowing users to rename, copy, and move them
+    as needed while ensuring the paths are valid for a successful operation.</p>
+</body>
+
+</html>
+{% endblock %}

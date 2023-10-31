@@ -940,15 +940,35 @@ def actions():
 
 @bp.route('/privacy_policy')
 def privacy_policy():
-    return render_template('privacy_policy.html')
+    return render_template('treetrav_profile/privacy_policy.html')
 
 @bp.route('/about_us')
 def about_us():
-    return render_template('about_us.html')
+    return render_template('treetrav_profile/about_us.html')
 
 @bp.route('/about_extension')
 def about_extension():
-    return render_template('about_extension.html')
+    return render_template('treetrav_profile/about_extension.html')
+
+@bp.route('/documentation/general')
+def doc_general():
+    return render_template('treetrav_profile/documentation/general.html')
+
+@bp.route('/documentation/posts')
+def doc_posts():
+    return render_template('treetrav_profile/documentation/posts.html')
+
+@bp.route('/documentation/shared_folders')
+def doc_shared_folders():
+    return render_template('treetrav_profile/documentation/shared_folders.html')
+
+@bp.route('/documentation/leafs')
+def doc_leafs():
+    return render_template('treetrav_profile/documentation/leafs.html')
+
+@bp.route('/documentation/actions')
+def doc_actions():
+    return render_template('treetrav_profile/documentation/actions.html')
 
 # Action Routes ---------------------------------------------------------
 @bp.route('/rename_folder', methods=['GET','POST'])

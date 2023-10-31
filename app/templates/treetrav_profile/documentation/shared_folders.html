@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Shared Folder Documentation</title>
+</head>
+
+<body>
+  <h1>Shared Folder Documentation</h1>
+
+  <p>The shared folder feature allows you to easily share folders with other users on the platform. This documentation
+    provides an overview of how to share folders, manage shared folders, and handle share requests.</p>
+
+  <br>
+
+  <h2>Sharing a Folder:</h2>
+  <ol>
+    <li>Enter the folder path: Specify the path to the folder you want to share. For example:
+      <br><code>Folder Path: shopping/wish list</code>
+    </li>
+    <li>Add user(s) to share with: Enter the username(s) of the users you want to share the folder with, separating them
+      with commas. For example:
+      <br><code>Share with: username1, username2, username3</code>
+    </li>
+    <li>Click the "Share" button to initiate the sharing process.</li>
+  </ol>
+
+  <br>
+
+  <h2>Viewing Shared Folders:</h2>
+  <p>Shared folders can be categorized into two types: outbound shares and inbound shares.</p>
+  <ul>
+    <li><strong>Outbound Shares:</strong> These are folders that you have shared with other users. You can view the path
+      from which you've shared the folder and the path to which it is mounted.</li>
+    <li><strong>Inbound Shares:</strong> These are folders that other users have shared with you. You can view the path
+      from which the folder is shared and, for inbound shares, you have the option to update the path to which the
+      folder is mounted.</li>
+  </ul>
+
+  <br>
+
+  <h2>Accepting Share Requests:</h2>
+  <p>When someone shares a folder with you, you will receive a share request. To accept the share and make the folder
+    accessible in your profile, follow these steps:</p>
+  <ol>
+    <li>Specify a path to mount the folder to in your profile. This is the location where you want the shared folder to
+      be accessible.</li>
+    <li>Accept the share request.</li>
+  </ol>
+
+  <br>
+
+  <h2>Effect on Shared Content:</h2>
+  <p>Once you've accepted a shared folder and mounted it to your profile, any posts you add within this path will be
+    visible to all users with access to the shared folder. Similarly, if you delete a post within the shared path, it
+    will be deleted for all users who have access to that folder.</p>
+
+  <br>
+
+  <h2>Managing Shared Folders:</h2>
+  <p>You have the flexibility to delete the shared folder at any time. This action will remove access to the shared
+    folder for all users it was shared with.</p>
+</body>
+
+</html>
+
+{% endblock %}

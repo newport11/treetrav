@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Posts Documentation</title>
+</head>
+
+<body>
+
+  <h1>Posts Documentation</h1>
+
+  <br>
+
+  <h2>Posts</h2>
+
+  <p>Posts are links that a user has shared on their profile. When creating a post, users specify the following details:
+  </p>
+
+  <ul>
+    <li><strong>URL:</strong> The web address of the link they want to share.</li>
+    <li><strong>Description (Optional):</strong> A text description of the link. If no description is provided, the post
+      will display the link itself as the description.</li>
+    <li><strong>Folder Path (Optional):</strong> The location in the user's profile where they want the link to be
+      posted. If no folder path is specified, the link gets posted directly into the user's base profile page.</li>
+  </ul>
+
+  <h3>Interacting with Posts</h3>
+
+  <p>Once a link has been posted, users with access to the post can interact with it in several ways:</p>
+
+  <ul>
+    <li><strong>Clicking the Icon or Link/Description:</strong> This action will open the respective link in a new tab,
+      allowing users to explore the content linked to by the author.</li>
+    <li><strong>Clicking the Author's Name:</strong> Users can click the author's name to navigate to that author's
+      profile page. This feature provides an easy way to discover more about the author and explore their other posts
+      and content.</li>
+    <li><strong>Clicking the Path:</strong> Clicking the path associated with the post will take users directly to the
+      exact location within the author's profile where that link has been posted. This feature provides quick navigation
+      to the specific context of the shared link.</li>
+    <li><strong>Clicking the Copy Icon:</strong> Clicking the copy icon will copy the link of the post to the user's
+      clipboard, making it easy to share or save the link for future reference.</li>
+    <li><strong>Clicking the Garbage Can Icon (Author Only):</strong> Users who are the author of the post can click the
+      garbage can icon to delete the post completely. This feature allows authors to manage and remove their posts as
+      needed.</li>
+    <li><strong>Clicking the Star Icon (Non-Author Only):</strong> Users who are not the author of the post can click
+      the star icon to add the post to their favorites list. This feature allows users to curate a list of their
+      favorite posts from other users.</li>
+  </ul>
+
+  <p>For more details about posts shared under shared folders, please refer to the "Shared Folder Documentation." Posts
+    are a versatile feature of treetrav, enabling users to engage with shared content, personalize their experience, and
+    maintain a well-organized profile.</p>
+
+</body>
+
+</html>
+
+{% endblock %}

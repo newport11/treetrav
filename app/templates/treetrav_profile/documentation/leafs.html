@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Leafs Documentation</title>
+</head>
+
+<body>
+
+  <h1>Leafs Documentation</h1>
+
+  <p>Leafs are simple HTML pages that enable users to create and post content written in Markdown directly to their
+    profile. This feature offers a user-friendly and straightforward way to share information or stories. When creating
+    a Leaf page, users are required to provide the following details:</p>
+
+  <br>
+
+  <h2>Leafs Functionality</h2>
+
+  <ul>
+    <li><strong>Folder Path:</strong> This is the path within the user's profile where they wish to post the Leaf page.
+      The format for specifying the folder path must follow the structure of 'folder/subfolder/...'. Users can choose
+      the destination folder that best fits the content they are creating.</li>
+    <li><strong>File Name:</strong> The File Name serves as the title or description of the newly created Leaf page. It
+      allows users to give a meaningful and concise name to their content, making it easily identifiable.</li>
+    <li><strong>Markdown Content:</strong> Users can input the content of the Leaf page in Markdown format. Markdown is
+      a lightweight markup language that provides a simple way to format text and include various elements like
+      headings, lists, links, and more. Users can compose their content using Markdown syntax for easy and effective
+      content creation.</li>
+  </ul>
+
+  <h3>Posting a Leaf Page</h3>
+
+  <p>To create and post a Leaf page, users follow these steps:</p>
+
+  <ol>
+    <li>Enter the desired 'Folder Path' to specify where the Leaf page will be posted in their profile.</li>
+    <li>Provide a descriptive 'File Name' to give the Leaf page a recognizable title.</li>
+    <li>Compose the content of the Leaf page using Markdown in the 'Markdown Content' field.</li>
+    <li>Click the "Post" or "Create" button to publish the Leaf page to their profile.</li>
+  </ol>
+
+  <p>Once the Leaf page is posted, it becomes a part of the user's profile and can be accessed by other users who have
+    access to the specified folder.</p>
+
+  <p>Leafs provide users with a straightforward way to create and share content within their treetrav profile. Whether
+    it's sharing stories, articles, or information, Leafs allow for content creation in an easy-to-format and easily
+    accessible format.</p>
+
+</body>
+
+</html>
+
+{% endblock %}
