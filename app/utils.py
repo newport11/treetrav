@@ -99,27 +99,3 @@ def move_folder_util(current_user, origin_path, dest_path):
 
 
 
-def manage_session(f):
-    def inner(*args, **kwargs):
-
-        # MANUAL PRE PING
-        try:
-            db.session.execute("SELECT 1;")
-            db.session.commit()
-        except:
-            db.session.rollback()
-        finally:
-            db.session.close()
-
-        # SESSION COMMIT, ROLLBACK, CLOSE
-        try:
-            res = f(*args, **kwargs)
-            db.session.commit()
-            return res
-        except Exception as e:
-            db.session.rollback()
-            raise e
-            # OR return traceback.format_exc()
-        finally:
-            db.session.close()
-    return inner
