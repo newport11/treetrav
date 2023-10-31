@@ -5,6 +5,7 @@ from app.models import Post
 from app.api import bp
 from app.api.auth import token_auth
 from app.api.errors import bad_request
+from app.utils import manage_session
 
 
 @bp.route('/posts/<int:id>', methods=['GET'])
@@ -15,6 +16,7 @@ def get_post(id):
 
 @bp.route('/post_link', methods=['POST'])
 @token_auth.login_required
+@manage_session
 def post_link():
     data = request.get_json() or {}
     if 'link' not in data or data['link'] == "":
@@ -42,6 +44,7 @@ def post_link():
 
 @bp.route('/post_multiple_links', methods=['POST'])
 @token_auth.login_required
+@manage_session
 def post_multiple_links():
     data = request.get_json() or {}
     if 'links' not in data or data['links'] == "":

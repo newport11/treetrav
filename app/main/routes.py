@@ -11,7 +11,7 @@ from app.models import Leaf, ShareFolder, ShareFolderRequest, User, Post
 from app.main import bp
 from app.favicon import get_favicon, hash_profile_pic
 from app.openai import generate_link_summary
-from app.utils import copy_folder_util, is_subpath, move_folder_util, rename_folder_util, validate_folder_path
+from app.utils import copy_folder_util, is_subpath, move_folder_util, rename_folder_util, validate_folder_path, manage_session
 import markdown
 from werkzeug.utils import secure_filename
 from PIL import Image
@@ -32,6 +32,7 @@ def before_request():
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/home', methods=['GET', 'POST'])
 @login_required
+@manage_session
 def home():
     form = PostForm()
     if form.validate_on_submit():
