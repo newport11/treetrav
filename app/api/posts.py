@@ -45,20 +45,29 @@ def post_link():
                 else:
                     new_folder  = sharer_folder_path + post.folder_link[len(path_to_check):]
                     post = Post(link=link, body=text, folder_link=new_folder.strip("/"), author=sharer)
-                    break
+                    
+                    favicon_file_name = get_favicon(post.link)
+                    if favicon_file_name:
+                        post.favicon_file_name = favicon_file_name
+                    db.session.add(post)
+                    db.session.commit()
+                    response = jsonify(post.to_dict())
+                    response.status_code = 201
+                    response.headers['Location'] = url_for('api.get_post', id=post.id)
+                    return response
 
     else:
         post = Post(link=link, body=text, folder_link=folder.strip("/") if folder != '/' else folder, author=token_auth.current_user())
-    
-    favicon_file_name = get_favicon(post.link)
-    if favicon_file_name:
-        post.favicon_file_name = favicon_file_name
-    db.session.add(post)
-    db.session.commit()
-    response = jsonify(post.to_dict())
-    response.status_code = 201
-    response.headers['Location'] = url_for('api.get_post', id=post.id)
-    return response
+
+        favicon_file_name = get_favicon(post.link)
+        if favicon_file_name:
+            post.favicon_file_name = favicon_file_name
+        db.session.add(post)
+        db.session.commit()
+        response = jsonify(post.to_dict())
+        response.status_code = 201
+        response.headers['Location'] = url_for('api.get_post', id=post.id)
+        return response
 
 
 @bp.route('/post_multiple_links', methods=['POST'])
