@@ -6,6 +6,7 @@ import os
 import hashlib
 from urllib.parse import urlparse
 import favicon
+import urllib.parse
 
 
 def hash_url(url):
@@ -55,6 +56,7 @@ def resize_favicon(url):
 
 def get_favicon(domain):
     if domain is not None:
+        domain = urllib.parse.unquote(domain)
         if favicon_exists(domain):
             return favicon_exists
         try:

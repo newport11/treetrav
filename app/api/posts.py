@@ -6,6 +6,8 @@ from app.api import bp
 from app.api.auth import token_auth
 from app.api.errors import bad_request
 from app.utils import is_subpath
+import urllib.parse
+
 
 
 @bp.route('/posts/<int:id>', methods=['GET'])
@@ -30,7 +32,7 @@ def post_link():
         folder=data['folder'].strip()
     if not folder:
         folder = '/'   
-    link = data['link']
+    link = urllib.parse.quote(data['link'])
     if token_auth.current_user().inbound_shares and folder != '/':
         for share in token_auth.current_user().inbound_shares:
             sharee_folder_path = share.sharee_folder_path
@@ -90,7 +92,7 @@ def post_multiple_links():
     successful_count = 0
     for tab in tabs:
         try:
-            post = Post(link=tab["url"], body=text, folder_link=folder.strip().strip("/") if folder else "/", author=token_auth.current_user())
+            post = Post(link=urllib.parse.quote(tab["url"]), body=text, folder_link=folder.strip().strip("/") if folder else "/", author=token_auth.current_user())
             favicon_file_name = get_favicon(post.link)
             if favicon_file_name:
                 post.favicon_file_name = favicon_file_name

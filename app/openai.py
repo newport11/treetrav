@@ -1,9 +1,11 @@
 import requests
+import urllib.parse
 
 api_endpoint = 'https://api.openai.com/v1/chat/completions'
 
 
 def generate_link_summary(url, api_key):
+    url = urllib.parse.quote(url)
     prompt = f"summarize the following url in 74 characters or less: {url}"
     max_summary_length = 25
 
