@@ -55,8 +55,9 @@ def post_link():
                     response.status_code = 201
                     response.headers['Location'] = url_for('api.get_post', id=post.id)
                     return response
-                
-    post = Post(link=link, body=text, folder_link=folder.strip("/") if folder != '/' else folder, author=token_auth.current_user())
+    if not folder:
+        folder = '/'            
+    post = Post(link=link, body=text, folder_link=folder.strip("/") if folder != '/' else '/', author=token_auth.current_user())
 
     favicon_file_name = get_favicon(post.link)
     if favicon_file_name:
