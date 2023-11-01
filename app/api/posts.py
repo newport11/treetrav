@@ -1,10 +1,11 @@
 from flask import current_app, jsonify, request, url_for, abort
 from app import db
 from app.favicon import get_favicon
-from app.models import Post
+from app.models import Post, User
 from app.api import bp
 from app.api.auth import token_auth
 from app.api.errors import bad_request
+from app.utils import is_subpath
 
 
 @bp.route('/posts/<int:id>', methods=['GET'])
@@ -24,11 +25,31 @@ def post_link():
     else:
         text = data['text']
     if 'folder' not in data:
-        folder = None
+        folder = '/'
     else:
-        folder=data['folder']
+        folder=data['folder'].strip()
     link = data['link']
-    post = Post(link=link, body=text, folder_link=folder.strip().strip("/") if folder else "/", author=token_auth.current_user())
+    if token_auth.current_user().inbound_shares and folder != '/':
+        for share in token_auth.current_user().inbound_shares:
+            sharee_folder_path = share.sharee_folder_path
+            sharer_folder_path = share.sharer_folder_path
+            sharer_id = share.sharer_id
+            if sharee_folder_path == '/':
+                path_to_check = sharer_folder_path.rstrip("/").rsplit("/", 1)[-1]
+            else:
+                path_to_check = sharee_folder_path + '/' + sharer_folder_path.rstrip("/").rsplit("/", 1)[-1]
+            if is_subpath(path_to_check, folder):
+                sharer = User.query.filter_by(id=sharer_id).first()
+                if sharer is None:
+                    continue
+                else:
+                    new_folder  = sharer_folder_path + post.folder_link[len(path_to_check):]
+                    post = Post(link=link, body=text, folder_link=new_folder.strip("/"), author=sharer)
+                    break
+
+    else:
+        post = Post(link=link, body=text, folder_link=folder.strip("/") if folder != '/' else folder, author=token_auth.current_user())
+    
     favicon_file_name = get_favicon(post.link)
     if favicon_file_name:
         post.favicon_file_name = favicon_file_name
