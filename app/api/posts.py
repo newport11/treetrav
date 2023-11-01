@@ -28,6 +28,8 @@ def post_link():
         folder = '/'
     else:
         folder=data['folder'].strip()
+    if not folder:
+        folder = '/'   
     link = data['link']
     if token_auth.current_user().inbound_shares and folder != '/':
         for share in token_auth.current_user().inbound_shares:
@@ -55,8 +57,7 @@ def post_link():
                     response.status_code = 201
                     response.headers['Location'] = url_for('api.get_post', id=post.id)
                     return response
-    if not folder:
-        folder = '/'            
+         
     post = Post(link=link, body=text, folder_link=folder.strip("/") if folder != '/' else '/', author=token_auth.current_user())
 
     favicon_file_name = get_favicon(post.link)
