@@ -55,19 +55,18 @@ def post_link():
                     response.status_code = 201
                     response.headers['Location'] = url_for('api.get_post', id=post.id)
                     return response
+                
+    post = Post(link=link, body=text, folder_link=folder.strip("/") if folder != '/' else folder, author=token_auth.current_user())
 
-    else:
-        post = Post(link=link, body=text, folder_link=folder.strip("/") if folder != '/' else folder, author=token_auth.current_user())
-
-        favicon_file_name = get_favicon(post.link)
-        if favicon_file_name:
-            post.favicon_file_name = favicon_file_name
-        db.session.add(post)
-        db.session.commit()
-        response = jsonify(post.to_dict())
-        response.status_code = 201
-        response.headers['Location'] = url_for('api.get_post', id=post.id)
-        return response
+    favicon_file_name = get_favicon(post.link)
+    if favicon_file_name:
+        post.favicon_file_name = favicon_file_name
+    db.session.add(post)
+    db.session.commit()
+    response = jsonify(post.to_dict())
+    response.status_code = 201
+    response.headers['Location'] = url_for('api.get_post', id=post.id)
+    return response
 
 
 @bp.route('/post_multiple_links', methods=['POST'])
