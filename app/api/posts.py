@@ -43,9 +43,9 @@ def post_link():
                 if sharer is None:
                     continue
                 else:
-                    new_folder  = sharer_folder_path + post.folder_link[len(path_to_check):]
+                    new_folder  = sharer_folder_path + folder[len(path_to_check):]
                     post = Post(link=link, body=text, folder_link=new_folder.strip("/"), author=sharer)
-                    
+
                     favicon_file_name = get_favicon(post.link)
                     if favicon_file_name:
                         post.favicon_file_name = favicon_file_name
