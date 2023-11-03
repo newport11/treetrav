@@ -16,6 +16,7 @@ import markdown
 from werkzeug.utils import secure_filename
 from PIL import Image
 from io import BytesIO
+import asyncio
 
 
 
@@ -32,7 +33,7 @@ def before_request():
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/home', methods=['GET', 'POST'])
 @login_required
-def home():
+async def home():
     form = PostForm()
     if form.validate_on_submit():
         folder_path = form.post_folder.data.strip().strip("/") if form.post_folder.data else "/"
@@ -41,7 +42,7 @@ def home():
         OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
         if not post.body and OPENAI_API_KEY:
             post.body= generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
-        favicon_file_name = get_favicon(post.link)
+        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 10)
         if favicon_file_name:
             post.favicon_file_name = favicon_file_name
         

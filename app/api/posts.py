@@ -6,6 +6,7 @@ from app.api import bp
 from app.api.auth import token_auth
 from app.api.errors import bad_request
 from app.utils import is_subpath
+import asyncio
 
 
 @bp.route('/posts/<int:id>', methods=['GET'])
@@ -16,7 +17,7 @@ def get_post(id):
 
 @bp.route('/post_link', methods=['POST'])
 @token_auth.login_required
-def post_link():
+async def post_link():
     data = request.get_json() or {}
     if 'link' not in data or data['link'] == "":
         return bad_request('must include link field')
@@ -47,8 +48,7 @@ def post_link():
                 else:
                     new_folder  = sharer_folder_path + folder[len(path_to_check):]
                     post = Post(link=link, body=text, folder_link=new_folder.strip("/"), author=sharer)
-
-                    favicon_file_name = get_favicon(post.link)
+                    favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 10)
                     if favicon_file_name:
                         post.favicon_file_name = favicon_file_name
                     db.session.add(post)
@@ -60,7 +60,7 @@ def post_link():
          
     post = Post(link=link, body=text, folder_link=folder.strip("/") if folder != '/' else '/', author=token_auth.current_user())
 
-    favicon_file_name = get_favicon(post.link)
+    favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 10)
     if favicon_file_name:
         post.favicon_file_name = favicon_file_name
     db.session.add(post)
@@ -73,7 +73,7 @@ def post_link():
 
 @bp.route('/post_multiple_links', methods=['POST'])
 @token_auth.login_required
-def post_multiple_links():
+async def post_multiple_links():
     data = request.get_json() or {}
     if 'links' not in data or data['links'] == "":
         return bad_request('must include link field')
@@ -91,7 +91,7 @@ def post_multiple_links():
     for tab in tabs:
         try:
             post = Post(link=tab["url"], body=text, folder_link=folder.strip().strip("/") if folder else "/", author=token_auth.current_user())
-            favicon_file_name = get_favicon(post.link)
+            favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 10)
             if favicon_file_name:
                 post.favicon_file_name = favicon_file_name
             db.session.add(post)
