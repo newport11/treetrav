@@ -17,7 +17,7 @@ from werkzeug.utils import secure_filename
 from PIL import Image
 from io import BytesIO
 import asyncio
-
+import urllib.parse
 
 
 
@@ -37,12 +37,12 @@ async def home():
     form = PostForm()
     if form.validate_on_submit():
         folder_path = form.post_folder.data.strip().strip("/") if form.post_folder.data else "/"
-        post = Post(link=form.post_link.data, body=form.post_body.data, folder_link=folder_path,
+        post = Post(link=urllib.parse.quote(form.post_link.data), body=form.post_body.data, folder_link=folder_path,
                        author=current_user)
         OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
         if not post.body and OPENAI_API_KEY:
             post.body= generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
-        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 10)
+        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
         if favicon_file_name:
             post.favicon_file_name = favicon_file_name
         

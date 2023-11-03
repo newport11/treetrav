@@ -13,6 +13,7 @@ from flask_babel import Babel, lazy_gettext as _l
 from elasticsearch import Elasticsearch
 from config import Config
 from flask_pagedown import PageDown
+import urllib.parse
 
 
 
@@ -28,7 +29,9 @@ babel = Babel()
 htmx = HTMX()
 pagedown = PageDown()
 
-
+def decode_url(url):
+    return urllib.parse.unquote(url)
+    
 def shorten_folder_path(path):
     shortened_path = path[-30:]
     shortened_path_list = shortened_path.split("/", 1)
@@ -85,6 +88,7 @@ def create_app(config_class=Config):
     app.jinja_env.globals.update(shorten_folder_path=shorten_folder_path)
     app.jinja_env.globals.update(pic_exists=pic_exists)
     app.jinja_env.globals.update(set_mini_profile_pic_filename=set_mini_profile_pic_filename)
+    app.jinja_env.globals.update(decode_url=decode_url)
 
     if not app.debug and not app.testing:
         if app.config['MAIL_SERVER']:

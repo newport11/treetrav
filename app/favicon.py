@@ -3,10 +3,11 @@ from PIL import Image
 from io import BytesIO
 import os
 import hashlib
-from urllib.parse import urlparse
 import asyncio
 import favicon
 from concurrent.futures import ProcessPoolExecutor
+import urllib.parse
+
 
 def hash_url(url):
     return hashlib.md5(url.encode('utf-8')).hexdigest()
@@ -18,7 +19,7 @@ def hash_profile_pic(filename):
 
 def get_domain_from_url(url):
     try:
-        parsed_url = urlparse(url)
+        parsed_url = urllib.parse.urlparse(url)
         if parsed_url.netloc:
             return f"{parsed_url.scheme}://{parsed_url.netloc}"
         else:
@@ -70,6 +71,7 @@ async def get_favicon_with_timeout(domain, timeout = 8):
 
 async def get_favicon(url):
     if url is not None:
+        url = urllib.parse.unquote(url)
         try:
             domain = get_domain_from_url(url)
             if favicon_exists(domain):

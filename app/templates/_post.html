@@ -1,8 +1,9 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+{% set decoded_link = decode_url(post.link) %}
 <table class="table table-hover">
     <tr>
         <td width="25px">
-            <a href="{{ post.link }}" target="_blank">
+            <a href="{{ decoded_link }}" target="_blank">
                 
                 {% set favicon = post.favicon_file_name %}
     
@@ -30,18 +31,18 @@
             <br>
             
             {% block post %}
-                {% if post.body %} <a href="{{ post.link}}" target="_blank" class="posted-link-text">
+                {% if post.body %} <a href="{{ decoded_link}}" target="_blank" class="posted-link-text">
                     {% if post.body | length > 75 %}
                         {{ post.body[:75] }}...
                     {% else %}
                         {{ post.body }}
                     {% endif %}
                 </a> 
-                {% else %}   <a href="{{ post.link}}" target="_blank" class="posted-link-text">
-                    {% if post.link | length > 75 %}
-                        {{ post.link[:75] }}...
+                {% else %}   <a href="{{ decoded_link}}" target="_blank" class="posted-link-text">
+                    {% if decoded_link | length > 75 %}
+                        {{ decoded_link[:75] }}...
                     {% else %}
-                        {{ post.link }}
+                        {{ decoded_link }}
                     {% endif %}
                 </a> 
                 {% endif %}
@@ -91,7 +92,7 @@
                     {% endif %}
                 {% endif %}
 
-                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;" onClick="copyToClipboard('{{post.link}}',this)">
+                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;" onClick="copyToClipboard('{{decoded_link}}',this)">
                     <img width="25" height="25" src="https://img.icons8.com/glyph-neue/25/copy.png" alt="copy"/>
                 </button>
                 </div>
@@ -112,7 +113,7 @@
                     </button>
                 </form>
             
-                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;" onClick="copyToClipboard('{{post.link}}',this)">
+                <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;" onClick="copyToClipboard('{{decoded_link}}',this)">
                     <img width="25" height="25" src="https://img.icons8.com/glyph-neue/25/copy.png" alt="copy"/>
                 </button>
             </div>           

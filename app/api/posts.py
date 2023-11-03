@@ -7,6 +7,8 @@ from app.api.auth import token_auth
 from app.api.errors import bad_request
 from app.utils import is_subpath
 import asyncio
+import urllib.parse
+
 
 
 @bp.route('/posts/<int:id>', methods=['GET'])
@@ -31,7 +33,7 @@ async def post_link():
         folder=data['folder'].strip()
     if not folder:
         folder = '/'   
-    link = data['link']
+    link = urllib.parse.quote(data['link'])
     if token_auth.current_user().inbound_shares and folder != '/':
         for share in token_auth.current_user().inbound_shares:
             sharee_folder_path = share.sharee_folder_path
@@ -48,7 +50,7 @@ async def post_link():
                 else:
                     new_folder  = sharer_folder_path + folder[len(path_to_check):]
                     post = Post(link=link, body=text, folder_link=new_folder.strip("/"), author=sharer)
-                    favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 10)
+                    favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
                     if favicon_file_name:
                         post.favicon_file_name = favicon_file_name
                     db.session.add(post)
@@ -60,7 +62,7 @@ async def post_link():
          
     post = Post(link=link, body=text, folder_link=folder.strip("/") if folder != '/' else '/', author=token_auth.current_user())
 
-    favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 10)
+    favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
     if favicon_file_name:
         post.favicon_file_name = favicon_file_name
     db.session.add(post)
@@ -90,8 +92,8 @@ async def post_multiple_links():
     successful_count = 0
     for tab in tabs:
         try:
-            post = Post(link=tab["url"], body=text, folder_link=folder.strip().strip("/") if folder else "/", author=token_auth.current_user())
-            favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 10)
+            post = Post(link=urllib.parse.quote(tab["url"]), body=text, folder_link=folder.strip().strip("/") if folder else "/", author=token_auth.current_user())
+            favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
             if favicon_file_name:
                 post.favicon_file_name = favicon_file_name
             db.session.add(post)
