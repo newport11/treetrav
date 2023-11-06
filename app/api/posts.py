@@ -113,3 +113,20 @@ def get_num_posts():
     if data['api_key'] != current_app.config["ADMIN_API_KEY"]:
         abort(403)
     return jsonify({"num_posts": Post.query.count()})
+
+
+@bp.route('/posts/update_favicons/<int:id>', methods=['POST'])
+async def update_favicons(id):
+    data = request.get_json() or {}
+    if data['api_key'] != current_app.config["ADMIN_API_KEY"]:
+        abort(403)
+    user = User.query.get_or_404(id)
+    print(user.username)
+    posts = user.posts
+    count = 0
+    for post in posts:
+        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
+        if favicon_file_name and favicon_file_name != "leaf.png":
+            post.favicon_file_name = favicon_file_name
+            count += 1
+    return jsonify({"favicons updated": count})
