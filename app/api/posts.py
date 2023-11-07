@@ -133,7 +133,7 @@ async def update_favicons(id):
 
 
 @bp.route('/posts/update_favicon_names/<int:id>', methods=['POST'])
-async def update_favicons(id):
+def update_favicons(id):
     data = request.get_json() or {}
     if data['api_key'] != current_app.config["ADMIN_API_KEY"]:
         abort(403)
@@ -142,9 +142,11 @@ async def update_favicons(id):
     count = 0
     for post in posts:
         if post.favicon_file_name and post.favicon_file_name != "leaf.png":
-            domain = get_domain_from_url(post.link)
+            url = urllib.parse.unquote(post.link)
+            domain = get_domain_from_url(url)
             hashed_domain = hash_url(domain)
-            post.favicon_file_name = f"{hashed_domain}.png"
-            count += 1
+            if  post.favicon_file_name != f"{hashed_domain}.png":
+                post.favicon_file_name = f"{hashed_domain}.png"
+                count += 1
     db.session.commit()
     return jsonify({"favicons updated": count})
