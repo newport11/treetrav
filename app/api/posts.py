@@ -115,6 +115,7 @@ def get_num_posts():
     return jsonify({"num_posts": Post.query.count()})
 
 
+""" 
 @bp.route('/posts/update_favicons/<int:id>', methods=['POST'])
 async def update_favicons(id):
     data = request.get_json() or {}
@@ -150,3 +151,5 @@ def update_favicons(id):
                 count += 1
     db.session.commit()
     return jsonify({"favicons updated": count})
+
+"""
