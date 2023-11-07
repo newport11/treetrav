@@ -129,4 +129,6 @@ async def update_favicons(id):
         if favicon_file_name and favicon_file_name != "leaf.png":
             post.favicon_file_name = favicon_file_name
             count += 1
+    print("committed to db")
+    db.session.commit()
     return jsonify({"favicons updated": count})

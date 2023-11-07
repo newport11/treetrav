@@ -39,12 +39,12 @@ def favicon_exists(url):
         return False
 
 
-def resize_favicon(url):
+def resize_favicon(url, domain):
     response = requests.get(url)
     if response.status_code == 200:
         img = Image.open(BytesIO(response.content))
         resized_img = img.resize((25, 25), Image.LANCZOS)
-        hashed_url = hash_url(url)
+        hashed_url = hash_url(domain)
         resized_img.save(f"app/static/favicons/{hashed_url}.png")
         return f"{hashed_url}.png"
     else:
@@ -85,7 +85,7 @@ async def get_favicon(url):
                     if icon_link:
                         response = requests.get(icon_link)
                         if response.status_code == 200:
-                            return resize_favicon(icon_link)
+                            return resize_favicon(icon_link, domain)
                         else:
                             return None
                 except IndexError:
