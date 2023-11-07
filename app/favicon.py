@@ -36,7 +36,7 @@ def favicon_exists(url):
     if os.path.exists(file_path):
         return f"{hashed_url}.png"
     else:
-        return False
+        return None
 
 
 def resize_favicon(url, domain):
@@ -74,8 +74,9 @@ async def get_favicon(url):
         url = urllib.parse.unquote(url)
         try:
             domain = get_domain_from_url(url)
-            if favicon_exists(domain):
-                return favicon_exists
+            existing_favicon = favicon_exists(domain)
+            if existing_favicon:
+                return existing_favicon
             icons = await get_favicon_with_timeout(domain)
 
             # return icons
