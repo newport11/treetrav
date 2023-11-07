@@ -19,7 +19,7 @@ from io import BytesIO
 import asyncio
 import urllib.parse
 
-
+user_visit_counter_dict = {}
 
 @bp.before_app_request
 def before_request():
@@ -277,11 +277,14 @@ def user(username):
             if post.folder_name != "" and post.folder_name not in visited_folders:
                 visited_folders.append(post.folder_name)
                 folders.append(post)
-        
 
+        user_visit_counter_dict[f"user_{user.id}"] = user_visit_counter_dict.get(f"user_{user.id}", 0) + 1
         return render_template('user.html', user=user, posts=posts.items,
                             next_url=next_url, prev_url=prev_url, form=form, folders=folders)
 
+@bp.route('/stats/user_visit_counts')
+def visit_counts():
+    return jsonify(user_visit_counter_dict)
 
 @bp.route('/followers/<username>')
 def get_followers(username):
