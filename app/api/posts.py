@@ -1,6 +1,6 @@
 from flask import current_app, jsonify, request, url_for, abort
 from app import db
-from app.favicon import get_favicon
+from app.favicon import get_domain_from_url, get_favicon, hash_url
 from app.models import Post, User
 from app.api import bp
 from app.api.auth import token_auth
@@ -121,7 +121,6 @@ async def update_favicons(id):
     if data['api_key'] != current_app.config["ADMIN_API_KEY"]:
         abort(403)
     user = User.query.get_or_404(id)
-    print(user.username)
     posts = user.posts
     count = 0
     for post in posts:
@@ -129,6 +128,23 @@ async def update_favicons(id):
         if favicon_file_name and favicon_file_name != "leaf.png":
             post.favicon_file_name = favicon_file_name
             count += 1
-    print("committed to db")
+    db.session.commit()
+    return jsonify({"favicons updated": count})
+
+
+@bp.route('/posts/update_favicon_names/<int:id>', methods=['POST'])
+async def update_favicons(id):
+    data = request.get_json() or {}
+    if data['api_key'] != current_app.config["ADMIN_API_KEY"]:
+        abort(403)
+    user = User.query.get_or_404(id)
+    posts = user.posts
+    count = 0
+    for post in posts:
+        if post.favicon_file_name and post.favicon_file_name != "leaf.png":
+            domain = get_domain_from_url(post.link)
+            hashed_domain = hash_url(domain)
+            post.favicon_file_name = f"{hashed_domain}.png"
+            count += 1
     db.session.commit()
     return jsonify({"favicons updated": count})
