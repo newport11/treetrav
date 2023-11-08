@@ -33,7 +33,7 @@ class SettingsForm(FlaskForm):
 
     def validate_username(self, username):
         if username.data != self.original_username:
-            user = User.query.filter_by(username=self.username.data.strip()).first()
+            user = User.query.filter(User.username.ilike(self.username.data.strip())).first()
             if user is not None:
                 raise ValidationError(_('username already exists.'))
             if not re.match(r'^[a-zA-Z0-9_-]+$', username.data.strip()):

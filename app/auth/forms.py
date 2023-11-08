@@ -25,7 +25,7 @@ class RegistrationForm(FlaskForm):
     submit = SubmitField(_l('Register'))
 
     def validate_username(self, username):
-        user = User.query.filter_by(username=username.data.strip()).first()
+        user = User.query.filter(User.username.ilike(username.data.strip())).first()
         if user is not None:
             raise ValidationError(_('username already exists.'))
         if not re.match(r'^[a-zA-Z0-9_-]+$', username.data.strip()):
