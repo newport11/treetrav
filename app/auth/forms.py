@@ -18,8 +18,7 @@ class RegistrationForm(FlaskForm):
     email = StringField(_l('Email'), validators=[DataRequired(), Email()])
     password = PasswordField(_l('Password'), 
                              validators=[DataRequired(), Length(min=8, message="Password is too short"), 
-                                         Length(max=80), regexp("^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9]).{8,}$", 
-                                         message="Password must contain: 1 uppercase letter, 1 lowercase letter and 1 number")])
+                                         Length(max=80)])
     password2 = PasswordField(
         _l('Repeat Password'), validators=[DataRequired(),
                                            EqualTo('password'), Length(max=80)])

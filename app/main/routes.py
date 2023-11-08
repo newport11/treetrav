@@ -187,14 +187,14 @@ def explore():
 @bp.route('/user/<username>/', methods=['POST','GET'])
 @bp.route('/user/<username>', methods=['POST','GET'] )
 def user(username):
-    user = User.query.filter_by(username=username).first_or_404()
+    user = User.query.filter(User.username.ilike(username)).first_or_404()
     followers = user.followers
     form = EmptyForm()
     if current_user.get_id():
         is_following = current_user in followers
     else:
         is_following = False
-    if (user.private_mode == True and user != current_user and not is_following)  :
+    if (user.private_mode == True and user != current_user and not is_following):
         return render_template('user_private.html', user=user, form=form)
     else:  
         shared_id_list = []
@@ -351,7 +351,7 @@ def get_follow_requests(username):
 
 @bp.route('/user/<username>/<path:path>', methods=['POST','GET'])
 def user_subfolder(username, path):
-    user = User.query.filter_by(username=username).first_or_404()
+    user = User.query.filter(User.username.ilike(username)).first_or_404()
     followers = user.followers
     form = EmptyForm()
     if current_user.get_id():
