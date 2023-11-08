@@ -31,9 +31,9 @@ def before_request():
 
 
 @bp.route('/', methods=['GET', 'POST'])
-@bp.route('/home', methods=['GET', 'POST'])
+@bp.route('/feed', methods=['GET', 'POST'])
 @login_required
-async def home():
+async def feed():
     form = PostForm()
     if form.validate_on_submit():
         folder_path = form.post_folder.data.strip().strip("/") if form.post_folder.data else "/"
@@ -66,22 +66,22 @@ async def home():
                         db.session.add(post)
                         db.session.commit()
                         flash(_('Your link is now posted!'))
-                        return redirect(url_for('main.home'))
+                        return redirect(url_for('main.feed'))
 
                                                            
         db.session.add(post)
         db.session.commit()
         flash(_('Your link is now posted!'))
-        return redirect(url_for('main.home'))
+        return redirect(url_for('main.feed'))
     page = request.args.get('page', 1, type=int)
     posts = current_user.followed_posts().paginate(
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False)
-    next_url = url_for('main.home', page=posts.next_num) \
+    next_url = url_for('main.feed', page=posts.next_num) \
         if posts.has_next else None
-    prev_url = url_for('main.home', page=posts.prev_num) \
+    prev_url = url_for('main.feed', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template('home.html', title=_('Home'), form=form,
+    return render_template('feed.html', title=_('Feed'), form=form,
                            posts=posts.items, next_url=next_url,
                            prev_url=prev_url)
 
@@ -179,7 +179,7 @@ def explore():
         if posts.has_next else None
     prev_url = url_for('main.explore', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template('home.html', title=_('Explore'),
+    return render_template('feed.html', title=_('Explore'),
                            posts=posts.items, next_url=next_url,
                            prev_url=prev_url)
 
@@ -755,7 +755,7 @@ def follow(username):
         user = User.query.filter_by(username=username).first()
         if user is None:
             flash(_('User %(username)s not found.', username=username))
-            return redirect(url_for('main.home'))
+            return redirect(url_for('main.feed'))
         if user == current_user:
             flash(_('You cannot follow yourself!'))
             return redirect(url_for('main.user', username=username))
@@ -764,7 +764,7 @@ def follow(username):
         flash(_('You are following %(username)s!', username=username))
         return redirect(url_for('main.user', username=username))
     else:
-        return redirect(url_for('main.home'))
+        return redirect(url_for('main.feed'))
 
 
 @bp.route('/approve_follow/<username>', methods=['POST'])
@@ -775,7 +775,7 @@ def approve_follow(username):
         user = User.query.filter_by(username=username).first()
         if user is None:
             flash(_('User %(username)s not found.', username=username))
-            return redirect(url_for('main.home'))
+            return redirect(url_for('main.feed'))
         if user == current_user:
             flash(_('You cannot approve yourself'))
             return redirect(request.referrer)
@@ -795,7 +795,7 @@ def deny_follow(username):
         user = User.query.filter_by(username=username).first()
         if user is None:
             flash(_('User %(username)s not found.', username=username))
-            return redirect(url_for('main.home'))
+            return redirect(url_for('main.feed'))
         if user == current_user:
             flash(_('You cannot deny yourself'))
             return redirect(request.referrer)
@@ -814,7 +814,7 @@ def request_follow(username):
         user = User.query.filter_by(username=username).first()
         if user is None:
             flash(_('User %(username)s not found.', username=username))
-            return redirect(url_for('main.home'))
+            return redirect(url_for('main.feed'))
         if user == current_user:
             flash(_('You cannot follow yourself!'))
             return redirect(url_for('main.user', username=username))
@@ -823,7 +823,7 @@ def request_follow(username):
         flash(_('Requested to follow %(username)s!', username=username))
         return redirect(url_for('main.user', username=username))
     else:
-        return redirect(url_for('main.home'))
+        return redirect(url_for('main.feed'))
 
 
 @bp.route('/cancel_request_follow/<username>', methods=['POST'])
@@ -834,7 +834,7 @@ def cancel_request_follow(username):
         user = User.query.filter_by(username=username).first()
         if user is None:
             flash(_('User %(username)s not found.', username=username))
-            return redirect(url_for('main.home'))
+            return redirect(url_for('main.feed'))
         if user == current_user:
             flash(_('You cannot cancel request for yourself!'))
             return redirect(url_for('main.user', username=username))
@@ -843,7 +843,7 @@ def cancel_request_follow(username):
         flash(_('Cancelled request to follow %(username)s!', username=username))
         return redirect(url_for('main.user', username=username))
     else:
-        return redirect(url_for('main.home'))
+        return redirect(url_for('main.feed'))
     
 
 @bp.route('/unfollow/<username>', methods=['POST'])
@@ -854,7 +854,7 @@ def unfollow(username):
         user = User.query.filter_by(username=username).first()
         if user is None:
             flash(_('User %(username)s not found.', username=username))
-            return redirect(url_for('main.home'))
+            return redirect(url_for('main.feed'))
         if user == current_user:
             flash(_('You cannot unfollow yourself!'))
             return redirect(url_for('main.user', username=username))
@@ -863,7 +863,7 @@ def unfollow(username):
         flash(_('You are not following %(username)s.', username=username))
         return redirect(url_for('main.user', username=username))
     else:
-        return redirect(url_for('main.home'))
+        return redirect(url_for('main.feed'))
 
 
 @bp.route('/search')
