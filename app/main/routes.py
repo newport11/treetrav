@@ -167,19 +167,19 @@ def unfavorite_post(post_id):
         return redirect(request.referrer)
 
 
-@bp.route('/explore/')
-@bp.route('/explore')
+@bp.route('/discover/')
+@bp.route('/discover')
 @login_required
-def explore():
+def discover():
     page = request.args.get('page', 1, type=int)
     posts = db.session.query(Post).join(User).filter(User.private_mode == False).order_by(Post.timestamp.desc()).paginate(
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False)
-    next_url = url_for('main.explore', page=posts.next_num) \
+    next_url = url_for('main.discover', page=posts.next_num) \
         if posts.has_next else None
-    prev_url = url_for('main.explore', page=posts.prev_num) \
+    prev_url = url_for('main.discover', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template('feed.html', title=_('Explore'),
+    return render_template('feed.html', title=_('Discover'),
                            posts=posts.items, next_url=next_url,
                            prev_url=prev_url)
 
@@ -870,7 +870,7 @@ def unfollow(username):
 @login_required
 def search():
     if not g.search_form.validate():
-        return redirect(url_for('main.explore'))
+        return redirect(url_for('main.discover'))
     page = request.args.get('page', 1, type=int)
     users, total = User.search(g.search_form.q.data, page,
                                current_app.config['POSTS_PER_PAGE'])
