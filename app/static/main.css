@@ -221,3 +221,8 @@
     min-width: 1118px;
     min-height: 211px;
 }
+
+
+.modal-header{
+    border-bottom: none;
+}

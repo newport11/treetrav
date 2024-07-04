@@ -36,7 +36,12 @@ def before_request():
 async def feed():
     form = PostForm()
     if form.validate_on_submit():
-        folder_path = form.post_folder.data.strip().strip("/") if form.post_folder.data else "/"
+        folder_path = form.post_folder.data.strip()
+        if folder_path and folder_path != '/':
+            folder_path = folder_path.strip('/')
+        else:
+            folder_path = '/'
+        folder_path = folder_path if form.post_folder.data else "/"
         post = Post(link=urllib.parse.quote(form.post_link.data), body=form.post_body.data, folder_link=folder_path,
                        author=current_user)
         OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
@@ -73,6 +78,8 @@ async def feed():
         db.session.commit()
         flash(_('Your link is now posted!'))
         return redirect(url_for('main.feed'))
+    else:
+        render_template('feed.html', title=_('Feed'), form=form)
     page = request.args.get('page', 1, type=int)
     posts = current_user.followed_posts().paginate(
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
