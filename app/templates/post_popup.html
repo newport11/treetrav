@@ -1,41 +1,186 @@
-<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-whatever="@mdo">Open modal for @mdo</button>
+<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" data-whatever="@mdo">Post a link</button>
 
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">New message</h5>
+        <h5 class="modal-title" id="exampleModalLabel">Post a New Link</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
+
       <div class="modal-body">
-        <form>
+        <form method="POST" action="" class="my-form" id="yourForm">
+          {{ form.hidden_tag() }}
+          
           <div class="form-group">
-            <label for="recipient-name" class="col-form-label">Recipient:</label>
-            <input type="text" class="form-control" id="recipient-name">
+              <label for="post_link">Link*</label>
+              <textarea class="form-control" id="post_link" name="post_link" required>{{ form.post_link.data or '' }}</textarea>
+              <div class="invalid-feedback" id="post_link_error"></div>
           </div>
+      
           <div class="form-group">
-            <label for="message-text" class="col-form-label">Message:</label>
-            <textarea class="form-control" id="message-text"></textarea>
+              <label for="post_body">Title</label>
+              <textarea class="form-control" id="post_body" name="post_body">{{ form.post_body.data or '' }}</textarea>
+              <div class="invalid-feedback" id="post_body_error"></div>
+          </div>
+      
+          <div class="form-group">
+              <label for="post_folder">Folder</label>
+              <textarea class="form-control" id="post_folder" name="post_folder">{{ form.post_folder.data or '' }}</textarea>
+              <div class="invalid-feedback" id="post_folder_error"></div>
+          </div>
+      
+          <div class="form-group">
+              <input type="submit" class="btn btn-primary" value="Post">
           </div>
         </form>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary">Send message</button>
-      </div>
+
     </div>
   </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    $('#exampleModal').on('show.bs.modal', function (event) {
-    var button = $(event.relatedTarget) // Button that triggered the modal
-    var recipient = button.data('whatever') // Extract info from data-* attributes
-    // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
-    // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
-    var modal = $(this)
-    modal.find('.modal-title').text('New message to ' + recipient)
-    modal.find('.modal-body input').val(recipient)
-})
+    $(document).ready(function() {
+        $('#yourForm').on('submit', function(e) {
+            e.preventDefault();
+
+            // Clear previous error messages and remove error class
+            clearErrors();
+
+            var isValid = true;
+            var postLink = $('#post_link').val();
+            var postBody = $('#post_body').val();
+            var postFolder = $('#post_folder').val();
+
+            // Validate post link
+            if (!isValidUrl(postLink)) {
+                showError('post_link', 'Must post valid link');
+                isValid = false;
+            }
+
+            // Validate post body
+            if (postBody.length > 75) {
+                showError('post_body', 'Must be 75 characters or less, currently ' + postBody.length);
+                isValid = false;
+            }
+
+            // Validate folder
+            var folders = postFolder.trim().replace(/^\/+|\/+$/g, '').split('/');
+            for (var i = 0; i < folders.length; i++) {
+                if (folders[i].length > 30) {
+                    showError('post_folder', 'Individual folder length must be under 30 characters, currently ' + folders[i].length);
+                    isValid = false;
+                    break;
+                }
+            }
+
+            if (isValid) {
+                $.ajax({
+                    url: $(this).attr('action'),
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    success: function(response) {
+                        // Clear the form
+                        $('#yourForm')[0].reset();
+                        // Clear any remaining error messages
+                        clearErrors();
+                        // Show success message and close modal
+                        showSuccessMessage(response.message);
+                    },
+                    error: function(xhr, status, error) {
+                        var errors = xhr.responseJSON;
+                        for (var field in errors) {
+                            showError(field, errors[field]);
+                        }
+                    }
+                });
+            }
+        });
+
+        // Remove is-invalid class when user starts typing
+        $('.form-control').on('input', function() {
+            $(this).removeClass('is-invalid');
+            $(this).next('.invalid-feedback').text('');
+        });
+
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;  
+            }
+        }
+
+        function showError(fieldId, message) {
+            $('#' + fieldId).addClass('is-invalid');
+            $('#' + fieldId + '_error').text(message);
+        }
+
+        function clearErrors() {
+            $('.invalid-feedback').text('');
+            $('.form-control').removeClass('is-invalid');
+            $('#successMessage').remove();
+        }
+
+        function showSuccessMessage(message) {
+            // Remove any existing success message
+            $('#successMessage').remove();
+            
+            // Create the success message with a countdown
+            var $successMessage = $('<div id="successMessage" class="alert alert-success">' +
+                message + '<br>This message will close in <span id="countdown">3</span> seconds.</div>');
+            
+            // Insert the message at the top of the modal body
+            $('.modal-body').prepend($successMessage);
+            
+            // Start the countdown
+            var countdown = 3;
+            var countdownInterval = setInterval(function() {
+                countdown--;
+                $('#countdown').text(countdown);
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                }
+            }, 1000);
+
+            // Set a timeout to close the modal after 3 seconds
+            setTimeout(closeModal, 3000);
+        }
+
+        function closeModal() {
+            // Assuming you're using Bootstrap's modal
+            $('#exampleModal').modal('hide');
+            
+            // After the modal is hidden, remove the success message
+            $('#exampleModal').on('hidden.bs.modal', function (e) {
+                $('#successMessage').remove();
+                // Refresh the page
+                window.location.reload();
+            });
+        }
+    });
 </script>
+
+<style>
+    .is-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        padding: .75rem 1.25rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: .25rem;
+    }
+</style>

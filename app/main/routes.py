@@ -18,6 +18,8 @@ from PIL import Image
 from io import BytesIO
 import asyncio
 import urllib.parse
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 user_visit_counter_dict = {}
 
@@ -34,56 +36,78 @@ def before_request():
 @bp.route('/feed', methods=['GET', 'POST'])
 @login_required
 async def feed():
-    form = PostForm()
-    if form.validate_on_submit():
-        folder_path = form.post_folder.data.strip().strip("/") if form.post_folder.data else "/"
-        post = Post(link=urllib.parse.quote(form.post_link.data), body=form.post_body.data, folder_link=folder_path,
-                       author=current_user)
-        OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
-        if not post.body and OPENAI_API_KEY:
-            post.body= generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
-        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
-        if favicon_file_name:
-            post.favicon_file_name = favicon_file_name
-        
-        
-        if current_user.inbound_shares and folder_path != '/':
-            for share in current_user.inbound_shares:
-                sharee_folder_path = share.sharee_folder_path
-                sharer_folder_path = share.sharer_folder_path
-                sharer_id = share.sharer_id
-                if sharee_folder_path == '/':
-                    path_to_check = sharer_folder_path.rstrip("/").rsplit("/", 1)[-1]
-                else:
-                    path_to_check = sharee_folder_path + '/' + sharer_folder_path.rstrip("/").rsplit("/", 1)[-1]
-                if is_subpath(path_to_check, folder_path):
-                    sharer = User.query.filter_by(id=sharer_id).first()
-                    if sharer is None:
-                        continue
+    try:
+        form = PostForm()
+        if form.validate_on_submit():
+            folder_path = form.post_folder.data.strip()
+            if folder_path and folder_path != '/':
+                folder_path = folder_path.strip('/')
+            else:
+                folder_path = '/'
+            folder_path = folder_path if form.post_folder.data else "/"
+            post = Post(link=urllib.parse.quote(form.post_link.data), body=form.post_body.data, folder_link=folder_path,
+                        author=current_user)
+            OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
+            if not post.body and OPENAI_API_KEY:
+                post.body= generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+            favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
+            if favicon_file_name:
+                post.favicon_file_name = favicon_file_name
+            
+            if current_user.inbound_shares and folder_path != '/':
+                for share in current_user.inbound_shares:
+                    sharee_folder_path = share.sharee_folder_path
+                    sharer_folder_path = share.sharer_folder_path
+                    sharer_id = share.sharer_id
+                    if sharee_folder_path == '/':
+                        path_to_check = sharer_folder_path.rstrip("/").rsplit("/", 1)[-1]
                     else:
-                        post.author = sharer
-                        post.folder_link  = sharer_folder_path + post.folder_link[len(path_to_check):]
-                        db.session.add(post)
-                        db.session.commit()
-                        flash(_('Your link is now posted!'))
-                        return redirect(url_for('main.feed'))
+                        path_to_check = sharee_folder_path + '/' + sharer_folder_path.rstrip("/").rsplit("/", 1)[-1]
+                    if is_subpath(path_to_check, folder_path):
+                        sharer = User.query.filter_by(id=sharer_id).first()
+                        if sharer is None:
+                            continue
+                        else:
+                            post.author = sharer
+                            post.folder_link  = sharer_folder_path + post.folder_link[len(path_to_check):]
+                            db.session.add(post)
+                            db.session.commit()
+                            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                                return jsonify({"message": "Your link is now posted!"}), 200
+                            flash(_('Your link is now posted!'))
+                            return redirect(url_for('main.feed'))
+                                                            
+            db.session.add(post)
+            db.session.commit()
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"message": "Your link is now posted!"}), 200
+            flash(_('Your link is now posted!'))
+            return redirect(url_for('main.feed'))
+        elif request.method == 'POST':
+            # If it's a POST request but validation failed, return errors as JSON
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify(form.errors), 400
+            # For non-AJAX requests, render the template with errors
+            return render_template('feed.html', title=_('Feed'), form=form)
 
-                                                           
-        db.session.add(post)
-        db.session.commit()
-        flash(_('Your link is now posted!'))
+        # GET request handling
+        page = request.args.get('page', 1, type=int)
+        posts = current_user.followed_posts().paginate(
+            page=page, per_page=current_app.config['POSTS_PER_PAGE'],
+            error_out=False)
+        next_url = url_for('main.feed', page=posts.next_num) \
+            if posts.has_next else None
+        prev_url = url_for('main.feed', page=posts.prev_num) \
+            if posts.has_prev else None
+        return render_template('feed.html', title=_('Feed'), form=form,
+                            posts=posts.items, next_url=next_url,
+                            prev_url=prev_url)
+    except Exception as e:
+        logging.error(f"An error occurred: {str(e)}", exc_info=True)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"error": "An unexpected error occurred"}), 500
+        flash(_('An unexpected error occurred'))
         return redirect(url_for('main.feed'))
-    page = request.args.get('page', 1, type=int)
-    posts = current_user.followed_posts().paginate(
-        page=page, per_page=current_app.config['POSTS_PER_PAGE'],
-        error_out=False)
-    next_url = url_for('main.feed', page=posts.next_num) \
-        if posts.has_next else None
-    prev_url = url_for('main.feed', page=posts.prev_num) \
-        if posts.has_prev else None
-    return render_template('feed.html', title=_('Feed'), form=form,
-                           posts=posts.items, next_url=next_url,
-                           prev_url=prev_url)
 
 
 @bp.route('/post/delete/<int:post_id>', methods=['POST'])
@@ -167,21 +191,58 @@ def unfavorite_post(post_id):
         return redirect(request.referrer)
 
 
-@bp.route('/discover/')
-@bp.route('/discover')
+@bp.route('/discover/', methods=['GET', 'POST'])
+@bp.route('/discover', methods=['GET', 'POST'])
 @login_required
-def discover():
-    page = request.args.get('page', 1, type=int)
-    posts = db.session.query(Post).join(User).filter(User.private_mode == False).order_by(Post.timestamp.desc()).paginate(
-        page=page, per_page=current_app.config['POSTS_PER_PAGE'],
-        error_out=False)
-    next_url = url_for('main.discover', page=posts.next_num) \
-        if posts.has_next else None
-    prev_url = url_for('main.discover', page=posts.prev_num) \
-        if posts.has_prev else None
-    return render_template('feed.html', title=_('Discover'),
-                           posts=posts.items, next_url=next_url,
-                           prev_url=prev_url)
+async def discover():
+    try:
+        form = PostForm()
+        if form.validate_on_submit():
+            folder_path = form.post_folder.data.strip()
+            if folder_path and folder_path != '/':
+                folder_path = folder_path.strip('/')
+            else:
+                folder_path = '/'
+            folder_path = folder_path if form.post_folder.data else "/"
+            post = Post(link=urllib.parse.quote(form.post_link.data), body=form.post_body.data, folder_link=folder_path,
+                        author=current_user)
+            OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
+            if not post.body and OPENAI_API_KEY:
+                post.body= generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+            favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
+            if favicon_file_name:
+                post.favicon_file_name = favicon_file_name
+            db.session.add(post)
+            db.session.commit()
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"message": "Your link is now posted!"}), 200
+            flash(_('Your link is now posted!'))
+            return redirect(url_for('main.discover'))
+        elif request.method == 'POST':
+            # If it's a POST request but validation failed, return errors as JSON
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify(form.errors), 400
+            # For non-AJAX requests, render the template with errors
+            return render_template('feed.html', title=_('Discover'), form=form)
+        else:
+            page = request.args.get('page', 1, type=int)
+            posts = db.session.query(Post).join(User).filter(User.private_mode == False).order_by(Post.timestamp.desc()).paginate(
+                page=page, per_page=current_app.config['POSTS_PER_PAGE'],
+                error_out=False)
+            next_url = url_for('main.discover', page=posts.next_num) \
+                if posts.has_next else None
+            prev_url = url_for('main.discover', page=posts.prev_num) \
+                if posts.has_prev else None
+            return render_template('feed.html', title=_('Discover'),
+                                form=form,
+                                posts=posts.items, next_url=next_url,
+                                prev_url=prev_url)
+    except Exception as e:
+        logging.error(f"An error occurred: {str(e)}", exc_info=True)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"error": "An unexpected error occurred"}), 500
+        flash(_('An unexpected error occurred'))
+        return redirect(url_for('main.discover'))
 
 
 @bp.route('/user/<username>/', methods=['POST','GET'])
