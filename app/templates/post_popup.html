@@ -1,4 +1,4 @@
-<button type="button" class=".green-button" data-toggle="modal" data-target="#exampleModal" data-whatever="@mdo">Post a link</button>
+<button type="button" class="green-button" data-toggle="modal" data-target="#exampleModal" data-whatever="@mdo">Post a link</button>
 
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
@@ -10,33 +10,33 @@
         </button>
     </div>
 
-      <div class="modal-body">
-        <form method="POST" action="" class="my-form" id="yourForm">
-          {{ form.hidden_tag() }}
-          
-          <div class="form-group">
-              <label for="post_link">Link*</label>
-              <textarea class="form-control" id="post_link" name="post_link" required>{{ form.post_link.data or '' }}</textarea>
-              <div class="invalid-feedback" id="post_link_error"></div>
-          </div>
-      
-          <div class="form-group">
-              <label for="post_body">Title</label>
-              <textarea class="form-control" id="post_body" name="post_body">{{ form.post_body.data or '' }}</textarea>
-              <div class="invalid-feedback" id="post_body_error"></div>
-          </div>
-      
-          <div class="form-group">
-              <label for="post_folder">Folder</label>
-              <textarea class="form-control" id="post_folder" name="post_folder">{{ form.post_folder.data or '' }}</textarea>
-              <div class="invalid-feedback" id="post_folder_error"></div>
-          </div>
-      
-          <div class="form-group">
-              <input type="submit" class="btn btn-primary" value="Post">
-          </div>
-        </form>
-      </div>
+    <div class="modal-body">
+    <form method="POST" action="" class="my-form" id="yourForm">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            <label for="post_link">Link*</label>
+            <textarea class="form-control" id="post_link" name="post_link" placeholder="e.g. https://google.com" required>{{ form.post_link.data or '' }}</textarea>
+            <div class="invalid-feedback" id="post_link_error"></div>
+        </div>
+    
+        <div class="form-group">
+            <label for="post_body">Title</label>
+            <textarea class="form-control" id="post_body" name="post_body" placeholder="e.g. My Link">{{ form.post_body.data or '' }}</textarea>
+            <div class="invalid-feedback" id="post_body_error"></div>
+        </div>
+    
+        <div class="form-group">
+            <label for="post_folder">Folder</label>
+            <textarea class="form-control" id="post_folder" name="post_folder" placeholder="e.g. myfolder/mysubfolder/etc">{{ form.post_folder.data or '' }}</textarea>
+            <div class="invalid-feedback" id="post_folder_error"></div>
+        </div>
+    
+        <div class="form-group">
+            <input type="submit" class="green-button" value="Post">
+        </div>
+    </form>
+    </div>
 
     </div>
   </div>
