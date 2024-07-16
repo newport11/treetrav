@@ -1,3 +1,4 @@
+# generic stuff needs to be ignored
 *venv/
 __pycache__/
 *.pyc
@@ -6,3 +7,10 @@ logs/
 .env
 app.db
 unsized/
+
+# user defined 
+
+# ignore all pictures uploaded to profile_pics/
+app/static/profile_pics/*.png
+app/static/profile_pics/*.jpg
+app/static/profile_pics/*.jpeg
