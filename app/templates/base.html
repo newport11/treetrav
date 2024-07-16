@@ -34,6 +34,8 @@
                     <li><a href="{{ url_for('main.feed') }}">{{ _('Feed') }}</a></li>
                     <li><a href="{{ url_for('main.discover') }}">{{ _('Discover') }}</a></li>
                 </ul>
+                <!-- Elasticsearch is expensive, so disabling search user function for now -->
+                {#
                 {% if g.search_form %}
                 <form class="navbar-form navbar-left" method="get" action="{{ url_for('main.search') }}">
                     <div class="form-group">
@@ -41,6 +43,7 @@
                     </div>
                 </form>
                 {% endif %}
+                #}
                 <ul class="nav navbar-nav navbar-right">
                     {% if current_user.is_anonymous %}
                     <li><a href="{{ url_for('auth.login') }}">{{ _('Login') }}</a></li>
