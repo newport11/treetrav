@@ -6,4 +6,3 @@ logs/
 .env
 app.db
 unsized/
-profile_pics/
