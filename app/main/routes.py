@@ -1,24 +1,51 @@
-from datetime import datetime
-import os
-from flask import render_template, flash, redirect, url_for, request, g, \
-    jsonify, current_app
-from flask_login import current_user, login_required
-from flask_babel import _, get_locale
-from sqlalchemy import and_, func, or_, select, union, union_all
-from app import db
-from app.main.forms import CopyFolder, MoveFolder, PageDownForm, RenameFolder, SettingsForm, EmptyForm, PostForm, SearchForm, ShareFolderForm
-from app.models import Leaf, ShareFolder, ShareFolderRequest, User, Post
-from app.main import bp
-from app.favicon import get_favicon, hash_profile_pic
-from app.openai import generate_link_summary
-from app.utils import copy_folder_util, is_subpath, move_folder_util, rename_folder_util, validate_folder_path
-import markdown
-from werkzeug.utils import secure_filename
-from PIL import Image
-from io import BytesIO
 import asyncio
-import urllib.parse
 import logging
+import os
+import urllib.parse
+from datetime import datetime
+from io import BytesIO
+
+import markdown
+from flask import (
+    current_app,
+    flash,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
+from flask_babel import _, get_locale
+from flask_login import current_user, login_required
+from PIL import Image
+from sqlalchemy import and_, func, or_, select, union, union_all
+from werkzeug.utils import secure_filename
+
+from app import db
+from app.favicon import get_favicon, hash_profile_pic
+from app.main import bp
+from app.main.forms import (
+    CopyFolder,
+    EmptyForm,
+    MoveFolder,
+    PageDownForm,
+    PostForm,
+    RenameFolder,
+    SearchForm,
+    SettingsForm,
+    ShareFolderForm,
+)
+from app.models import Leaf, Post, ShareFolder, ShareFolderRequest, User
+from app.openai import generate_link_summary
+from app.utils import (
+    copy_folder_util,
+    is_subpath,
+    move_folder_util,
+    rename_folder_util,
+    validate_folder_path,
+)
+
 logging.basicConfig(level=logging.DEBUG)
 
 user_visit_counter_dict = {}

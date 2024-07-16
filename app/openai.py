@@ -1,5 +1,6 @@
-import requests
 import urllib.parse
+
+import requests
 
 api_endpoint = 'https://api.openai.com/v1/chat/completions'
 

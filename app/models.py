@@ -1,15 +1,17 @@
 import base64
-from datetime import datetime, timedelta
 import os
+from datetime import datetime, timedelta
 from hashlib import md5
 from time import time
+
+import jwt
 from flask import current_app, url_for
 from flask_login import UserMixin
 from sqlalchemy import PrimaryKeyConstraint
-from werkzeug.security import generate_password_hash, check_password_hash
-import jwt
+from werkzeug.security import check_password_hash, generate_password_hash
+
 from app import db, login
-from app.search import add_to_index, remove_from_index, query_index
+from app.search import add_to_index, query_index, remove_from_index
 
 
 class SearchableMixin(object):

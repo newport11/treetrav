@@ -1,14 +1,15 @@
-from flask import current_app, jsonify, request, url_for, abort
-from app import db
-from app.favicon import get_domain_from_url, get_favicon, hash_url
-from app.models import Post, User
-from app.api import bp
-from app.api.auth import token_auth
-from app.api.errors import bad_request
-from app.utils import is_subpath
 import asyncio
 import urllib.parse
 
+from flask import abort, current_app, jsonify, request, url_for
+
+from app import db
+from app.api import bp
+from app.api.auth import token_auth
+from app.api.errors import bad_request
+from app.favicon import get_domain_from_url, get_favicon, hash_url
+from app.models import Post, User
+from app.utils import is_subpath
 
 
 @bp.route('/posts/<int:id>', methods=['GET'])

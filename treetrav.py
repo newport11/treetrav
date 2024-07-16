@@ -1,6 +1,8 @@
-from app import create_app, db
-from app.models import User, Post
 from flask_cors import CORS
+
+from app import create_app, db
+from app.models import Post, User
+
 app = create_app()
 CORS(app)
 

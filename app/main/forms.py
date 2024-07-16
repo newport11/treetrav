@@ -1,17 +1,25 @@
-from flask import request
-from flask_wtf import FlaskForm
-from sqlalchemy import func, text
-from wtforms import StringField, SubmitField, TextAreaField, BooleanField, HiddenField, FileField
-from wtforms.validators import ValidationError, DataRequired, Length
-from flask_babel import _, lazy_gettext as _l
-from app.models import User, Post
-import validators
 import re
-from flask_wtf import Form
-from flask_pagedown.fields import PageDownField
-from wtforms.fields import SubmitField
-from app.utils import is_subpath
 
+import validators
+from flask import request
+from flask_babel import _
+from flask_babel import lazy_gettext as _l
+from flask_pagedown.fields import PageDownField
+from flask_wtf import FlaskForm, Form
+from sqlalchemy import func, text
+from wtforms import (
+    BooleanField,
+    FileField,
+    HiddenField,
+    StringField,
+    SubmitField,
+    TextAreaField,
+)
+from wtforms.fields import SubmitField
+from wtforms.validators import DataRequired, Length, ValidationError
+
+from app.models import Post, User
+from app.utils import is_subpath
 
 
 class SettingsForm(FlaskForm):

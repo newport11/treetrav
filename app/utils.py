@@ -1,7 +1,7 @@
 import copy
+
 from app import db
 from app.models import Post, User
-
 
 # PATH UTILS ---------------------------------------
 

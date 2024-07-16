@@ -1,9 +1,19 @@
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, Length, regexp
-from flask_babel import _, lazy_gettext as _l
-from app.models import User
 import re
+
+from flask_babel import _
+from flask_babel import lazy_gettext as _l
+from flask_wtf import FlaskForm
+from wtforms import BooleanField, PasswordField, StringField, SubmitField
+from wtforms.validators import (
+    DataRequired,
+    Email,
+    EqualTo,
+    Length,
+    ValidationError,
+    regexp,
+)
+
+from app.models import User
 
 
 class LoginForm(FlaskForm):

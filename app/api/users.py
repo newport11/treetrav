@@ -1,10 +1,11 @@
-from flask import jsonify, request, url_for, abort, current_app
+from flask import abort, current_app, jsonify, request, url_for
+
 from app import db
-from app.favicon import get_favicon
-from app.models import User, Post
 from app.api import bp
 from app.api.auth import token_auth
 from app.api.errors import bad_request
+from app.favicon import get_favicon
+from app.models import Post, User
 
 
 @bp.route('/users/<int:id>', methods=['GET'])

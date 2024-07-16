@@ -1,12 +1,13 @@
+import asyncio
+import hashlib
+import os
+import urllib.parse
+from concurrent.futures import ProcessPoolExecutor
+from io import BytesIO
+
+import favicon
 import requests
 from PIL import Image
-from io import BytesIO
-import os
-import hashlib
-import asyncio
-import favicon
-from concurrent.futures import ProcessPoolExecutor
-import urllib.parse
 
 
 def hash_url(url):

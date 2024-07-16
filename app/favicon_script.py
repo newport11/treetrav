@@ -1,9 +1,8 @@
-from PIL import Image
+import hashlib
+import urllib.parse
 from io import BytesIO
 
-import hashlib
-
-import urllib.parse
+from PIL import Image
 
 
 def hash_url(url):

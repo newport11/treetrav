@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-from datetime import datetime, timedelta
 import unittest
+from datetime import datetime, timedelta
+
 from app import create_app, db
-from app.models import User, Post
+from app.models import Post, User
 from config import Config
 
 
