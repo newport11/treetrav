@@ -1,4 +1,4 @@
-aiohttp==3.8.5
+aiohttp==3.9.5
 aiosignal==1.3.1
 alembic==1.11.1
 asgiref==3.8.1
@@ -10,7 +10,7 @@ beautifulsoup4==4.12.2
 black==23.3.0
 blinker==1.6.2
 certifi==2023.5.7
-cffi==1.15.1
+cffi==1.16.0
 charset-normalizer==3.1.0
 click==8.1.3
 colorama==0.4.6
@@ -35,8 +35,8 @@ Flask-Moment==1.0.5
 Flask-PageDown==0.4.0
 Flask-SQLAlchemy==3.0.4
 Flask-WTF==1.1.1
-frozenlist==1.4.0
-greenlet==2.0.2
+frozenlist==1.4.1
+greenlet==3.0.3
 gunicorn==21.2.0
 httpie==3.2.2
 idna==3.4
@@ -51,7 +51,7 @@ Markdown==3.5
 markdown-it-py==3.0.0
 MarkupSafe==2.1.3
 mdurl==0.1.2
-multidict==6.0.4
+multidict==6.0.5
 mypy-extensions==1.0.0
 openai==0.28.0
 packaging==23.1
@@ -79,5 +79,5 @@ validators==0.21.2
 visitor==0.1.3
 Werkzeug==2.3.6
 WTForms==3.0.1
-yarl==1.9.2
+yarl==1.9.4
 zipp==3.15.0
