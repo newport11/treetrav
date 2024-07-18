@@ -18,8 +18,8 @@ if [ -d "venv" ]; then
     rm -rf venv
 fi
 
-# Create a virtual environment
-python3 -m venv venv
+# Create a virtual environment (need to install python3.12 on your system first)
+python3.12 -m venv venv
 
 # Activate the virtual environment
 source venv/bin/activate
