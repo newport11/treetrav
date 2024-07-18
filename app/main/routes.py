@@ -4,6 +4,8 @@ import os
 import urllib.parse
 from datetime import datetime
 from io import BytesIO
+from werkzeug.exceptions import RequestEntityTooLarge
+from PIL import Image, ExifTags
 
 import markdown
 from flask import (
@@ -572,6 +574,22 @@ def user_subfolder(username, path):
 @bp.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
+    def top_crop(img, target_size):
+        width, height = img.size
+        target_ratio = target_size[0] / target_size[1]
+        img_ratio = width / height
+
+        if img_ratio > target_ratio:
+            # Image is wider than needed, crop the sides equally
+            new_width = int(height * target_ratio)
+            left = (width - new_width) // 2
+            img = img.crop((left, 0, left + new_width, height))
+        elif img_ratio < target_ratio:
+            # Image is taller than needed, crop the bottom
+            new_height = int(width / target_ratio)
+            img = img.crop((0, 0, width, new_height))
+
+        return img.resize(target_size, Image.LANCZOS)
     form = SettingsForm(current_user.username, current_user.email)
     if form.validate_on_submit():
         current_user.username = form.username.data.strip()
@@ -580,38 +598,51 @@ def settings():
         current_user.private_mode = form.private_mode.data
         current_user.dark_mode = form.dark_mode.data
         picture = form.picture.data
-        if picture:
-            
-            tmp_filename = current_user.username + secure_filename(picture.filename)
-            filename = hash_profile_pic(tmp_filename)
-            old_profile_pic = None
-            if current_user.profile_pic:
-                old_profile_pic = current_user.profile_pic.rstrip('.png')
-            try:
-                current_user.profile_pic = f'{filename}.png'
-                img = Image.open(picture)
-                resized_picture = img.resize((155, 155), Image.LANCZOS)
-                output_buffer = BytesIO()
-                resized_picture.save(output_buffer, format='PNG')  # You can change the format as needed
-                output_buffer.seek(0)
-                resized_picture.save(os.path.join('app/static/profile_pics', f'{filename}.png'))
-                
-                #resize to 25 as well
-                resized_picture_mini = img.resize((25, 25), Image.LANCZOS)
-                output_buffer = BytesIO()
-                resized_picture_mini.save(output_buffer, format='PNG')  # You can change the format as needed
-                output_buffer.seek(0)
-                resized_picture_mini.save(os.path.join('app/static/profile_pics', f'{filename}_mini_25.png'))
+        try:
+            if picture:
+                tmp_filename = current_user.username + secure_filename(picture.filename)
+                filename = hash_profile_pic(tmp_filename)
+                old_profile_pic = None
+                if current_user.profile_pic:
+                    old_profile_pic = current_user.profile_pic.rstrip('.png')
+                try:
+                    current_user.profile_pic = f'{filename}.png'
+                    img = Image.open(picture)
 
-                #delete old pics
-                if old_profile_pic:
-                    files_to_delete = [os.path.join('app/static/profile_pics', f'{old_profile_pic}_mini_25.png'),
-                        os.path.join('app/static/profile_pics', f'{old_profile_pic}.png')]
-                    for file in files_to_delete:
-                        if os.path.exists(file):
-                            os.remove(file)
-            except:
-                flash(_('Error in uploading image. Please try again'))
+                    # Check for EXIF orientation and rotate if necessary
+                    if hasattr(img, '_getexif'):
+                        exif = img._getexif()
+                        if exif:
+                            orientation = exif.get(0x0112)
+                            if orientation:
+                                if orientation == 3:
+                                    img = img.rotate(180, expand=True)
+                                elif orientation == 6:
+                                    img = img.rotate(270, expand=True)
+                                elif orientation == 8:
+                                    img = img.rotate(90, expand=True)
+
+                    # Center crop and resize the image to 155x155
+                    resized_picture = top_crop(img, (155, 155))
+                    resized_picture.save(os.path.join('app/static/profile_pics', f'{filename}.png'), 'PNG')
+                    
+                    # Center crop and resize to 25x25
+                    resized_picture_mini = top_crop(img, (25, 25))
+                    resized_picture_mini.save(os.path.join('app/static/profile_pics', f'{filename}_mini_25.png'), 'PNG')
+
+                    # Delete old pics
+                    if old_profile_pic:
+                        files_to_delete = [os.path.join('app/static/profile_pics', f'{old_profile_pic}_mini_25.png'),
+                            os.path.join('app/static/profile_pics', f'{old_profile_pic}.png')]
+                        for file in files_to_delete:
+                            if os.path.exists(file):
+                                os.remove(file)
+                except Exception as e:
+                    flash(_('Error in uploading image. Please try again'), 'error')
+        except RequestEntityTooLarge:
+            flash('File too large. Please upload a smaller file.', 'error')
+            return redirect(url_for('main.settings'))
+                    
         db.session.commit()
         flash(_('Your changes have been saved.'))
         return redirect(url_for('main.settings'))
