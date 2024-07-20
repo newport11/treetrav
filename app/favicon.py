@@ -11,10 +11,14 @@ from PIL import Image
 
 import logging
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+log_file = os.path.join(current_dir, 'app.log')
+
+
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    filename='/app.log',
+    filename=log_file,
     filemode='a'
 )
 logger = logging.getLogger(__name__)
