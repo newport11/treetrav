@@ -2,7 +2,8 @@ import asyncio
 import hashlib
 import os
 import urllib.parse
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+
 from io import BytesIO
 
 import favicon
@@ -68,7 +69,7 @@ def resize_favicon(url, domain):
 
 
 
-async def get_favicon_with_timeout(domain, timeout = 8):
+async def get_favicon_with_timeout2(domain, timeout = 8):
     loop = asyncio.get_event_loop()
     loop.set_default_executor(ProcessPoolExecutor())
     
@@ -83,7 +84,28 @@ async def get_favicon_with_timeout(domain, timeout = 8):
         print(f"Execution of favicon.get for {domain} timed out.")
         return None
     
-
+async def get_favicon_with_timeout(domain, timeout=8):
+    loop = asyncio.get_running_loop()
+    
+    try:
+        # Use ThreadPoolExecutor instead of ProcessPoolExecutor
+        with ThreadPoolExecutor() as executor:
+            # Use asyncio.wait_for to add a timeout to the execution
+            icons = await asyncio.wait_for(
+                loop.run_in_executor(executor, favicon.get, domain),
+                timeout=timeout
+            )
+        return icons
+    except asyncio.CancelledError:
+        print(f"Favicon retrieval for {domain} was cancelled.")
+        return None
+    except asyncio.TimeoutError:
+        print(f"Favicon retrieval for {domain} timed out after {timeout} seconds.")
+        return None
+    except Exception as e:
+        print(f"Error retrieving favicon for {domain}: {str(e)}")
+        return None
+    
 async def get_favicon_2(url):
     if url is not None:
         url = urllib.parse.unquote(url)
