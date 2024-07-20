@@ -14,3 +14,6 @@ unsized/
 app/static/profile_pics/*.png
 app/static/profile_pics/*.jpg
 app/static/profile_pics/*.jpeg
+
+# server specific
+certs/
