@@ -31,7 +31,7 @@ async def post_link():
     if 'description' not in data or data['description'].strip() == "":
         description = None
     else:
-        description = data['description']
+        description = data['description'].strip()
     if 'folder' not in data:
         folder = '/'
     else:
@@ -91,7 +91,7 @@ async def post_multiple_links():
     if 'description' not in data or data['description'].strip() == "":
         description = None
     else:
-        description = data['description']
+        description = data['description'].strip()
     if 'folder' not in data:
         folder = None
     else:
