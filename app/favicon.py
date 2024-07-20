@@ -2,7 +2,7 @@ import asyncio
 import hashlib
 import os
 import urllib.parse
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 from io import BytesIO
 
@@ -68,29 +68,11 @@ def resize_favicon(url, domain):
         return None
 
 
-
-async def get_favicon_with_timeout2(domain, timeout = 8):
-    loop = asyncio.get_event_loop()
-    loop.set_default_executor(ProcessPoolExecutor())
-    
-    try:
-        # Use asyncio.wait_for to add a timeout to the execution
-        icons = await asyncio.wait_for(loop.run_in_executor(None, favicon.get, domain), timeout)
-        return icons
-    except asyncio.CancelledError:
-        print("cancelled")
-        return None
-    except asyncio.TimeoutError:
-        print(f"Execution of favicon.get for {domain} timed out.")
-        return None
-    
 async def get_favicon_with_timeout(domain, timeout=8):
     loop = asyncio.get_running_loop()
     
     try:
-        # Use ThreadPoolExecutor instead of ProcessPoolExecutor
         with ThreadPoolExecutor() as executor:
-            # Use asyncio.wait_for to add a timeout to the execution
             icons = await asyncio.wait_for(
                 loop.run_in_executor(executor, favicon.get, domain),
                 timeout=timeout
@@ -106,7 +88,8 @@ async def get_favicon_with_timeout(domain, timeout=8):
         print(f"Error retrieving favicon for {domain}: {str(e)}")
         return None
     
-async def get_favicon_2(url):
+
+async def get_favicon(url):
     if url is not None:
         url = urllib.parse.unquote(url)
         try:
@@ -139,54 +122,4 @@ async def get_favicon_2(url):
         except:
             return None
     else:
-        return None
-    
-
-async def get_favicon(url):
-    if url is not None:
-        url = urllib.parse.unquote(url)
-        logger.debug(f"Unquoted URL: {url}")
-        try:
-            domain = get_domain_from_url(url)
-            logger.debug(f"Extracted domain: {domain}")
-
-            existing_favicon = favicon_exists(domain)
-            if existing_favicon:
-                logger.info(f"Existing favicon found for domain: {domain}")
-                return existing_favicon
-
-            icons = await get_favicon_with_timeout(domain)
-            logger.debug(f"Icons retrieved: {icons}")
-
-            for i in range(5):
-                try:
-                    icon_link = icons[i].url
-                    logger.debug(f"Trying icon link: {icon_link}")
-
-                    if icon_link:
-                        response = requests.get(icon_link)
-                        logger.debug(f"Response for {icon_link}: {response}")
-
-                        if response.status_code == 200:
-                            logger.info(f"Successful 200 response for {icon_link}")
-                            return resize_favicon(icon_link, domain)
-                        else:
-                            logger.warning(f"Non-200 response for {icon_link}: {response.status_code}")
-                            continue
-                except IndexError:
-                    logger.warning(f"IndexError: No more icons to try after {i} attempts")
-                    break
-                except Exception as e:
-                    logger.error(f"An error occurred while processing icon link {icon_link}: {str(e)}", exc_info=True)
-                    continue
-            logger.info(f"No suitable favicon found for domain: {domain}")
-            return None
-        except KeyboardInterrupt:
-            logger.info("KeyboardInterrupt: Stopping the program")
-            return None
-        except Exception as e:
-            logger.error(f"An unexpected error occurred: {str(e)}", exc_info=True)
-            return None
-    else:
-        logger.warning("No URL provided")
         return None
