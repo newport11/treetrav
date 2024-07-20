@@ -815,6 +815,8 @@ def remove_outbound_share(sharee_id, sharer_id, sharer_folder_path, sharee_folde
 def update_inbound_share(sharee_id, sharer_id, sharer_folder_path, sharee_folder_path='/'):
     if request.method == "POST" and current_user.id == sharee_id:
         mount_path = request.form.get('mount_path').strip()
+        if mount_path == "":
+            mount_path = "/"
         if mount_path != "/":
             mount_path = mount_path.strip("/")
             if len(mount_path) > 255:
