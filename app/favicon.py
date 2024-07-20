@@ -79,17 +79,18 @@ async def get_favicon(url):
             if existing_favicon:
                 return existing_favicon
             icons = await get_favicon_with_timeout(domain)
-
+            
             # return icons
             for i in range(5):
                 try:
                     icon_link = icons[i].url
                     if icon_link:
                         response = requests.get(icon_link)
+
                         if response.status_code == 200:
                             return resize_favicon(icon_link, domain)
                         else:
-                            return None
+                            continue
                 except IndexError:
                     break
                 except Exception as e:
