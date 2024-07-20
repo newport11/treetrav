@@ -709,7 +709,9 @@ def accept_share(requestee_id, requestor_id, request_folder):
         form = EmptyForm()
         if form.validate_on_submit():
             mount_path = request.form.get('mount_path').strip()
-            if mount_path != "" and mount_path != "/":
+            if mount_path == "":
+                mount_path = "/"
+            if mount_path != "/":
                 mount_path = mount_path.strip("/")
                 if len(mount_path) > 255:
                     flash(_('Mount path must be 255 characters or less'))
