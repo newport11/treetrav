@@ -11,7 +11,7 @@
                         {{ form.hidden_tag() }}
                 
                         <!-- Text field input -->
-                        <input type="text" name="mount_path" placeholder="Enter mount folder path (Will mount on home if blank)">
+                        <input type="text" name="mount_path" placeholder="Enter mount folder path (Will mount on home if blank)" class="mount-path-input">
                 
                         <!-- Accept button -->
                         {{ form.submit(value=_('Accept'), class_='btn btn-default') }}

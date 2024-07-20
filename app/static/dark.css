@@ -239,6 +239,11 @@ h4{
     gap: 10px; 
 }
 
+.mount-path-input {
+    width: 160%;
+    box-sizing: border-box; 
+}
+
 
 .requestor-info-container{
     display: flex;
