@@ -28,6 +28,10 @@ async def post_link():
         text = None
     else:
         text = data['text']
+    if 'description' not in data or data['description'].strip() == "":
+        description = None
+    else:
+        description = data['description']
     if 'folder' not in data:
         folder = '/'
     else:
@@ -50,7 +54,7 @@ async def post_link():
                     continue
                 else:
                     new_folder  = sharer_folder_path + folder[len(path_to_check):]
-                    post = Post(link=link, body=text, folder_link=new_folder.strip("/"), author=sharer)
+                    post = Post(link=link, body=text, description=description, folder_link=new_folder.strip("/"), author=sharer)
                     favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
                     if favicon_file_name:
                         post.favicon_file_name = favicon_file_name
@@ -61,7 +65,7 @@ async def post_link():
                     response.headers['Location'] = url_for('api.get_post', id=post.id)
                     return response
          
-    post = Post(link=link, body=text, folder_link=folder.strip("/") if folder != '/' else '/', author=token_auth.current_user())
+    post = Post(link=link, body=text, description=description, folder_link=folder.strip("/") if folder != '/' else '/', author=token_auth.current_user())
 
     favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
     if favicon_file_name:
@@ -84,6 +88,10 @@ async def post_multiple_links():
         text = None
     else:
         text = data['text']
+    if 'description' not in data or data['description'].strip() == "":
+        description = None
+    else:
+        description = data['description']
     if 'folder' not in data:
         folder = None
     else:
@@ -93,7 +101,7 @@ async def post_multiple_links():
     successful_count = 0
     for tab in tabs:
         try:
-            post = Post(link=urllib.parse.quote(tab["url"]), body=text, folder_link=folder.strip().strip("/") if folder else "/", author=token_auth.current_user())
+            post = Post(link=urllib.parse.quote(tab["url"]), body=text, description=description, folder_link=folder.strip().strip("/") if folder else "/", author=token_auth.current_user())
             favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
             if favicon_file_name:
                 post.favicon_file_name = favicon_file_name

@@ -58,7 +58,7 @@ def copy_folder_util(current_user, origin_path, dest_path):
     post = list(posts)
     if origin_path == '/':
         for post in posts:
-            new_post = Post(link=post.link, body=post.body, folder_link=post.folder_link,
+            new_post = Post(link=post.link, body=post.body, description=post.description, folder_link=post.folder_link,
                         author=current_user, favicon_file_name=post.favicon_file_name)
             if dest_path != "/":
                 if new_post.folder_link:
@@ -70,7 +70,7 @@ def copy_folder_util(current_user, origin_path, dest_path):
         filtered_posts = filter(lambda post: is_subpath(origin_path, post.folder_link), posts)
         filtered_posts_list = list(filtered_posts)
         for post in filtered_posts_list:
-            new_post = Post(link=post.link, body=post.body, folder_link=post.folder_link,
+            new_post = Post(link=post.link, body=post.body, description=post.description, folder_link=post.folder_link,
                         author=current_user, favicon_file_name=post.favicon_file_name)
             if new_post.folder_link.startswith(origin_path):
                 if dest_path != "/":

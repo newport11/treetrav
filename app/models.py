@@ -326,6 +326,7 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     link = db.Column(db.String(2048))
     body = db.Column(db.String(140))
+    description = db.Column(db.String(140))
     folder_name = db.Column(db.String(255))
     folder_link = db.Column(db.String(1000))
     favicon_file_name = db.Column(db.String(500))
@@ -338,6 +339,7 @@ class Post(db.Model):
             'id': self.id,
             'link': self.link,
             'body': self.body,
+            'description': self.description,
             'folder_name': self.folder_name,
             'folder_link': self.folder_link,
             'favicon_file_name': self.favicon_file_name,

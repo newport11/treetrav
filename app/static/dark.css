@@ -158,6 +158,11 @@ h4{
 }
 */
 
+.posted-description-text {
+    color: white;
+    font-weight: bold;
+}
+
 .userpage-folder-text{
     color: #888;
     font-weight: 600;

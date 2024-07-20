@@ -31,16 +31,26 @@
             <br>
             
             {% block post %}
+                {% if post.description %}
+                    <span class="posted-description-text">
+                    {% if post.description | length > 35 %}
+                        {{ post.description[:35] }}...
+                    {% else %}
+                        {{ post.description }}:
+                    {% endif %}
+                        </span>
+                {% endif %}
+
                 {% if post.body %} <a href="{{ decoded_link}}" target="_blank" class="posted-link-text">
-                    {% if post.body | length > 75 %}
-                        {{ post.body[:75] }}...
+                    {% if post.body | length > 40 %}
+                        {{ post.body[:40] }}...
                     {% else %}
                         {{ post.body }}
                     {% endif %}
                 </a> 
                 {% else %}   <a href="{{ decoded_link}}" target="_blank" class="posted-link-text">
-                    {% if decoded_link | length > 75 %}
-                        {{ decoded_link[:75] }}...
+                    {% if decoded_link | length > 40 %}
+                        {{ decoded_link[:40] }}...
                     {% else %}
                         {{ decoded_link }}
                     {% endif %}

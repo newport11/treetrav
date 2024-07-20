@@ -67,8 +67,13 @@ class PostForm(FlaskForm):
         
     def validate_body(self, form):
         length = len(self.data['post_body'])
-        if length > 75:
-            raise ValidationError(_(f'must be 75 characters or less, currently {length}'))
+        if length > 40:
+            raise ValidationError(_(f'must be 40 characters or less, currently {length}'))
+    
+    def validate_description(self, form):
+        length = len(self.data['post_description'])
+        if length > 35:
+            raise ValidationError(_(f'must be 35 characters or less, currently {length}'))
         
     def validate_folder(self, form):
         folders = self.data['post_folder'].strip().strip("/").split("/")
@@ -78,6 +83,7 @@ class PostForm(FlaskForm):
         
     post_link = TextAreaField(_l('Link*'), validators=[DataRequired(), validate_post])
     post_body = TextAreaField(_l('Title'), validators=[validate_body])
+    post_description = TextAreaField(_l('Description'), validators=[validate_description])
     post_folder= TextAreaField(_l('Folder'), validators=[validate_folder])
     submit = SubmitField(_l('Post'))
 
