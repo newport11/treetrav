@@ -113,6 +113,7 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
     profile_pic = db.Column(db.String(500))
     private_mode = db.Column(db.Boolean, default=False)
     dark_mode = db.Column(db.Boolean, default=False)
+    description_text_color = db.Column(db.String, default='#000000')
     token = db.Column(db.String(32), index=True, unique=True)
     token_expiration = db.Column(db.DateTime)
     followed = db.relationship(

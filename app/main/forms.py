@@ -9,12 +9,14 @@ from flask_wtf import FlaskForm, Form
 from sqlalchemy import func, text
 from wtforms import (
     BooleanField,
-    FileField,
     HiddenField,
     StringField,
     SubmitField,
     TextAreaField,
 )
+
+from flask_wtf.file import FileField, FileAllowed
+
 from wtforms.fields import SubmitField
 from wtforms.validators import DataRequired, Length, ValidationError
 
@@ -31,6 +33,7 @@ class SettingsForm(FlaskForm):
     picture = FileField('Update Profile Picture')
     private_mode = BooleanField(_l('Private Mode'), default=False)
     dark_mode = BooleanField(_l('Dark Mode'), default=False)
+    description_text_color = StringField(_l('Description Text Color'), default='#000000')
     form_type = HiddenField('Form Type', default='settings_form')  # Include the form_type field as HiddenField
     submit = SubmitField(_l('Save'))
 

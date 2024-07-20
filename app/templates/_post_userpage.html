@@ -21,13 +21,23 @@
         <td style="max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             {% block post %}
             {% if post.description %}
-                <span class="posted-description-text">
+                {% if current_user.get_id() and current_user.description_text_color %}
+                <span style="color: {{ current_user.description_text_color | safe }}; font-weight: bold;">
                 {% if post.description | length > 35 %}
-                    {{ post.description[:35] }}...
-                {% else %}
-                    {{ post.description }}: 
-                {% endif %}
+                        {{ post.description[:35] }}...
+                    {% else %}
+                        {{ post.description }}: 
+                    {% endif %}
                     </span>
+                {% else %}
+                    <span class="posted-description-text">
+                        {% if post.description | length > 35 %}
+                            {{ post.description[:35] }}...
+                        {% else %}
+                            {{ post.description }}: 
+                        {% endif %}
+                    </span> 
+                {% endif %}
             {% endif %}
 
             {% if post.body %} <a href="{{ decoded_link}}" target="_blank" class="posted-link-text">

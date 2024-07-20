@@ -629,6 +629,7 @@ def settings():
         current_user.about_me = form.about_me.data.strip()
         current_user.private_mode = form.private_mode.data
         current_user.dark_mode = form.dark_mode.data
+        current_user.description_text_color = form.description_text_color.data
         picture = form.picture.data
         try:
             if picture:
@@ -685,6 +686,7 @@ def settings():
         form.about_me.data = current_user.about_me
         form.private_mode.data = current_user.private_mode
         form.dark_mode.data = current_user.dark_mode
+        form.description_text_color.data = current_user.description_text_color
         
     return render_template('settings.html', title=_('Settings'),
                            form=form)

@@ -65,7 +65,41 @@
 <div id="Settings" class="tabcontent" style="display: block;">
     <div class="row">
         <div class="col-md-4">
-            {{ wtf.quick_form(form, extra_classes='my-form') }}
+            <form method="post" enctype="multipart/form-data" action="{{ url_for('main.settings') }}" class="my-form">
+                {{ form.hidden_tag() }}
+                <div class="form-group">
+                    {{ form.username.label(class="form-label") }}
+                    {{ form.username(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.email.label(class="form-label") }}
+                    {{ form.email(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.about_me.label(class="form-label") }}
+                    {{ form.about_me(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.description_text_color.label(class="form-label") }}
+                    {{ form.description_text_color(class="form-control", type="color") }}
+                </div>
+                <div class="form-group">
+                    {{ form.picture.label(class="form-label") }}
+                    {{ form.picture(class="form-control-file") }}
+                </div>
+                <div class="form-group">
+                    {{ form.private_mode.label(class="form-check-label") }}
+                    {{ form.private_mode(class="form-check-input") }}
+                </div>
+                <div class="form-group">
+                    {{ form.dark_mode.label(class="form-check-label") }}
+                    {{ form.dark_mode(class="form-check-input") }}
+                </div>
+                <div class="form-group">
+                    {{ form.submit(class="green-button") }}
+                </div>
+                <br>
+            </form>
         </div>
     </div>
     <br>
