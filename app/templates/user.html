@@ -16,9 +16,9 @@
                     <h1 class="username-profile-text">{{ user.username }} {% if user.verified == True %}<img src="{{ url_for( 'static', filename='green_check32.png') }}" class="green-check-icon" /> {% endif %} </h1>
                     {% if user == current_user %}
                         <div style="display: flex; gap: 10px; justify-content: flex-end !important;">
-                            <a href="{{ url_for('main.settings') }}" class="green-button"> {{ _('&#10687 &#10687 &#10687') }}</a>
+                            {% include 'post_popup.html' %}
                         </div>
-                        {% endif %}
+                    {% endif %}
                 </div>
                     {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
                 {% if user.last_seen %}
