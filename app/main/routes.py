@@ -472,16 +472,48 @@ def get_follow_requests(username):
 
 
 @bp.route('/user/<username>/<path:path>', methods=['POST','GET'])
-def user_subfolder(username, path):
+async def user_subfolder(username, path):
     user = User.query.filter(User.username.ilike(username)).first_or_404()
     followers = user.followers
-    form = EmptyForm()
+    empty_form = EmptyForm()
+
+    form = PostForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        folder_path = form.post_folder.data.strip()
+        if folder_path and folder_path != '/':
+            folder_path = folder_path.strip('/')
+        else:
+            folder_path = '/'
+        folder_path = folder_path if form.post_folder.data else "/"
+        post = Post(link=urllib.parse.quote(form.post_link.data), body=form.post_body.data, description=form.post_description.data.strip(), folder_link=folder_path,
+                    author=current_user)
+        OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
+        if not post.body and OPENAI_API_KEY:
+            post.body= generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
+        if favicon_file_name:
+            post.favicon_file_name = favicon_file_name
+
+        db.session.add(post)
+        db.session.commit()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"message": "Your link is now posted!"}), 200
+        flash(_('Your link is now posted!'))
+        return redirect(url_for('main.user_subfolder'))
+    elif request.method == 'POST':
+        # If it's a POST request but validation failed, return errors as JSON
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(form.errors), 400
+        # For non-AJAX requests, render the template with errors
+        return render_template('user_subfolder.html', title=_('Profile'), form=form)
+    
+
     if current_user.get_id():
         is_following = current_user in followers
     else:
         is_following = False
     if (user.private_mode == True and user != current_user and not is_following)  :
-        return render_template('user_private.html', user=user, form=form)
+        return render_template('user_private.html', user=user, form=empty_form)
     else:
         splitPath = path.rstrip("/").rsplit("/", 1)
         prevPath = splitPath[0]
@@ -502,7 +534,7 @@ def user_subfolder(username, path):
                         else:
                             temp_html = markdown.markdown(get_leaf.md_text)
                             return render_template('leaf_page.html', user=user, 
-                                form=form, user_home_page=user_home_page, temp_html=temp_html,  prevPath=prevPath)
+                                form=empty_form, user_home_page=user_home_page, temp_html=temp_html,  prevPath=prevPath)
         
         shared_id_list = []
 
@@ -580,7 +612,7 @@ def user_subfolder(username, path):
                         folders.append(post)
 
             return render_template('user_subfolder.html', user=user, posts=posts,
-                                form=form, folders=folders, prevPath=prevPath, user_home_page=user_home_page, current_folder=current_folder)
+                                empty_form=empty_form, form=form, folders=folders, prevPath=prevPath, user_home_page=user_home_page, current_folder=current_folder)
         # END INBOUND SHARE CODE
 
 
@@ -600,7 +632,7 @@ def user_subfolder(username, path):
                     visited_folders.append(post.folder_name)
                     folders.append(post)
         return render_template('user_subfolder.html', user=user, posts=posts,
-                            form=form, folders=folders, prevPath=prevPath, user_home_page=user_home_page, current_folder=current_folder)
+                            form=empty_form, folders=folders, prevPath=prevPath, user_home_page=user_home_page, current_folder=current_folder)
 
 
 @bp.route('/settings', methods=['GET', 'POST'])
