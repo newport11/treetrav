@@ -478,13 +478,15 @@ async def user_subfolder(username, path):
     empty_form = EmptyForm()
 
     form = PostForm()
+
     if request.method == 'POST' and form.validate_on_submit():
         folder_path = form.post_folder.data.strip()
         if folder_path and folder_path != '/':
             folder_path = folder_path.strip('/')
         else:
-            folder_path = '/'
-        folder_path = folder_path if form.post_folder.data else "/"
+            folder_path = path
+        folder_path = folder_path if form.post_folder.data else path
+        print(folder_path)
         post = Post(link=urllib.parse.quote(form.post_link.data), body=form.post_body.data, description=form.post_description.data.strip(), folder_link=folder_path,
                     author=current_user)
         OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
@@ -612,7 +614,7 @@ async def user_subfolder(username, path):
                         folders.append(post)
 
             return render_template('user_subfolder.html', user=user, posts=posts,
-                                empty_form=empty_form, form=form, folders=folders, prevPath=prevPath, user_home_page=user_home_page, current_folder=current_folder)
+                                empty_form=empty_form, form=form, folders=folders, prevPath=prevPath, user_home_page=user_home_page, current_folder=current_folder, path=path)
         # END INBOUND SHARE CODE
 
 
