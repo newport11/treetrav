@@ -33,111 +33,20 @@
             // Clear previous error messages and remove error class
             clearErrors();
 
-            var isValid = true;
-            var postLink = $('#post_link').val();
-            var postBody = $('#post_body').val();
-            var postFolder = $('#post_folder').val();
-
-            // Validate post link
-            if (!isValidUrl(postLink)) {
-                showError('post_link', 'Must post valid link');
-                isValid = false;
-            }
-
-            // Validate post body
-            if (postBody.length > 75) {
-                showError('post_body', 'Must be 75 characters or less, currently ' + postBody.length);
-                isValid = false;
-            }
-
-            // Validate folder
-            var folders = postFolder.trim().replace(/^\/+|\/+$/g, '').split('/');
-            for (var i = 0; i < folders.length; i++) {
-                if (folders[i].length > 30) {
-                    showError('post_folder', 'Individual folder length must be under 30 characters, currently ' + folders[i].length);
-                    isValid = false;
-                    break;
-                }
-            }
-
-            if (isValid) {
-                $.ajax({
-                    url: $(this).attr('action'),
-                    type: 'POST',
-                    data: $(this).serialize(),
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    success: function(response) {
-                        // Clear the form
-                        $('#yourForm')[0].reset();
-                        // Clear any remaining error messages
-                        clearErrors();
-                        // Show success message and close modal
-                        showSuccessMessage(response.message);
-                    },
-                    error: function(xhr, status, error) {
-                        var errors = xhr.responseJSON;
-                        for (var field in errors) {
-                            showError(field, errors[field]);
-                        }
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: $(this).serialize(),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                error: function(xhr, status, error) {
+                    var errors = xhr.responseJSON;
+                    for (var field in errors) {
+                        showError(field, errors[field]);
                     }
-                });
-            }
+                }
+            });
         });
-
-        // Remove is-invalid class when user starts typing
-        $('.form-control').on('input', function() {
-            $(this).removeClass('is-invalid');
-            $(this).next('.invalid-feedback').text('');
-        });
-
-        function isValidUrl(string) {
-            try {
-                new URL(string);
-                return true;
-            } catch (_) {
-                return false;  
-            }
-        }
-
-        function showError(fieldId, message) {
-            $('#' + fieldId).addClass('is-invalid');
-            $('#' + fieldId + '_error').text(message);
-        }
-
-        function clearErrors() {
-            $('.invalid-feedback').text('');
-            $('.form-control').removeClass('is-invalid');
-            $('#successMessage').remove();
-        }
-
-        function showSuccessMessage(message) {
-            // Remove any existing success message
-            $('#successMessage').remove();
-            
-            // Create the success message with a countdown
-            var $successMessage = $('<div id="successMessage" class="alert alert-success">' +
-                message + '<br>You can continue to add another link below.</div>');
-            
-            // Insert the message at the top of the modal body
-            $('.modal-body').prepend($successMessage);
-        }
     });
 </script>
-
-<style>
-    .is-invalid {
-        border-color: #dc3545 !important;
-        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-    }
-    .alert-success {
-        color: #155724;
-        background-color: #d4edda;
-        border-color: #c3e6cb;
-        padding: .75rem 1.25rem;
-        margin-bottom: 1rem;
-        border: 1px solid transparent;
-        border-radius: .25rem;
-    }
-</style>
