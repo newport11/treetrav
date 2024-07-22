@@ -486,7 +486,6 @@ async def user_subfolder(username, path):
         else:
             folder_path = path
         folder_path = folder_path if form.post_folder.data else path
-        print(folder_path)
         post = Post(link=urllib.parse.quote(form.post_link.data), body=form.post_body.data, description=form.post_description.data.strip(), folder_link=folder_path,
                     author=current_user)
         OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
