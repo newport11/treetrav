@@ -127,7 +127,7 @@
         {% if current_user.id == post.user_id%}
         <td style="text-align: right;"> 
             <div class="garbage-copy-container" style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
-                <form method="post" action="{{ url_for('main.delete_post', post_id=post.id ) }}">
+                <form method="post" action="{{ url_for('main.delete_post', post_id=post.id ) }}" onsubmit="return confirmDelete()">
                     <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer; margin-right: 0px;">
                         <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" />
                     </button>
@@ -178,6 +178,10 @@
             // Enable the button
             button.disabled = false;
         }, 2000);
+    }
+
+    function confirmDelete() {
+        return confirm('Are you sure you want to delete this link?');
     }
 </script>
 {% endblock %}
