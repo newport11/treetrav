@@ -1,52 +1,28 @@
-<button type="button" class="green-button" data-toggle="modal" data-target="#postPopup" data-whatever="@mdo">Post a link</button>
+<button type="button" data-toggle="modal" data-target="#deletePopup" data-whatever="@mdo" style="border: 0; background: transparent; padding: 0; cursor: pointer; " >
+    <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" />
+</button>
 
-<div class="modal fade" id="postPopup" tabindex="-1" role="dialog" aria-labelledby="postPopupLabel" aria-hidden="true">
+<div class="modal fade" id="deletePopup" tabindex="-1" role="dialog" aria-labelledby="deletePopupLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header d-flex justify-content-between align-items-center">
-                <h5 class="modal-title" id="postPopupLabel">Post a New Link</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-
             <div class="modal-body">
-                <form method="POST" action="" class="my-form" id="yourForm">
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="form-group">
-                        <label for="post_link">Link*</label>
-                        <textarea class="form-control" id="post_link" name="post_link" placeholder="e.g. https://google.com" required>{{ form.post_link.data or '' }}</textarea>
-                        <div class="invalid-feedback" id="post_link_error"></div>
-                    </div>
-                
-                    <div class="form-group">
-                        <label for="post_body">Title</label>
-                        <textarea class="form-control" id="post_body" name="post_body" placeholder="e.g. My Link">{{ form.post_body.data or '' }}</textarea>
-                        <div class="invalid-feedback" id="post_body_error"></div>
-                    </div>
-                
-                    <div class="form-group">
-                        <label for="post_description">Description</label>
-                        <textarea class="form-control" id="post_description" name="post_description" placeholder="e.g. My Description">{{ form.post_description.data or '' }}</textarea>
-                        <div class="invalid-feedback" id="post_description_error"></div>
+                <form method="POST" action="{{ url_for('main.delete_folder', folder_link=folder.folder_link ) }}" class="my-form" id="yourForm">
+                    <div class="modal-header d-flex justify-content-between align-items-center">
+                        <h5 class="modal-title" id="deletePopupLabel">Are you sure you want to delete the folder?</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
 
                     <div class="form-group">
-                        <label for="post_folder">Folder</label>
-                        <textarea class="form-control" id="post_folder" name="post_folder" placeholder="{{ path if path else 'e.g. myfolder/mysubfolder/etc' }}">{{ path if path else '' }}</textarea>
-                        <div class="invalid-feedback" id="post_folder_error"></div>
-                    </div>
-                    
-                
-                    <div class="form-group">
-                        <input type="submit" class="green-button" value="Post">
+                        <input type="submit" class="btn btn-delete" value="Delete">
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>

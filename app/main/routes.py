@@ -190,7 +190,7 @@ def delete_folder(folder_link):
             db.session.delete(post)
     
     db.session.commit()
-    flash('Folder deleted')
+    flash(f'Folder \'{folder_link}\' deleted')
     previous_folder = folder_link.rstrip("/").rsplit("/", 1)[0]
     if len(folder_link.split("/")) <= 1:
         previous_folder = "/"
