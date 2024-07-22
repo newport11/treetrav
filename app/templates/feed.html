@@ -3,7 +3,8 @@
 {% block app_content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
     <div style="display: flex; align-items: center; justify-content: space-between;">
-        <h1 style="margin: 0; color: green">{{ title }}</h1>
+        <h2>{{ title }}</h2>
+
         <div style="display: flex; gap: 10px;">
             {% include 'post_popup.html' %}
         </div>
@@ -30,4 +31,14 @@
         </ul>
     </nav>
 {% include 'footer.html' %}
+
+<style>
+    h2 {
+        margin: 0;
+        color: black;
+        font-family: 'FF Fago', Arial, sans-serif;
+        font-size: 26px;
+    }
+</style>
+
 {% endblock %}
