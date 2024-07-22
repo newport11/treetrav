@@ -34,7 +34,7 @@
 
                     <div class="form-group">
                         <label for="post_folder">Folder</label>
-                        <textarea class="form-control" id="post_folder" name="post_folder">{{ path if path else 'e.g. myfolder/mysubfolder/etc' }}</textarea>
+                        <textarea class="form-control" id="post_folder" name="post_folder" placeholder="{{ path if path else 'e.g. myfolder/mysubfolder/etc' }}">{{ path if path else '' }}</textarea>
                         <div class="invalid-feedback" id="post_folder_error"></div>
                     </div>
                     
@@ -142,35 +142,10 @@
             
             // Create the success message with a countdown
             var $successMessage = $('<div id="successMessage" class="alert alert-success">' +
-                message + '<br>This message will close in <span id="countdown">3</span> seconds.</div>');
+                message + '<br>You can continue to add another link below.</div>');
             
             // Insert the message at the top of the modal body
             $('.modal-body').prepend($successMessage);
-            
-            // Start the countdown
-            var countdown = 3;
-            var countdownInterval = setInterval(function() {
-                countdown--;
-                $('#countdown').text(countdown);
-                if (countdown <= 0) {
-                    clearInterval(countdownInterval);
-                }
-            }, 1000);
-
-            // Set a timeout to close the modal after 3 seconds
-            setTimeout(closeModal, 3000);
-        }
-
-        function closeModal() {
-            // Assuming you're using Bootstrap's modal
-            $('#exampleModal').modal('hide');
-            
-            // After the modal is hidden, remove the success message
-            $('#exampleModal').on('hidden.bs.modal', function (e) {
-                $('#successMessage').remove();
-                // Refresh the page
-                window.location.reload();
-            });
         }
     });
 </script>
