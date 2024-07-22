@@ -6,15 +6,14 @@ from concurrent.futures import ThreadPoolExecutor
 
 from io import BytesIO
 
+import aiohttp
 import favicon
-import requests
 from PIL import Image
 
 import logging
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(current_dir, 'app.log')
-
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -41,13 +40,13 @@ def get_domain_from_url(url):
         else:
             return None
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        logger.error(f"An error occurred while parsing URL: {str(e)}")
         return None
     
 def favicon_exists(url):
-    directory_path="app/static/favicons/"
+    directory_path = "app/static/favicons/"
     hashed_url = hash_url(url)
-    filename=f"{hashed_url}.png"
+    filename = f"{hashed_url}.png"
     file_path = os.path.join(directory_path, filename)
     if os.path.exists(file_path):
         return f"{hashed_url}.png"
@@ -55,17 +54,18 @@ def favicon_exists(url):
         return None
 
 
-def resize_favicon(url, domain):
-    response = requests.get(url)
-    if response.status_code == 200:
-        img = Image.open(BytesIO(response.content))
-        resized_img = img.resize((25, 25), Image.LANCZOS)
-        hashed_url = hash_url(domain)
-        resized_img.save(f"app/static/favicons/{hashed_url}.png")
-        return f"{hashed_url}.png"
-    else:
-        print(f"Error: Unable to fetch favicon from {url}")
-        return None
+async def resize_favicon(url, domain):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status == 200:
+                img = Image.open(BytesIO(await response.read()))
+                resized_img = img.resize((25, 25), Image.LANCZOS)
+                hashed_url = hash_url(domain)
+                resized_img.save(f"app/static/favicons/{hashed_url}.png")
+                return f"{hashed_url}.png"
+            else:
+                logger.error(f"Error: Unable to fetch favicon from {url}")
+                return None
 
 
 async def get_favicon_with_timeout(domain, timeout=8):
@@ -79,15 +79,15 @@ async def get_favicon_with_timeout(domain, timeout=8):
             )
         return icons
     except asyncio.CancelledError:
-        print(f"Favicon retrieval for {domain} was cancelled.")
+        logger.warning(f"Favicon retrieval for {domain} was cancelled.")
         return None
     except asyncio.TimeoutError:
-        print(f"Favicon retrieval for {domain} timed out after {timeout} seconds.")
+        logger.warning(f"Favicon retrieval for {domain} timed out after {timeout} seconds.")
         return None
     except Exception as e:
-        print(f"Error retrieving favicon for {domain}: {str(e)}")
+        logger.error(f"Error retrieving favicon for {domain}: {str(e)}")
         return None
-    
+
 
 async def get_favicon(url):
     if url is not None:
@@ -104,26 +104,32 @@ async def get_favicon(url):
                 try:
                     icon_link = icons[i].url
                     if icon_link:
-                        response = requests.get(icon_link)
-
-                        if response.status_code == 200:
-                            return resize_favicon(icon_link, domain)
-                        else:
-                            continue
+                        favicon_path = await resize_favicon(icon_link, domain)
+                        if favicon_path:
+                            return favicon_path
                 except IndexError:
                     break
                 except Exception as e:
-                    print(f"An error occurred: {str(e)}")
+                    logger.error(f"An error occurred: {str(e)}")
                     continue
+
+            # Fallback to common favicon path
+            fallback_url = f"{domain}/favicon.ico"
+            favicon_path = await resize_favicon(fallback_url, domain)
+            if favicon_path:
+                return favicon_path
+
             return None
         except KeyboardInterrupt:
-            print("KeyboardInterrupt: Stopping the program")
+            logger.info("KeyboardInterrupt: Stopping the program")
             return None
-        except:
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {str(e)}")
             return None
     else:
+        logger.warning("No URL provided")
         return None
-    
+
 
 async def get_favicon_test(url):
     if url is not None:
@@ -147,21 +153,22 @@ async def get_favicon_test(url):
                     logger.debug(f"Trying icon link: {icon_link}")
 
                     if icon_link:
-                        response = requests.get(icon_link)
-                        logger.debug(f"Response for {icon_link}: {response}")
-
-                        if response.status_code == 200:
-                            logger.info(f"Successful 200 response for {icon_link}")
-                            return resize_favicon(icon_link, domain)
-                        else:
-                            logger.warning(f"Non-200 response for {icon_link}: {response.status_code}")
-                            continue
+                        favicon_path = await resize_favicon(icon_link, domain)
+                        if favicon_path:
+                            return favicon_path
                 except IndexError:
                     logger.warning(f"IndexError: No more icons to try after {i} attempts")
                     break
                 except Exception as e:
                     logger.error(f"An error occurred while processing icon link {icon_link}: {str(e)}", exc_info=True)
                     continue
+
+            # Fallback to common favicon path
+            fallback_url = f"{domain}/favicon.ico"
+            favicon_path = await resize_favicon(fallback_url, domain)
+            if favicon_path:
+                return favicon_path
+
             logger.info(f"No suitable favicon found for domain: {domain}")
             return None
         except KeyboardInterrupt:
