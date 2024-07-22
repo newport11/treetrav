@@ -1,10 +1,10 @@
-<button type="button" class="green-button" data-toggle="modal" data-target="#exampleModal" data-whatever="@mdo">Post a link</button>
+<button type="button" class="green-button" data-toggle="modal" data-target="#postPopup" data-whatever="@mdo">Post a link</button>
 
-<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="postPopup" tabindex="-1" role="dialog" aria-labelledby="postPopupLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header d-flex justify-content-between align-items-center">
-                <h5 class="modal-title" id="exampleModalLabel">Post a New Link</h5>
+                <h5 class="modal-title" id="postPopupLabel">Post a New Link</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -51,6 +51,8 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     $(document).ready(function() {
+        var linkPostedSuccessfully = false;
+
         $('#yourForm').on('submit', function(e) {
             e.preventDefault();
 
@@ -99,6 +101,8 @@
                         clearErrors();
                         // Show success message and close modal
                         showSuccessMessage(response.message);
+                        // Set the flag to true
+                        linkPostedSuccessfully = true;
                     },
                     error: function(xhr, status, error) {
                         var errors = xhr.responseJSON;
@@ -147,6 +151,13 @@
             // Insert the message at the top of the modal body
             $('.modal-body').prepend($successMessage);
         }
+
+        // Event listener for modal hide event
+        $('#postPopup').on('hidden.bs.modal', function() {
+            if (linkPostedSuccessfully) {
+                location.reload();
+            }
+        });
     });
 </script>
 

@@ -1,0 +1,52 @@
+<button type="button" data-toggle="modal" data-target="#deletePopup" data-whatever="@mdo" style="border: 0; background: transparent; padding: 0; cursor: pointer; " >
+    <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" />
+</button>
+
+<div class="modal fade" id="deletePopup" tabindex="-1" role="dialog" aria-labelledby="deletePopupLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('main.delete_folder', folder_link=folder.folder_link ) }}" class="my-form" id="yourForm">
+                    <div class="modal-header d-flex justify-content-between align-items-center">
+                        <h5 class="modal-title" id="deletePopupLabel">Are you sure you want to delete the folder?</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <input type="submit" class="btn btn-delete" value="Delete">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#yourForm').on('submit', function(e) {
+            e.preventDefault();
+
+            // Clear previous error messages and remove error class
+            clearErrors();
+
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: $(this).serialize(),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                error: function(xhr, status, error) {
+                    var errors = xhr.responseJSON;
+                    for (var field in errors) {
+                        showError(field, errors[field]);
+                    }
+                }
+            });
+        });
+    });
+</script>
