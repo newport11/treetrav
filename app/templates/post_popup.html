@@ -51,6 +51,8 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     $(document).ready(function() {
+        var linkPostedSuccessfully = false;
+
         $('#yourForm').on('submit', function(e) {
             e.preventDefault();
 
@@ -99,6 +101,8 @@
                         clearErrors();
                         // Show success message and close modal
                         showSuccessMessage(response.message);
+                        // Set the flag to true
+                        linkPostedSuccessfully = true;
                     },
                     error: function(xhr, status, error) {
                         var errors = xhr.responseJSON;
@@ -147,6 +151,13 @@
             // Insert the message at the top of the modal body
             $('.modal-body').prepend($successMessage);
         }
+
+        // Event listener for modal hide event
+        $('#postPopup').on('hidden.bs.modal', function() {
+            if (linkPostedSuccessfully) {
+                location.reload();
+            }
+        });
     });
 </script>
 
