@@ -34,8 +34,7 @@
 
                     <div class="form-group">
                         <label for="post_folder">Folder</label>
-                        <textarea class="form-control" id="post_folder" name="post_folder" 
-                                  placeholder="{{ path if path else 'e.g. myfolder/mysubfolder/etc' }}">{{ form.post_folder.data or '' }}</textarea>
+                        <textarea class="form-control" id="post_folder" name="post_folder">{{ path if path else 'e.g. myfolder/mysubfolder/etc' }}</textarea>
                         <div class="invalid-feedback" id="post_folder_error"></div>
                     </div>
                     
