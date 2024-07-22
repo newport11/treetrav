@@ -1085,8 +1085,8 @@ def actions():
                 flash('Folder path is not valid. Try again', 'error')
                 return render_template('actions.html', title=_('Actions'),
                            username=current_user.username)
-            if len(folder_name) > 30:
-                flash('New folder name must be 30 characters or less. Try again', 'error')
+            if len(folder_name) > 45:
+                flash('New folder name must be 45 characters or less. Try again', 'error')
                 return render_template('actions.html', title=_('Actions'),
                            username=current_user.username)
             rename_folder_util(current_user.username, folder_path.strip('/'), folder_name.strip())
