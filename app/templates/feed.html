@@ -2,9 +2,12 @@
 {% import 'bootstrap/wtf.html' as wtf %}
 {% block app_content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
-    <div style="display: flex; gap: 10px; justify-content: flex-end !important;">
-        {% include 'post_popup.html' %}
-    </div>      
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h1 style="margin: 0; color: green">{{ title }}</h1>
+        <div style="display: flex; gap: 10px;">
+            {% include 'post_popup.html' %}
+        </div>
+    </div>
     <!-- {% if form %}
         {{ wtf.quick_form(form, extra_classes='my-form') }} -->
     <br><br>
