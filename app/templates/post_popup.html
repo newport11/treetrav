@@ -79,8 +79,8 @@
             // Validate folder
             var folders = postFolder.trim().replace(/^\/+|\/+$/g, '').split('/');
             for (var i = 0; i < folders.length; i++) {
-                if (folders[i].length > 30) {
-                    showError('post_folder', 'Individual folder length must be under 30 characters, currently ' + folders[i].length);
+                if (folders[i].length > 45) {
+                    showError('post_folder', 'Individual folder length must be under 45 characters, currently ' + folders[i].length);
                     isValid = false;
                     break;
                 }
