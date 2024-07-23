@@ -41,6 +41,7 @@ from app.models import Leaf, Post, ShareFolder, ShareFolderRequest, User
 from app.openai import generate_link_summary
 from app.utils import (
     copy_folder_util,
+    get_webpage_title,
     is_subpath,
     move_folder_util,
     rename_folder_util,
@@ -60,10 +61,12 @@ def before_request():
         g.search_form = SearchForm()
     g.locale = str(get_locale())
 
-@bp.route('/home', methods=['GET'])
-@bp.route('/', methods=['GET'])
+
+@bp.route("/home", methods=["GET"])
+@bp.route("/", methods=["GET"])
 def home():
-    return render_template('home.html', title=_('Feed'))
+    return render_template("home.html", title=_("Feed"))
+
 
 @bp.route("/", methods=["GET", "POST"])
 @bp.route("/feed", methods=["GET", "POST"])
@@ -86,8 +89,15 @@ async def feed():
                 author=current_user,
             )
             OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
-            if not post.body and OPENAI_API_KEY:
-                post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+            # If post.body is None, try to set it to the webpage title
+            if not post.body:
+                webpage_title = get_webpage_title(form.post_link.data)
+                if webpage_title:
+                    post.body = webpage_title
+                elif OPENAI_API_KEY:
+                    post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(
+                        "."
+                    )
             favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
             if favicon_file_name:
                 post.favicon_file_name = favicon_file_name
@@ -283,8 +293,15 @@ async def discover():
                 author=current_user,
             )
             OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
-            if not post.body and OPENAI_API_KEY:
-                post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+            # If post.body is None, try to set it to the webpage title
+            if not post.body:
+                webpage_title = get_webpage_title(form.post_link.data)
+                if webpage_title:
+                    post.body = webpage_title
+                elif OPENAI_API_KEY:
+                    post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(
+                        "."
+                    )
             favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
             if favicon_file_name:
                 post.favicon_file_name = favicon_file_name
@@ -361,8 +378,13 @@ async def user(username):
             author=current_user,
         )
         OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
-        if not post.body and OPENAI_API_KEY:
-            post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+        # If post.body is None, try to set it to the webpage title
+        if not post.body:
+            webpage_title = get_webpage_title(form.post_link.data)
+            if webpage_title:
+                post.body = webpage_title
+            elif OPENAI_API_KEY:
+                post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
         favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
         if favicon_file_name:
             post.favicon_file_name = favicon_file_name
@@ -642,8 +664,13 @@ async def user_subfolder(username, path):
             author=current_user,
         )
         OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
-        if not post.body and OPENAI_API_KEY:
-            post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+        # If post.body is None, try to set it to the webpage title
+        if not post.body:
+            webpage_title = get_webpage_title(form.post_link.data)
+            if webpage_title:
+                post.body = webpage_title
+            elif OPENAI_API_KEY:
+                post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
         favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
         if favicon_file_name:
             post.favicon_file_name = favicon_file_name
