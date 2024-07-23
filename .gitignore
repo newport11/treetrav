@@ -14,6 +14,8 @@ unsized/
 app/static/profile_pics/*.png
 app/static/profile_pics/*.jpg
 app/static/profile_pics/*.jpeg
+# ignore all favicons 
+app/static/favicons/*.png
 
 # server specific
 certs/
