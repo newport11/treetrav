@@ -21,8 +21,8 @@ from config import Config
 db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
-login.login_view = 'auth.login'
-login.login_message = _l('Please log in to access this page.')
+login.login_view = "auth.login"
+login.login_message = _l("Please log in to access this page.")
 mail = Mail()
 bootstrap = Bootstrap()
 moment = Moment()
@@ -30,9 +30,11 @@ babel = Babel()
 htmx = HTMX()
 pagedown = PageDown()
 
+
 def decode_url(url):
     return urllib.parse.unquote(url)
-    
+
+
 def shorten_folder_path(path):
     shortened_path = path[-30:]
     shortened_path_list = shortened_path.split("/", 1)
@@ -41,15 +43,17 @@ def shorten_folder_path(path):
     else:
         return shortened_path
 
+
 def set_mini_profile_pic_filename(filename):
     try:
-        fn = filename.rstrip('.png')
+        fn = filename.rstrip(".png")
     except:
-        fn = ''
+        fn = ""
     return fn
 
+
 def pic_exists(filename):
-    file = os.path.join('app/static/profile_pics', f'{filename}')
+    file = os.path.join("app/static/profile_pics", f"{filename}")
     print(file)
     if os.path.exists(file):
         return True
@@ -59,8 +63,8 @@ def pic_exists(filename):
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
-    app.config['SQLALCHEMY_POOL_PRE_PING'] = True
-    app.config['SQLALCHEMY_POOL_RECYCLE'] = 20
+    app.config["SQLALCHEMY_POOL_PRE_PING"] = True
+    app.config["SQLALCHEMY_POOL_RECYCLE"] = 20
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -71,55 +75,69 @@ def create_app(config_class=Config):
     htmx.init_app(app)
     babel.init_app(app)
     pagedown.init_app(app)
-    app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']], verify_certs=False) \
-        if app.config['ELASTICSEARCH_URL'] else None
+    app.elasticsearch = (
+        Elasticsearch([app.config["ELASTICSEARCH_URL"]], verify_certs=False)
+        if app.config["ELASTICSEARCH_URL"]
+        else None
+    )
 
     from app.errors import bp as errors_bp
+
     app.register_blueprint(errors_bp)
 
     from app.auth import bp as auth_bp
-    app.register_blueprint(auth_bp, url_prefix='/auth')
+
+    app.register_blueprint(auth_bp, url_prefix="/auth")
 
     from app.main import bp as main_bp
+
     app.register_blueprint(main_bp)
 
     from app.api import bp as api_bp
-    app.register_blueprint(api_bp, url_prefix='/api')
+
+    app.register_blueprint(api_bp, url_prefix="/api")
 
     app.jinja_env.globals.update(shorten_folder_path=shorten_folder_path)
     app.jinja_env.globals.update(pic_exists=pic_exists)
-    app.jinja_env.globals.update(set_mini_profile_pic_filename=set_mini_profile_pic_filename)
+    app.jinja_env.globals.update(
+        set_mini_profile_pic_filename=set_mini_profile_pic_filename
+    )
     app.jinja_env.globals.update(decode_url=decode_url)
 
     if not app.debug and not app.testing:
-        if app.config['MAIL_SERVER']:
+        if app.config["MAIL_SERVER"]:
             auth = None
-            if app.config['MAIL_USERNAME'] or app.config['MAIL_PASSWORD']:
-                auth = (app.config['MAIL_USERNAME'],
-                        app.config['MAIL_PASSWORD'])
+            if app.config["MAIL_USERNAME"] or app.config["MAIL_PASSWORD"]:
+                auth = (app.config["MAIL_USERNAME"], app.config["MAIL_PASSWORD"])
             secure = None
-            if app.config['MAIL_USE_TLS']:
+            if app.config["MAIL_USE_TLS"]:
                 secure = ()
             mail_handler = SMTPHandler(
-                mailhost=(app.config['MAIL_SERVER'], app.config['MAIL_PORT']),
-                fromaddr='no-reply@' + app.config['MAIL_SERVER'],
-                toaddrs=app.config['ADMINS'], subject='Website Failure',
-                credentials=auth, secure=secure)
+                mailhost=(app.config["MAIL_SERVER"], app.config["MAIL_PORT"]),
+                fromaddr="no-reply@" + app.config["MAIL_SERVER"],
+                toaddrs=app.config["ADMINS"],
+                subject="Website Failure",
+                credentials=auth,
+                secure=secure,
+            )
             mail_handler.setLevel(logging.ERROR)
             app.logger.addHandler(mail_handler)
 
-        if not os.path.exists('logs'):
-            os.mkdir('logs')
-        file_handler = RotatingFileHandler('logs/treetrav.log',
-                                           maxBytes=10240, backupCount=10)
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s %(levelname)s: %(message)s '
-            '[in %(pathname)s:%(lineno)d]'))
+        if not os.path.exists("logs"):
+            os.mkdir("logs")
+        file_handler = RotatingFileHandler(
+            "logs/treetrav.log", maxBytes=10240, backupCount=10
+        )
+        file_handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s %(levelname)s: %(message)s " "[in %(pathname)s:%(lineno)d]"
+            )
+        )
         file_handler.setLevel(logging.INFO)
         app.logger.addHandler(file_handler)
 
         app.logger.setLevel(logging.INFO)
-        app.logger.info('Treetrav startup')
+        app.logger.info("Treetrav startup")
 
     return app
 

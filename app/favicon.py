@@ -1,35 +1,34 @@
 import asyncio
 import hashlib
+import logging
 import os
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
-
 from io import BytesIO
 
 import aiohttp
 import favicon
 from PIL import Image
 
-import logging
-
 current_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(current_dir, 'app.log')
+log_file = os.path.join(current_dir, "app.log")
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     filename=log_file,
-    filemode='a'
+    filemode="a",
 )
 logger = logging.getLogger(__name__)
 
 
 def hash_url(url):
-    return hashlib.md5(url.encode('utf-8')).hexdigest()
+    return hashlib.md5(url.encode("utf-8")).hexdigest()
+
 
 # duplicated function in case this needs to change in future
 def hash_profile_pic(filename):
-    return hashlib.md5(filename.encode('utf-8')).hexdigest()
+    return hashlib.md5(filename.encode("utf-8")).hexdigest()
 
 
 def get_domain_from_url(url):
@@ -42,7 +41,8 @@ def get_domain_from_url(url):
     except Exception as e:
         logger.error(f"An error occurred while parsing URL: {str(e)}")
         return None
-    
+
+
 def favicon_exists(url):
     directory_path = "app/static/favicons/"
     hashed_url = hash_url(url)
@@ -70,19 +70,20 @@ async def resize_favicon(url, domain):
 
 async def get_favicon_with_timeout(domain, timeout=8):
     loop = asyncio.get_running_loop()
-    
+
     try:
         with ThreadPoolExecutor() as executor:
             icons = await asyncio.wait_for(
-                loop.run_in_executor(executor, favicon.get, domain),
-                timeout=timeout
+                loop.run_in_executor(executor, favicon.get, domain), timeout=timeout
             )
         return icons
     except asyncio.CancelledError:
         logger.warning(f"Favicon retrieval for {domain} was cancelled.")
         return None
     except asyncio.TimeoutError:
-        logger.warning(f"Favicon retrieval for {domain} timed out after {timeout} seconds.")
+        logger.warning(
+            f"Favicon retrieval for {domain} timed out after {timeout} seconds."
+        )
         return None
     except Exception as e:
         logger.error(f"Error retrieving favicon for {domain}: {str(e)}")
@@ -98,7 +99,7 @@ async def get_favicon(url):
             if existing_favicon:
                 return existing_favicon
             icons = await get_favicon_with_timeout(domain)
-            
+
             # return icons
             for i in range(5):
                 try:
@@ -157,10 +158,15 @@ async def get_favicon_test(url):
                         if favicon_path:
                             return favicon_path
                 except IndexError:
-                    logger.warning(f"IndexError: No more icons to try after {i} attempts")
+                    logger.warning(
+                        f"IndexError: No more icons to try after {i} attempts"
+                    )
                     break
                 except Exception as e:
-                    logger.error(f"An error occurred while processing icon link {icon_link}: {str(e)}", exc_info=True)
+                    logger.error(
+                        f"An error occurred while processing icon link {icon_link}: {str(e)}",
+                        exc_info=True,
+                    )
                     continue
 
             # Fallback to common favicon path

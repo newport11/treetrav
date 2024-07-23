@@ -6,11 +6,12 @@ from PIL import Image
 
 
 def hash_url(url):
-    return hashlib.md5(url.encode('utf-8')).hexdigest()
+    return hashlib.md5(url.encode("utf-8")).hexdigest()
+
 
 # duplicated function in case this needs to change in future
 def hash_profile_pic(filename):
-    return hashlib.md5(filename.encode('utf-8')).hexdigest()
+    return hashlib.md5(filename.encode("utf-8")).hexdigest()
 
 
 def get_domain_from_url(url):
@@ -23,15 +24,13 @@ def get_domain_from_url(url):
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         return None
-    
-    
+
+
 if __name__ == "__main__":
     url = "https://pcpartpicker.com/guide/fWv6Mp/enthusiast-intel-gamingstreaming-build"
     pic_name = "pcpick.png"
-    url_pic_dict = {
-                    }
+    url_pic_dict = {}
     for pic_name, url in url_pic_dict.items():
-
         domain = get_domain_from_url(url)
 
         hashed_domain = hash_url(domain)

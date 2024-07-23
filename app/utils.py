@@ -5,6 +5,7 @@ from app.models import Post, User
 
 # PATH UTILS ---------------------------------------
 
+
 def is_subpath(subpath, path):
     # Split the paths into their components
     if not subpath or not path:
@@ -27,28 +28,33 @@ def validate_folder_path(username, folder_path):
         user = User.query.filter_by(username=username).first()
         folder_path = folder_path.strip().strip("/")
         posts = user.posts.all()
-        filtered_posts = filter(lambda post: is_subpath(folder_path, post.folder_link), posts)
+        filtered_posts = filter(
+            lambda post: is_subpath(folder_path, post.folder_link), posts
+        )
         filtered_posts_list = list(filtered_posts)
         if not filtered_posts_list:
             return False
         return True
     else:
-        return True 
-    
+        return True
+
+
 def rename_folder_util(username, folder_path, folder_name):
     user = User.query.filter_by(username=username).first()
     posts = user.posts.all()
-    filtered_posts = filter(lambda post: is_subpath(folder_path, post.folder_link), posts)
+    filtered_posts = filter(
+        lambda post: is_subpath(folder_path, post.folder_link), posts
+    )
     filtered_posts_list = list(filtered_posts)
 
     tmp_path = folder_path.rsplit("/", 1)
     if len(tmp_path) == 2:
-        new_folder_path = tmp_path[0] + '/' + folder_name
+        new_folder_path = tmp_path[0] + "/" + folder_name
     else:
         new_folder_path = folder_name
     for post in filtered_posts_list:
         if post.folder_link.startswith(folder_path):
-            post.folder_link = new_folder_path + post.folder_link[len(folder_path):]
+            post.folder_link = new_folder_path + post.folder_link[len(folder_path) :]
     db.session.commit()
 
 
@@ -56,46 +62,60 @@ def copy_folder_util(current_user, origin_path, dest_path):
     user = User.query.filter_by(username=current_user.username).first()
     posts = user.posts.all()
     post = list(posts)
-    if origin_path == '/':
+    if origin_path == "/":
         for post in posts:
-            new_post = Post(link=post.link, body=post.body, description=post.description, folder_link=post.folder_link,
-                        author=current_user, favicon_file_name=post.favicon_file_name)
+            new_post = Post(
+                link=post.link,
+                body=post.body,
+                description=post.description,
+                folder_link=post.folder_link,
+                author=current_user,
+                favicon_file_name=post.favicon_file_name,
+            )
             if dest_path != "/":
                 if new_post.folder_link:
-                    new_post.folder_link = dest_path + '/' + new_post.folder_link
+                    new_post.folder_link = dest_path + "/" + new_post.folder_link
                 else:
                     new_post.folder_link = dest_path
             db.session.add(new_post)
     else:
-        filtered_posts = filter(lambda post: is_subpath(origin_path, post.folder_link), posts)
+        filtered_posts = filter(
+            lambda post: is_subpath(origin_path, post.folder_link), posts
+        )
         filtered_posts_list = list(filtered_posts)
         for post in filtered_posts_list:
-            new_post = Post(link=post.link, body=post.body, description=post.description, folder_link=post.folder_link,
-                        author=current_user, favicon_file_name=post.favicon_file_name)
+            new_post = Post(
+                link=post.link,
+                body=post.body,
+                description=post.description,
+                folder_link=post.folder_link,
+                author=current_user,
+                favicon_file_name=post.favicon_file_name,
+            )
             if new_post.folder_link.startswith(origin_path):
                 if dest_path != "/":
-                    new_post.folder_link = dest_path + new_post.folder_link[len(origin_path):]
+                    new_post.folder_link = (
+                        dest_path + new_post.folder_link[len(origin_path) :]
+                    )
                 else:
-                    new_post.folder_link = '/'
+                    new_post.folder_link = "/"
             db.session.add(new_post)
     db.session.commit()
 
 
 def move_folder_util(current_user, origin_path, dest_path):
-    if origin_path == '/':
+    if origin_path == "/":
         return
     user = User.query.filter_by(username=current_user.username).first()
     posts = user.posts.all()
-    filtered_posts = filter(lambda post: is_subpath(origin_path, post.folder_link), posts)
+    filtered_posts = filter(
+        lambda post: is_subpath(origin_path, post.folder_link), posts
+    )
     filtered_posts_list = list(filtered_posts)
     for post in filtered_posts_list:
         if post.folder_link.startswith(origin_path):
             if dest_path != "/":
-                post.folder_link = dest_path + post.folder_link[len(origin_path):]
+                post.folder_link = dest_path + post.folder_link[len(origin_path) :]
             else:
-                post.folder_link = '/'
+                post.folder_link = "/"
     db.session.commit()
-    
-
-
-

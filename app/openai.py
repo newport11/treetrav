@@ -2,7 +2,7 @@ import urllib.parse
 
 import requests
 
-api_endpoint = 'https://api.openai.com/v1/chat/completions'
+api_endpoint = "https://api.openai.com/v1/chat/completions"
 
 
 def generate_link_summary(url, api_key):
@@ -12,22 +12,18 @@ def generate_link_summary(url, api_key):
 
     response = requests.post(
         api_endpoint,
-        headers={'Authorization': f'Bearer {api_key}'},
+        headers={"Authorization": f"Bearer {api_key}"},
         json={
-            'model': "gpt-3.5-turbo",
-            "messages": 
-                [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    },
-                ],
-            'max_tokens': max_summary_length
-        }
+            "model": "gpt-3.5-turbo",
+            "messages": [
+                {"role": "user", "content": prompt},
+            ],
+            "max_tokens": max_summary_length,
+        },
     )
 
     if response.status_code == 200:
-        summary = response.json()['choices'][0]['message']['content']
+        summary = response.json()["choices"][0]["message"]["content"]
         return summary
     else:
         # Handle API request errors here
