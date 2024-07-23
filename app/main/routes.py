@@ -60,6 +60,10 @@ def before_request():
         g.search_form = SearchForm()
     g.locale = str(get_locale())
 
+@bp.route('/home', methods=['GET'])
+@bp.route('/', methods=['GET'])
+def home():
+    return render_template('home.html', title=_('Feed'))
 
 @bp.route("/", methods=["GET", "POST"])
 @bp.route("/feed", methods=["GET", "POST"])

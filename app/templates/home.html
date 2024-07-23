@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+{% block app_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+
+<div class="container mt-5">
+    <header class="text-center mb-5">
+        <h1 class="display-4">Discover and Share Amazing Links</h1>
+        <p class="lead">Explore a world of curated content, share your discoveries, and connect with like-minded enthusiasts.</p>
+    </header>
+
+    <section class="features mb-5">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='example_feature1.jpg') }}" class="card-img-top" alt="Feature 1">
+                    <div class="card-body">
+                        <h5 class="card-title">Discover Trending Links</h5>
+                        <p class="card-text">Explore what's hot right now across various categories.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='example_feature2.jpg') }}" class="card-img-top" alt="Feature 2">
+                    <div class="card-body">
+                        <h5 class="card-title">Create Collections</h5>
+                        <p class="card-text">Organize and share your favorite links in themed collections.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='example_feature3.jpg') }}" class="card-img-top" alt="Feature 3">
+                    <div class="card-body">
+                        <h5 class="card-title">Connect with Others</h5>
+                        <p class="card-text">Follow users with similar interests and expand your network.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='example_feature4.jpg') }}" class="card-img-top" alt="Feature 4">
+                    <div class="card-body">
+                        <h5 class="card-title">Personalized Recommendations</h5>
+                        <p class="card-text">Get tailored link suggestions based on your interests.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='example_feature5.jpg') }}" class="card-img-top" alt="Feature 5">
+                    <div class="card-body">
+                        <h5 class="card-title">Share Across Platforms</h5>
+                        <p class="card-text">Easily share your favorite links on other social media.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='example_feature6.jpg') }}" class="card-img-top" alt="Feature 6">
+                    <div class="card-body">
+                        <h5 class="card-title">Analytics Dashboard</h5>
+                        <p class="card-text">Track the performance of your shared links.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="popular-profiles mb-5">
+        <h2 class="text-center mb-4">Popular Profiles</h2>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='profile1.jpg') }}" class="card-img-top" alt="Profile 1">
+                    <div class="card-body">
+                        <h5 class="card-title">treetrav</h5>
+                        <p class="card-text">Sharing the latest in tech and gadgets.</p>
+                        <a href="{{ url_for('main.user', username='treetrav') }}" class="green-button">View Profile</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='profile2.jpg') }}" class="card-img-top" alt="Profile 2">
+                    <div class="card-body">
+                        <h5 class="card-title">FoodieExplorer</h5>
+                        <p class="card-text">Discovering culinary delights around the world.</p>
+                        <a href="#" class="green-button">View Profile</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='profile3.jpg') }}" class="card-img-top" alt="Profile 3">
+                    <div class="card-body">
+                        <h5 class="card-title">ArtEnthusiast</h5>
+                        <p class="card-text">Curating the best of contemporary art.</p>
+                        <a href="#" class="green-button">View Profile</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='profile4.jpg') }}" class="card-img-top" alt="Profile 4">
+                    <div class="card-body">
+                        <h5 class="card-title">TravelBug</h5>
+                        <p class="card-text">Sharing hidden gems and travel tips.</p>
+                        <a href="#" class="green-button">View Profile</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta text-center mb-5">
+        <h2>Ready to start your journey?</h2>
+        <p class="lead">Join our community of explorers and start sharing your favorite links today!</p>
+        <a href="#" class="green-button">Sign Up Now!</a>
+    </section>
+</div>
+
+{% include 'footer.html' %}
+{% endblock %}

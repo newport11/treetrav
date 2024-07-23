@@ -341,3 +341,7 @@ h4{
     font-weight: bold;
     font-style: normal;
 }
+
+.spinner-border {
+    color: #5a9b16; 
+}
