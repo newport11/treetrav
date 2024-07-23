@@ -43,6 +43,9 @@
                         <input type="submit" class="green-button" value="Post">
                     </div>
                 </form>
+                <div id="loadingSpinner" class="spinner-border text-primary" role="status" style="display: none;">
+                    <span class="sr-only">Loading...</span>
+                </div>
             </div>
         </div>
     </div>
@@ -52,6 +55,7 @@
 <script>
     $(document).ready(function() {
         var linkPostedSuccessfully = false;
+        var $loadingSpinner = $('#loadingSpinner');
 
         $('#yourForm').on('submit', function(e) {
             e.preventDefault();
@@ -87,6 +91,10 @@
             }
 
             if (isValid) {
+                // Show loading spinner and disable submit button
+                $loadingSpinner.show();
+                $('input[type="submit"]').prop('disabled', true);
+
                 $.ajax({
                     url: $(this).attr('action'),
                     type: 'POST',
@@ -109,6 +117,11 @@
                         for (var field in errors) {
                             showError(field, errors[field]);
                         }
+                    },
+                    complete: function() {
+                        // Hide loading spinner and re-enable submit button
+                        $loadingSpinner.hide();
+                        $('input[type="submit"]').prop('disabled', false);
                     }
                 });
             }
@@ -174,5 +187,20 @@
         margin-bottom: 1rem;
         border: 1px solid transparent;
         border-radius: .25rem;
+    }
+
+    .spinner-border {
+        display: inline-block;
+        width: 2rem;
+        height: 2rem;
+        vertical-align: text-bottom;
+        border: 0.25em solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spinner-border .75s linear infinite;
+    }
+
+    @keyframes spinner-border {
+        to { transform: rotate(360deg); }
     }
 </style>
