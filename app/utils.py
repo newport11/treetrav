@@ -1,4 +1,8 @@
 import copy
+import logging
+
+import requests
+from bs4 import BeautifulSoup
 
 from app import db
 from app.models import Post, User
@@ -119,3 +123,15 @@ def move_folder_util(current_user, origin_path, dest_path):
             else:
                 post.folder_link = "/"
     db.session.commit()
+
+
+def get_webpage_title(url):
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        title = soup.title.string if soup.title else None
+        return title.strip() if title else None
+    except Exception as e:
+        logging.error(f"Error fetching webpage title: {str(e)}")
+        return None
