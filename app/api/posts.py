@@ -29,10 +29,10 @@ async def post_link():
         text = None
     else:
         text = data["text"]
-    if "title" not in data or data["title"].strip() == "":
-        title = None
+    if "description" not in data or data["description"].strip() == "":
+        description = None
     else:
-        title = data["title"].strip()
+        description = data["description"].strip()
     if "folder" not in data:
         folder = "/"
     else:
@@ -64,7 +64,7 @@ async def post_link():
                     post = Post(
                         link=link,
                         body=text,
-                        description=title,
+                        description=description,
                         folder_link=new_folder.strip("/"),
                         author=sharer,
                     )
@@ -93,7 +93,7 @@ async def post_link():
     post = Post(
         link=link,
         body=text,
-        description=title,
+        description=description,
         folder_link=folder.strip("/") if folder != "/" else "/",
         author=token_auth.current_user(),
     )
@@ -126,10 +126,10 @@ async def post_multiple_links():
         text = None
     else:
         text = data["text"]
-    if "title" not in data or data["title"].strip() == "":
-        title = None
+    if "description" not in data or data["description"].strip() == "":
+        description = None
     else:
-        title = data["title"].strip()
+        description = data["description"].strip()
     if "folder" not in data:
         folder = None
     else:
@@ -145,7 +145,7 @@ async def post_multiple_links():
             post = Post(
                 link=link,
                 body=text,
-                description=title,
+                description=description,
                 folder_link=folder.strip().strip("/") if folder else "/",
                 author=token_auth.current_user(),
             )
