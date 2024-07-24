@@ -29,10 +29,10 @@ async def post_link():
         text = None
     else:
         text = data["text"]
-    if "description" not in data or data["description"].strip() == "":
-        description = None
+    if "title" not in data or data["title"].strip() == "":
+        title = None
     else:
-        description = data["description"].strip()
+        title = data["title"].strip()
     if "folder" not in data:
         folder = "/"
     else:
@@ -64,7 +64,7 @@ async def post_link():
                     post = Post(
                         link=link,
                         body=text,
-                        description=description,
+                        description=title,
                         folder_link=new_folder.strip("/"),
                         author=sharer,
                     )
@@ -93,7 +93,7 @@ async def post_link():
     post = Post(
         link=link,
         body=text,
-        description=description,
+        description=title,
         folder_link=folder.strip("/") if folder != "/" else "/",
         author=token_auth.current_user(),
     )
@@ -126,10 +126,10 @@ async def post_multiple_links():
         text = None
     else:
         text = data["text"]
-    if "description" not in data or data["description"].strip() == "":
-        description = None
+    if "title" not in data or data["title"].strip() == "":
+        title = None
     else:
-        description = data["description"].strip()
+        title = data["title"].strip()
     if "folder" not in data:
         folder = None
     else:
@@ -145,7 +145,7 @@ async def post_multiple_links():
             post = Post(
                 link=link,
                 body=text,
-                description=description,
+                description=title,
                 folder_link=folder.strip().strip("/") if folder else "/",
                 author=token_auth.current_user(),
             )
@@ -158,7 +158,7 @@ async def post_multiple_links():
                     post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(
                         "."
                     )
-                    
+
             favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
             if favicon_file_name:
                 post.favicon_file_name = favicon_file_name
