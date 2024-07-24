@@ -9,7 +9,8 @@ from app.api.auth import token_auth
 from app.api.errors import bad_request
 from app.favicon import get_domain_from_url, get_favicon, hash_url
 from app.models import Post, User
-from app.utils import is_subpath
+from app.openai import generate_link_summary
+from app.utils import get_webpage_title, is_subpath
 
 
 @bp.route("/posts/<int:id>", methods=["GET"])
@@ -38,7 +39,9 @@ async def post_link():
         folder = data["folder"].strip()
     if not folder:
         folder = "/"
+
     link = urllib.parse.quote(data["link"])
+    OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
     if token_auth.current_user().inbound_shares and folder != "/":
         for share in token_auth.current_user().inbound_shares:
             sharee_folder_path = share.sharee_folder_path
@@ -65,6 +68,16 @@ async def post_link():
                         folder_link=new_folder.strip("/"),
                         author=sharer,
                     )
+                    # If post.body is None, try to set it to the webpage title
+                    if not post.body:
+                        webpage_title = get_webpage_title(link)
+                        if webpage_title:
+                            post.body = webpage_title
+                        elif OPENAI_API_KEY:
+                            post.body = generate_link_summary(
+                                post.link, OPENAI_API_KEY
+                            ).rstrip(".")
+
                     favicon_file_name = await asyncio.wait_for(
                         get_favicon(post.link), 8
                     )
@@ -84,6 +97,13 @@ async def post_link():
         folder_link=folder.strip("/") if folder != "/" else "/",
         author=token_auth.current_user(),
     )
+    # If post.body is None, try to set it to the webpage title
+    if not post.body:
+        webpage_title = get_webpage_title(link)
+        if webpage_title:
+            post.body = webpage_title
+        elif OPENAI_API_KEY:
+            post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
 
     favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
     if favicon_file_name:
@@ -117,15 +137,28 @@ async def post_multiple_links():
 
     tabs = data["links"]
     successful_count = 0
+    OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
+
     for tab in tabs:
         try:
+            link = urllib.parse.quote(tab["url"])
             post = Post(
-                link=urllib.parse.quote(tab["url"]),
+                link=link,
                 body=text,
                 description=description,
                 folder_link=folder.strip().strip("/") if folder else "/",
                 author=token_auth.current_user(),
             )
+            # If post.body is None, try to set it to the webpage title
+            if not post.body:
+                webpage_title = get_webpage_title(link)
+                if webpage_title:
+                    post.body = webpage_title
+                elif OPENAI_API_KEY:
+                    post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(
+                        "."
+                    )
+                    
             favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
             if favicon_file_name:
                 post.favicon_file_name = favicon_file_name
