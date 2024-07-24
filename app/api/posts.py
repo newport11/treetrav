@@ -70,7 +70,7 @@ async def post_link():
                     )
                     # If post.body is None, try to set it to the webpage title
                     if not post.body:
-                        webpage_title = get_webpage_title(link)
+                        webpage_title = get_webpage_title(data["link"])
                         if webpage_title:
                             post.body = webpage_title
                         elif OPENAI_API_KEY:
@@ -99,7 +99,7 @@ async def post_link():
     )
     # If post.body is None, try to set it to the webpage title
     if not post.body:
-        webpage_title = get_webpage_title(link)
+        webpage_title = get_webpage_title(data["link"])
         if webpage_title:
             post.body = webpage_title
         elif OPENAI_API_KEY:
@@ -151,7 +151,7 @@ async def post_multiple_links():
             )
             # If post.body is None, try to set it to the webpage title
             if not post.body:
-                webpage_title = get_webpage_title(link)
+                webpage_title = get_webpage_title(tab["url"])
                 if webpage_title:
                     post.body = webpage_title
                 elif OPENAI_API_KEY:
