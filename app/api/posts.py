@@ -28,7 +28,7 @@ async def post_link():
     if "text" not in data or data["text"].strip() == "":
         text = None
     else:
-        text = data["text"]
+        text = data["text"].strip()
     if "description" not in data or data["description"].strip() == "":
         description = None
     else:
@@ -125,7 +125,7 @@ async def post_multiple_links():
     if "text" not in data or data["text"].strip() == "":
         text = None
     else:
-        text = data["text"]
+        text = data["text"].strip()
     if "description" not in data or data["description"].strip() == "":
         description = None
     else:
