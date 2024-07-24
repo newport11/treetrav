@@ -68,9 +68,9 @@ class PostForm(FlaskForm):
 
     def validate_body(self, form):
         length = len(self.data["post_body"])
-        if length > 40:
+        if length > 50:
             raise ValidationError(
-                _(f"must be 40 characters or less, currently {length}")
+                _(f"must be 50 characters or less, currently {length}")
             )
 
     def validate_description(self, form):

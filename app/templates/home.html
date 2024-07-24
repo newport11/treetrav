@@ -71,25 +71,21 @@
     </section>
 
     <section class="popular-profiles mb-5">
-        <h2 class="text-center mb-4">Popular Profiles</h2>
+        <h2 class="text-center mb-4">Sample Profiles</h2>
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="card">
-                    <img src="{{ url_for('static', filename='profile1.jpg') }}" class="card-img-top" alt="Profile 1">
+                    <img src="{{ url_for('static', filename='treetrav_profile.png') }}" class="card-img-top" alt="Profile 2" style="width: 90%; height: auto; display: block; margin-left: auto; margin-right: auto;">
                     <div class="card-body">
-                        <h5 class="card-title">treetrav</h5>
-                        <p class="card-text">Sharing the latest in tech and gadgets.</p>
                         <a href="{{ url_for('main.user', username='treetrav') }}" class="green-button">View Profile</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="card">
-                    <img src="{{ url_for('static', filename='profile2.jpg') }}" class="card-img-top" alt="Profile 2">
+                    <img src="{{ url_for('static', filename='robertberwick.png') }}" class="card-img-top" alt="Profile 2" style="width: 90%; height: auto; display: block; margin-left: auto; margin-right: auto;">
                     <div class="card-body">
-                        <h5 class="card-title">FoodieExplorer</h5>
-                        <p class="card-text">Discovering culinary delights around the world.</p>
-                        <a href="#" class="green-button">View Profile</a>
+                        <a href="{{ url_for('main.user', username='RobertBerwick') }}" class="green-button">View Profile</a>
                     </div>
                 </div>
             </div>
@@ -99,9 +95,7 @@
                 <div class="card">
                     <img src="{{ url_for('static', filename='profile3.jpg') }}" class="card-img-top" alt="Profile 3">
                     <div class="card-body">
-                        <h5 class="card-title">ArtEnthusiast</h5>
-                        <p class="card-text">Curating the best of contemporary art.</p>
-                        <a href="#" class="green-button">View Profile</a>
+                        <a href="{{ url_for('main.user', username='treetrav') }} class="green-button">View Profile</a>
                     </div>
                 </div>
             </div>
@@ -109,9 +103,7 @@
                 <div class="card">
                     <img src="{{ url_for('static', filename='profile4.jpg') }}" class="card-img-top" alt="Profile 4">
                     <div class="card-body">
-                        <h5 class="card-title">TravelBug</h5>
-                        <p class="card-text">Sharing hidden gems and travel tips.</p>
-                        <a href="#" class="green-button">View Profile</a>
+                        <a href="{{ url_for('main.user', username='treetrav') }} class="green-button">View Profile</a>
                     </div>
                 </div>
             </div>
