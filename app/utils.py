@@ -1,5 +1,7 @@
 import copy
 import logging
+from urllib.parse import urlparse
+from newspaper import Article
 
 import requests
 from bs4 import BeautifulSoup
@@ -127,11 +129,40 @@ def move_folder_util(current_user, origin_path, dest_path):
 
 def get_webpage_title(url):
     try:
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=10)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
-        title = soup.title.string if soup.title else None
-        return title.strip() if title else None
+
+        # Check for <title> tag
+        if soup.title and soup.title.string:
+            return soup.title.string.strip()
+
+        # Check for OpenGraph title
+        og_title = soup.find("meta", property="og:title")
+        if og_title and og_title.get("content"):
+            return og_title["content"].strip()
+
+        # Check for Twitter card title
+        twitter_title = soup.find("meta", attrs={"name": "twitter:title"})
+        if twitter_title and twitter_title.get("content"):
+            return twitter_title["content"].strip()
+
+        # Check for the first <h1> tag
+        h1 = soup.find("h1")
+        if h1 and h1.string:
+            return h1.string.strip()
+        
+        # Check for newspaper
+        article = Article(url)
+        article.download()
+        article.parse()
+        if article.title:
+            return article.title
+
+        # Use the domain name as a last resort
+        domain = urlparse(url).netloc
+        return domain.replace("www.", "").capitalize()
+
     except Exception as e:
         logging.error(f"Error fetching webpage title: {str(e)}")
         return None
