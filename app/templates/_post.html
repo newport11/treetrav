@@ -52,15 +52,15 @@
                 {% endif %}
 
                 {% if post.body %} <a href="{{ decoded_link}}" target="_blank" class="posted-link-text">
-                    {% if post.body | length > 50 %}
-                        {{ post.body[:50] }}...
+                    {% if post.body | length > 65 %}
+                        {{ post.body[:65] }}...
                     {% else %}
                         {{ post.body }}
                     {% endif %}
                 </a> 
                 {% else %}   <a href="{{ decoded_link}}" target="_blank" class="posted-link-text">
-                    {% if decoded_link | length > 50 %}
-                        {{ decoded_link[:50] }}...
+                    {% if decoded_link | length > 65 %}
+                        {{ decoded_link[:65] }}...
                     {% else %}
                         {{ decoded_link }}
                     {% endif %}
