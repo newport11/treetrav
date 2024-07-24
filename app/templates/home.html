@@ -5,7 +5,7 @@
 
 <div class="container mt-5">
     <header class="text-center mb-5">
-        <h1 class="display-4">Discover and Share Amazing Links</h1>
+        <h1 class="display-4">Link Sharing On Steroids</h1>
         <p class="lead">Explore a world of curated content, share your discoveries, and connect with like-minded enthusiasts.</p>
     </header>
 
@@ -39,6 +39,8 @@
                 </div>
             </div>
         </div>
+        <br>
+        <br>
         <div class="row">
             <div class="col-md-4">
                 <div class="card">
@@ -60,17 +62,18 @@
             </div>
             <div class="col-md-4">
                 <div class="card">
-                    <img src="{{ url_for('static', filename='example_feature6.jpg') }}" class="card-img-top" alt="Feature 6">
+                    <img src="{{ url_for('static', filename='feature6.png') }}" class="card-img-top" alt="Feature 6">
                     <div class="card-body">
-                        <h5 class="card-title">Analytics Dashboard</h5>
-                        <p class="card-text">Track the performance of your shared links.</p>
+                        <h5 class="card-title">Chrome and Firefox Extension</h5>
+                        <p class="card-text">Post links with 1 click</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
-
-    <section class="popular-profiles mb-5">
+    <br>
+    <br>
+    <section class="sample-profiles mb-5">
         <h2 class="text-center mb-4">Sample Profiles</h2>
         <div class="row mb-4">
             <div class="col-md-6">
@@ -90,26 +93,52 @@
                 </div>
             </div>
         </div>
+        <br>
+        <br>
         <div class="row">
             <div class="col-md-6">
                 <div class="card">
-                    <img src="{{ url_for('static', filename='profile3.jpg') }}" class="card-img-top" alt="Profile 3">
+                    <img src="{{ url_for('static', filename='wsj.png') }}" class="card-img-top" alt="Profile 3" style="width: 90%; height: auto; display: block; margin-left: auto; margin-right: auto;">
                     <div class="card-body text-center">
-                        <a href="{{ url_for('main.user', username='treetrav') }}" class="green-button">View Profile</a>
+                        <a href="{{ url_for('main.user', username='WallStreetJournal') }}" class="green-button">View Profile</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="card">
-                    <img src="{{ url_for('static', filename='profile4.jpg') }}" class="card-img-top" alt="Profile 4">
+                    <img src="{{ url_for('static', filename='timferriss.png') }}" class="card-img-top" alt="Profile 4" style="width: 90%; height: auto; display: block; margin-left: auto; margin-right: auto;">
                     <div class="card-body text-center">
-                        <a href="{{ url_for('main.user', username='treetrav') }}" class="green-button">View Profile</a>
+                        <a href="{{ url_for('main.user', username='TimFerrissBookRecomendations') }}" class="green-button">View Profile</a>
                     </div>
                 </div>
             </div>
         </div>
     </section>
-
+    <br>
+    <br>
+    <section class="extensions mb-5">
+        <h2 class="text-center mb-4">Download Our Browser Extensions</h2>
+        <div class="row mb-4 justify-content-center">
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='chrome_logo.png') }}" class="card-img-top" alt="Chrome Logo" style="width: 180px; height: 100%; display: block; margin: 20px auto;">
+                    <div class="card-body text-center">
+                        <a href="https://chromewebstore.google.com/detail/treetrav-extension/ianeljnfikmpceofkdbefpbplhldilff" class="green-button" target="_blank">Download for Chrome</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="{{ url_for('static', filename='firefox_logo.png') }}" class="card-img-top" alt="Firefox Logo" style="width: 100px; height: 100px; display: block; margin: 20px auto;">
+                    <div class="card-body text-center">
+                        <a href="https://addons.mozilla.org/en-US/firefox/addon/treetrav-extension/" class="green-button" target="_blank">Download for Firefox</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>    
+    <br>
+    <br>
     <section class="cta text-center mb-5">
         <h2>Ready to start your journey?</h2>
         <p class="lead">Join our community of explorers and start sharing your favorite links today!</p>
