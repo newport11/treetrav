@@ -77,18 +77,56 @@
     {% for post in posts %}
         {% include '_post_userpage.html' %}
     {% endfor %}
-    <nav aria-label="...">
-        <ul class="pager">
-            <li class="previous{% if not prev_url %} disabled{% endif %}">
-                <a href="{{ prev_url or '#' }}">
-                    <span aria-hidden="true">&larr;</span> {{ _('Newer posts') }}
-                </a>
-            </li>
-            <li class="next{% if not next_url %} disabled{% endif %}">
-                <a href="{{ next_url or '#' }}">
-                    {{ _('Older posts') }} <span aria-hidden="true">&rarr;</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
+
+    {% if posts %}
+        <nav aria-label="...">
+            <ul class="pager">
+                <li class="previous{% if not prev_url %} invisible{% endif %}">
+                    <a href="{{ prev_url or '#' }}">
+                        <span aria-hidden="true">&larr;</span> {{ _('Newer posts') }}
+                    </a>
+                </li>
+                
+                <li class="page-info">
+                    {{ _('Page %(current)d of %(total)d', current=current_page, total=total_pages) }}
+                </li>
+                
+                <li class="next{% if not next_url %} invisible{% endif %}">
+                    <a href="{{ next_url or '#' }}">
+                        {{ _('Older posts') }} <span aria-hidden="true">&rarr;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    {% endif %}
+
+<style>
+    .pager {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+    }
+
+    .pager li {
+        flex: 1;
+        text-align: center;
+    }
+
+    .pager .previous {
+        text-align: left;
+    }
+
+    .pager .next {
+        text-align: right;
+    }
+
+    .pager .invisible {
+        visibility: hidden;
+    }
+
+    .page-info {
+        font-weight: bold;
+    }
+</style>
 {% endblock %}

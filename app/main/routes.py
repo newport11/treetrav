@@ -492,6 +492,10 @@ async def user(username):
             else None
         )
 
+        # Calculate current_page and total_pages
+        current_page = posts.page
+        total_pages = posts.pages or 1
+
         folders_tmp = (
             user.posts.filter(Post.folder_link != "/")
             .order_by(Post.timestamp.desc())
@@ -520,6 +524,8 @@ async def user(username):
             form=form,
             empty_form=empty_form,
             folders=folders,
+            current_page=current_page,
+            total_pages=total_pages,
         )
 
 
