@@ -8,12 +8,21 @@
     <tr>
         {% set profile_pic = user.profile_pic %}
         {% if profile_pic %}
-                <td width="180px"> <img src="{{ url_for( 'static', filename='/profile_pics/' + profile_pic) }}" /></td>
+            <td width="180px"> <img src="{{ url_for( 'static', filename='/profile_pics/' + profile_pic) }}" /></td>
         {% else %}
-                <td width="180px"><img src="{{ user.avatar(155) }}"></td>
+            <td width="180px"><img src="{{ user.avatar(155) }}"></td>
         {% endif %}
         <td>
-            <h1 class="username-profile-text">{{ user.username }} {% if user.verified == True %}<img src="{{ url_for( 'static', filename='green_check32.png') }}" class="green-check-icon" /> {% endif %} </h1>
+            <h1 class="username-profile-text">
+                {% if user.display_name %}
+                    {{ user.display_name }}
+                {% else %}
+                    {{ user.username }}
+                {% endif %}
+                {% if user.verified == True %}
+                    <img src="{{ url_for('static', filename='green_check32.png') }}" class="green-check-icon" />
+                {% endif %}
+            </h1>
             {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
             <p>
                 <a href="{{ url_for('main.get_following', username=user.username) }}"> 
