@@ -337,6 +337,10 @@ async def discover():
                     error_out=False,
                 )
             )
+            # Calculate current_page and total_pages
+            current_page = posts.page
+            total_pages = posts.pages or 1  # Use 1 if posts.pages is 0
+
             next_url = (
                 url_for("main.discover", page=posts.next_num)
                 if posts.has_next
@@ -354,6 +358,8 @@ async def discover():
                 posts=posts.items,
                 next_url=next_url,
                 prev_url=prev_url,
+                current_page=current_page,
+                total_pages=total_pages,
             )
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}", exc_info=True)
