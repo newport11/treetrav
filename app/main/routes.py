@@ -906,6 +906,7 @@ def settings():
 
     form = SettingsForm(current_user.username, current_user.email)
     if form.validate_on_submit():
+        current_user.display_name = form.display_name.data.strip()
         current_user.username = form.username.data.strip()
         current_user.email = form.email.data.strip()
         current_user.about_me = form.about_me.data.strip()
@@ -978,6 +979,7 @@ def settings():
         return redirect(url_for("main.settings"))
 
     elif request.method == "GET":
+        form.display_name.data = current_user.display_name
         form.username.data = current_user.username
         form.email.data = current_user.email
         form.about_me.data = current_user.about_me
