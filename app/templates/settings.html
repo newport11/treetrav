@@ -68,6 +68,10 @@
             <form method="post" enctype="multipart/form-data" action="{{ url_for('main.settings') }}" class="my-form">
                 {{ form.hidden_tag() }}
                 <div class="form-group">
+                    {{ form.display_name.label(class="form-label") }}
+                    {{ form.display_name(class="form-control") }}
+                </div>
+                <div class="form-group">
                     {{ form.username.label(class="form-label") }}
                     {{ form.username(class="form-control") }}
                 </div>
