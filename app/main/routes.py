@@ -158,6 +158,11 @@ async def feed():
         posts = current_user.followed_posts().paginate(
             page=page, per_page=current_app.config["POSTS_PER_PAGE"], error_out=False
         )
+
+        # Calculate current_page and total_pages
+        current_page = posts.page
+        total_pages = posts.pages or 1  # Use 1 if posts.pages is 0
+
         next_url = url_for("main.feed", page=posts.next_num) if posts.has_next else None
         prev_url = url_for("main.feed", page=posts.prev_num) if posts.has_prev else None
         return render_template(
@@ -167,6 +172,8 @@ async def feed():
             posts=posts.items,
             next_url=next_url,
             prev_url=prev_url,
+            current_page=current_page,
+            total_pages=total_pages,
         )
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}", exc_info=True)
@@ -330,6 +337,10 @@ async def discover():
                     error_out=False,
                 )
             )
+            # Calculate current_page and total_pages
+            current_page = posts.page
+            total_pages = posts.pages or 1  # Use 1 if posts.pages is 0
+
             next_url = (
                 url_for("main.discover", page=posts.next_num)
                 if posts.has_next
@@ -347,6 +358,8 @@ async def discover():
                 posts=posts.items,
                 next_url=next_url,
                 prev_url=prev_url,
+                current_page=current_page,
+                total_pages=total_pages,
             )
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}", exc_info=True)
@@ -492,6 +505,10 @@ async def user(username):
             else None
         )
 
+        # Calculate current_page and total_pages
+        current_page = posts.page
+        total_pages = posts.pages or 1
+
         folders_tmp = (
             user.posts.filter(Post.folder_link != "/")
             .order_by(Post.timestamp.desc())
@@ -520,6 +537,8 @@ async def user(username):
             form=form,
             empty_form=empty_form,
             folders=folders,
+            current_page=current_page,
+            total_pages=total_pages,
         )
 
 
