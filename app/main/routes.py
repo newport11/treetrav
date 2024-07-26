@@ -975,7 +975,9 @@ def settings():
             return redirect(url_for("main.settings"))
 
         db.session.commit()
-        flash(_("Your changes have been saved."))
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            #flash(_("Your changes have been saved."))
+            return jsonify({"message": "Your changes have been saved."}), 200
         return redirect(url_for("main.settings"))
 
     elif request.method == "GET":

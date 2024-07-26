@@ -69,35 +69,35 @@
                 {{ form.hidden_tag() }}
                 <div class="form-group">
                     {{ form.display_name.label(class="form-label") }}
-                    {{ form.display_name(class="form-control") }}
+                    {{ form.display_name(class="form-control", id="display_name") }}
                 </div>
                 <div class="form-group">
                     {{ form.username.label(class="form-label") }}
-                    {{ form.username(class="form-control") }}
+                    {{ form.username(class="form-control", id="username") }}
                 </div>
                 <div class="form-group">
                     {{ form.email.label(class="form-label") }}
-                    {{ form.email(class="form-control") }}
+                    {{ form.email(class="form-control", id="email") }}
                 </div>
                 <div class="form-group">
                     {{ form.about_me.label(class="form-label") }}
-                    {{ form.about_me(class="form-control") }}
+                    {{ form.about_me(class="form-control", id="about_me") }}
                 </div>
                 <div class="form-group">
                     {{ form.description_text_color.label(class="form-label") }}
-                    {{ form.description_text_color(class="form-control", type="color") }}
+                    {{ form.description_text_color(class="form-control", type="color", id="description_text_color") }}
                 </div>
                 <div class="form-group">
                     {{ form.picture.label(class="form-label") }}
-                    {{ form.picture(class="form-control-file") }}
+                    {{ form.picture(class="form-control-file", id="picture") }}
                 </div>
                 <div class="form-group">
                     {{ form.private_mode.label(class="form-check-label") }}
-                    {{ form.private_mode(class="form-check-input") }}
+                    {{ form.private_mode(class="form-check-input", id="private_mode") }}
                 </div>
                 <div class="form-group">
                     {{ form.dark_mode.label(class="form-check-label") }}
-                    {{ form.dark_mode(class="form-check-input") }}
+                    {{ form.dark_mode(class="form-check-input", id="dark_mode") }}
                 </div>
                 <div class="form-group">
                     {{ form.submit(class="green-button") }}
@@ -120,6 +120,157 @@
         </div>
     </div>
 </div>
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    var originalUsername = '{{ current_user.username }}';
+    var originalEmail = '{{ current_user.email }}';
+
+    $('.my-form').on('submit', function(e) {
+        e.preventDefault();
+
+        // Clear previous error messages and remove error class
+        clearErrors();
+
+        var isValid = true;
+        var username = $('#username').val().trim();
+        var email = $('#email').val().trim();
+        var displayName = $('#display_name').val().trim();
+        var aboutMe = $('#about_me').val().trim();
+
+        // Validate username
+        if (username !== originalUsername) {
+            if (username.length === 0) {
+                showError('username', 'Username is required.');
+                isValid = false;
+            } else if (username.length > 30) {
+                showError('username', 'Username must be 30 characters or less.');
+                isValid = false;
+            } else if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+                showError('username', 'Username must only contain letters, numbers, underscores, and hyphens.');
+                isValid = false;
+            } else if (!/^[a-zA-Z].*$/.test(username)) {
+                showError('username', 'Username must start with a letter.');
+                isValid = false;
+            }
+        }
+
+        // Validate email
+        if (email !== originalEmail) {
+            if (email.length === 0) {
+                showError('email', 'Email is required.');
+                isValid = false;
+            } else if (email.length > 140) {
+                showError('email', 'Email must be 140 characters or less.');
+                isValid = false;
+            } else if (!/\S+@\S+\.\S+/.test(email)) {
+                showError('email', 'Please enter a valid email address.');
+                isValid = false;
+            }
+        }
+
+        // Validate display name
+        if (displayName.length > 30) {
+            showError('display_name', 'Display Name must be 30 characters or less.');
+            isValid = false;
+        }
+
+        // Validate about me
+        if (aboutMe.length > 140) {
+            showError('about_me', 'About Me must be 140 characters or less.');
+            isValid = false;
+        }
+
+        if (isValid) {
+            // Show loading spinner and disable submit button
+            $('input[type="submit"]').prop('disabled', true);
+
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: $(this).serialize(),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(response) {
+                    // Clear any remaining error messages
+                    clearErrors();
+                    // Show success message
+                    showSuccessMessage(response.message);
+                },
+                error: function(xhr, status, error) {
+                    var errors = xhr.responseJSON;
+                    for (var field in errors) {
+                        showError(field, errors[field]);
+                    }
+                },
+                complete: function() {
+                    // re-enable submit button
+                    $('input[type="submit"]').prop('disabled', false);
+                }
+            });
+        }
+    });
+
+    // Remove is-invalid class when user starts typing
+    $('.form-control').on('input', function() {
+        $(this).removeClass('is-invalid');
+        $(this).next('.invalid-feedback').text('');
+    });
+
+    function showError(fieldId, message) {
+        $('#' + fieldId).addClass('is-invalid');
+        var $errorElement = $('#' + fieldId + '_error');
+        if ($errorElement.length === 0) {
+            $errorElement = $('<div id="' + fieldId + '_error" class="invalid-feedback"></div>');
+            $('#' + fieldId).after($errorElement);
+        }
+        $errorElement.text(message);
+    }
+
+    function clearErrors() {
+        $('.invalid-feedback').text('');
+        $('.form-control').removeClass('is-invalid');
+        $('#successMessage').remove();
+    }
+
+    function showSuccessMessage(message) {
+        // Remove any existing success message
+        $('#successMessage').remove();
+        
+        // Create the success message
+        var $successMessage = $('<div id="successMessage" class="alert alert-success">' + message + '</div>');
+        
+        // Insert the message at the top of the form
+        $('.my-form').prepend($successMessage);
+    }
+});
+</script>
+
+<style>
+.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    padding: .75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: .25rem;
+}
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: .25rem;
+    font-size: 80%;
+    color: #dc3545;
+}
+</style>
 
 
 
