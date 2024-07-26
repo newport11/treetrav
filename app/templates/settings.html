@@ -155,6 +155,20 @@ $(document).ready(function() {
             } else if (!/^[a-zA-Z].*$/.test(username)) {
                 showError('username', 'Username must start with a letter.');
                 isValid = false;
+            } else {
+                // Check if username already exists
+                $.ajax({
+                    url: '{{ url_for("main.check_username") }}',
+                    type: 'POST',
+                    data: { username: username },
+                    async: false,
+                    success: function(response) {
+                        if (response.exists) {
+                            showError('username', 'Username already exists.');
+                            isValid = false;
+                        }
+                    }
+                });
             }
         }
 
@@ -169,6 +183,20 @@ $(document).ready(function() {
             } else if (!/\S+@\S+\.\S+/.test(email)) {
                 showError('email', 'Please enter a valid email address.');
                 isValid = false;
+            }else {
+                // Check if username already exists
+                $.ajax({
+                    url: '{{ url_for("main.check_email") }}',
+                    type: 'POST',
+                    data: { email: email },
+                    async: false,
+                    success: function(response) {
+                        if (response.exists) {
+                            showError('email', 'Email already exists.');
+                            isValid = false;
+                        }
+                    }
+                });
             }
         }
 

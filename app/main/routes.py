@@ -1656,3 +1656,19 @@ def create_leaf():
     return render_template(
         "leaf_creator.html", form=form, username=current_user.username
     )
+
+
+
+# FRONTEND AJAX RELATED ROUTES
+@bp.route('/query/check_username', methods=['POST'])
+def check_username():
+    username = request.form['username']
+    user = User.query.filter(User.username.ilike(username.strip())).first()
+    return jsonify({'exists': user is not None})
+
+@bp.route('/query/check_email', methods=['POST'])
+def check_email():
+    email = request.form['email']
+    user = User.query.filter_by(email=email.strip()).first()
+    return jsonify({'exists': user is not None})
+    
