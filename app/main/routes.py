@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 import urllib.parse
 from datetime import datetime
@@ -47,8 +46,6 @@ from app.utils import (
     rename_folder_util,
     validate_folder_path,
 )
-
-logging.basicConfig(level=logging.DEBUG)
 
 user_visit_counter_dict = {}
 
@@ -167,11 +164,15 @@ async def feed():
             # If no search query, get all followed posts
             posts_query = current_user.followed_posts()
 
-        posts = posts_query.paginate(
-            page=page,
-            per_page=current_app.config["POSTS_PER_PAGE"],
-            error_out=False
-        )
+        # Ensure posts_query is not None before pagination
+        if posts_query is not None:
+            posts = posts_query.paginate(
+                page=page,
+                per_page=current_app.config["POSTS_PER_PAGE"],
+                error_out=False
+            )
+        else:
+            posts = []  # or some default value
 
         # Calculate current_page and total_pages
         current_page = posts.page
@@ -191,7 +192,7 @@ async def feed():
             total_pages=total_pages
         )
     except Exception as e:
-        logging.error(f"An error occurred: {str(e)}", exc_info=True)
+        current_app.logger.error(f"An error occurred: {str(e)}", exc_info=True)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"error": "An unexpected error occurred"}), 500
         flash(_("An unexpected error occurred"))
@@ -393,7 +394,7 @@ async def discover():
                 total_pages=total_pages,
             )
     except Exception as e:
-        logging.error(f"An error occurred: {str(e)}", exc_info=True)
+        current_app.logger.error(f"An error occurred: {str(e)}", exc_info=True)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"error": "An unexpected error occurred"}), 500
         flash(_("An unexpected error occurred"))
