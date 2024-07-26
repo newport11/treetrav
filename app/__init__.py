@@ -32,7 +32,12 @@ pagedown = PageDown()
 
 
 def decode_url(url):
-    return urllib.parse.unquote(url)
+    if url is None:
+        return ''
+    try:
+        return urllib.parse.unquote(url)
+    except:
+        return str(url)  # Convert to string if unquote fails
 
 
 def shorten_folder_path(path):
