@@ -150,7 +150,7 @@ async def feed():
 
         # GET request handling
         page = request.args.get("page", 1, type=int)
-        search_query = request.args.get("q", "")
+        search_query = request.args.get('post_q', '')
 
         if search_query:
             # Filter posts based on the search query in both body and link
@@ -187,6 +187,7 @@ async def feed():
             title=_("Feed"),
             form=form,
             posts=posts.items,
+            post_search_query=search_query,
             next_url=next_url,
             prev_url=prev_url,
             current_page=current_page,
@@ -1450,7 +1451,8 @@ def search():
     
     page = request.args.get("page", 1, type=int)
     query = g.search_form.q.data
-    users, total = User.search(query, page, current_app.config["POSTS_PER_PAGE"])
+    users, total = User.search(g.search_form.q.data, page,
+                               current_app.config['POSTS_PER_PAGE'])
     
     next_url = (
         url_for("main.search", q=query, page=page + 1)
