@@ -38,7 +38,6 @@
                         <div class="invalid-feedback" id="post_folder_error"></div>
                     </div>
                     
-                
                     <div class="form-group">
                         <input type="submit" class="green-button" value="Post">
                     </div>
@@ -66,7 +65,11 @@
             var isValid = true;
             var postLink = $('#post_link').val();
             var postBody = $('#post_body').val();
+            var postDescription = $('#post_description').val();
             var postFolder = $('#post_folder').val();
+            const postBodyMaxLength = 75;
+            const postDescriptionMaxLength = 75;
+            const postFolderMaxLength = 45;
 
             // Validate post link
             if (!isValidUrl(postLink)) {
@@ -75,16 +78,22 @@
             }
 
             // Validate post body
-            if (postBody.length > 75) {
-                showError('post_body', 'Must be 75 characters or less, currently ' + postBody.length);
+            if (postBody.length > postBodyMaxLength) {
+                showError('post_body', 'Must be ' + postBodyMaxLength + ' characters or less, currently ' + postBody.length);
+                isValid = false;
+            }
+
+            // Validate post description
+            if (postDescription.length > postDescriptionMaxLength) {
+                showError('post_description', 'Must be ' + postDescriptionMaxLength + ' characters or less, currently ' + postDescription.length);
                 isValid = false;
             }
 
             // Validate folder
             var folders = postFolder.trim().replace(/^\/+|\/+$/g, '').split('/');
             for (var i = 0; i < folders.length; i++) {
-                if (folders[i].length > 45) {
-                    showError('post_folder', 'Individual folder length must be under 45 characters, currently ' + folders[i].length);
+                if (folders[i].length > postFolderMaxLength) {
+                    showError('post_folder', 'Individual folder length must be ' + postFolderMaxLength + ' characters or less, currently ' + folders[i].length);
                     isValid = false;
                     break;
                 }

@@ -150,7 +150,7 @@ async def feed():
 
         # GET request handling
         page = request.args.get("page", 1, type=int)
-        search_query = request.args.get("q", "")
+        search_query = request.args.get('post_q', '')
 
         if search_query:
             # Filter posts based on the search query in both body and link
@@ -187,6 +187,7 @@ async def feed():
             title=_("Feed"),
             form=form,
             posts=posts.items,
+            post_search_query=search_query,
             next_url=next_url,
             prev_url=prev_url,
             current_page=current_page,
@@ -340,7 +341,7 @@ async def discover():
             return render_template("feed.html", title=_("Discover"), form=form)
         else:
             page = request.args.get("page", 1, type=int)
-            search_query = request.args.get("q", "")
+            search_query = request.args.get("post_q", "")
             if search_query:
                 posts = (
                     db.session.query(Post)
@@ -394,6 +395,7 @@ async def discover():
                 prev_url=prev_url,
                 current_page=current_page,
                 total_pages=total_pages,
+                post_search_query=search_query,
             )
     except Exception as e:
         current_app.logger.error(f"An error occurred: {str(e)}", exc_info=True)
@@ -1450,7 +1452,8 @@ def search():
     
     page = request.args.get("page", 1, type=int)
     query = g.search_form.q.data
-    users, total = User.search(query, page, current_app.config["POSTS_PER_PAGE"])
+    users, total = User.search(g.search_form.q.data, page,
+                               current_app.config['POSTS_PER_PAGE'])
     
     next_url = (
         url_for("main.search", q=query, page=page + 1)
