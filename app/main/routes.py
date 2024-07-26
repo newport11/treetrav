@@ -1,7 +1,7 @@
 import asyncio
 import os
 import urllib.parse
-from datetime import datetime
+from datetime import UTC, datetime
 from io import BytesIO
 
 import markdown
@@ -53,7 +53,7 @@ user_visit_counter_dict = {}
 @bp.before_app_request
 def before_request():
     if current_user.is_authenticated:
-        current_user.last_seen = datetime.utcnow()
+        current_user.last_seen = datetime.now(UTC)
         db.session.commit()
         g.search_form = SearchForm()
     g.locale = str(get_locale())
@@ -1447,20 +1447,22 @@ def unfollow(username):
 def search():
     if not g.search_form.validate():
         return redirect(url_for("main.discover"))
+    
     page = request.args.get("page", 1, type=int)
-    users, total = User.search(
-        g.search_form.q.data, page, current_app.config["POSTS_PER_PAGE"]
-    )
+    query = g.search_form.q.data
+    users, total = User.search(query, page, current_app.config["POSTS_PER_PAGE"])
+    
     next_url = (
-        url_for("main.search", q=g.search_form.q.data, page=page + 1)
+        url_for("main.search", q=query, page=page + 1)
         if total > page * current_app.config["POSTS_PER_PAGE"]
         else None
     )
     prev_url = (
-        url_for("main.search", q=g.search_form.q.data, page=page - 1)
+        url_for("main.search", q=query, page=page - 1)
         if page > 1
         else None
     )
+    
     return render_template(
         "search.html",
         title=_("Search"),
