@@ -2,21 +2,21 @@
 {% import 'bootstrap/wtf.html' as wtf %}
 {% block app_content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
-<div style="display: flex; align-items: center; justify-content: space-between;">
-    <h2>{{ title }}</h2>
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <h2>{{ title }}</h2>
 
-    <div style="display: flex; gap: 10px;">
+        <!-- Search Form -->
+        <form action="{{ url_for(request.endpoint) }}" method="GET" style="margin: 0;">
+            <input type="text" name="q" placeholder="Search posts..." value="{{ request.args.get('q', '') }}" style="padding: 5px;">
+            <button type="submit" class="green-button" style="padding: 5px 10px;">Search</button>
+        </form>
+    </div>
+    <div>
         {% include 'post_popup.html' %}
     </div>
 </div>
 
-<!-- Search Form -->
-<form action="{{ url_for(request.endpoint) }}" method="GET" style="margin-top: 20px;">
-    <input type="text" name="q" placeholder="Search posts..." value="{{ request.args.get('q', '') }}">
-    <button type="submit">Search</button>
-</form>
-
-<br><br>
 
 {% for post in posts %}
     {% include '_post.html' %}

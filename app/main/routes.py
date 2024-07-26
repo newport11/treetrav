@@ -1,7 +1,7 @@
 import asyncio
 import os
 import urllib.parse
-from datetime import UTC, datetime
+from datetime import datetime
 from io import BytesIO
 
 import markdown
@@ -53,7 +53,7 @@ user_visit_counter_dict = {}
 @bp.before_app_request
 def before_request():
     if current_user.is_authenticated:
-        current_user.last_seen = datetime.now(UTC)
+        current_user.last_seen = datetime.utcnow()
         db.session.commit()
         g.search_form = SearchForm()
     g.locale = str(get_locale())
