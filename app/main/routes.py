@@ -156,9 +156,12 @@ async def feed():
         search_query = request.args.get("q", "")
 
         if search_query:
-            # Filter posts based on the search query
+            # Filter posts based on the search query in both body and link
             posts_query = current_user.followed_posts().filter(
-                Post.body.ilike(f"%{search_query}%")
+                db.or_(
+                    Post.body.ilike(f"%{search_query}%"),
+                    Post.link.ilike(f"%{search_query}%")
+                )
             )
         else:
             # If no search query, get all followed posts
@@ -341,7 +344,12 @@ async def discover():
                     db.session.query(Post)
                     .join(User)
                     .filter(User.private_mode == False)
-                    .filter(Post.body.ilike(f"%{search_query}%"))
+                    .filter(
+                        db.or_(
+                            Post.body.ilike(f"%{search_query}%"),
+                            Post.link.ilike(f"%{search_query}%")
+                        )
+                    )
                     .order_by(Post.timestamp.desc())
                     .paginate(
                         page=page,
