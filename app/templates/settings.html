@@ -177,8 +177,8 @@ $(document).ready(function() {
             if (displayName.length > 30) {
                 showError('display_name', 'Display Name must be 30 characters or less.');
                 isValid = false;
-            } else if (!/^[a-zA-Z0-9_-]+$/.test(displayName)) {
-                showError('display_name', 'Display Name must only contain letters, numbers, underscores, and hyphens.');
+            } else if (!/^[a-zA-Z0-9_\- ]+$/.test(displayName)) {
+                showError('display_name', 'Display Name must only contain letters, numbers, underscores, hyphens, and spaces.');
                 isValid = false;
             } else if (!/^[a-zA-Z].*$/.test(displayName)) {
                     showError('display_name', 'Display Name must start with a letter.');
