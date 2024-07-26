@@ -147,24 +147,36 @@ async def feed():
             flash(_("Your link is now posted!"))
             return redirect(url_for("main.feed"))
         elif request.method == "POST":
-            # If it's a POST request but validation failed, return errors as JSON
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return jsonify(form.errors), 400
-            # For non-AJAX requests, render the template with errors
             return render_template("feed.html", title=_("Feed"), form=form)
 
         # GET request handling
         page = request.args.get("page", 1, type=int)
-        posts = current_user.followed_posts().paginate(
-            page=page, per_page=current_app.config["POSTS_PER_PAGE"], error_out=False
+        search_query = request.args.get("q", "")
+
+        if search_query:
+            # Filter posts based on the search query
+            posts_query = current_user.followed_posts().filter(
+                Post.body.ilike(f"%{search_query}%")
+            )
+        else:
+            # If no search query, get all followed posts
+            posts_query = current_user.followed_posts()
+
+        posts = posts_query.paginate(
+            page=page,
+            per_page=current_app.config["POSTS_PER_PAGE"],
+            error_out=False
         )
 
         # Calculate current_page and total_pages
         current_page = posts.page
         total_pages = posts.pages or 1  # Use 1 if posts.pages is 0
 
-        next_url = url_for("main.feed", page=posts.next_num) if posts.has_next else None
-        prev_url = url_for("main.feed", page=posts.prev_num) if posts.has_prev else None
+        next_url = url_for("main.feed", page=posts.next_num, q=search_query) if posts.has_next else None
+        prev_url = url_for("main.feed", page=posts.prev_num, q=search_query) if posts.has_prev else None
+        
         return render_template(
             "feed.html",
             title=_("Feed"),
@@ -173,7 +185,7 @@ async def feed():
             next_url=next_url,
             prev_url=prev_url,
             current_page=current_page,
-            total_pages=total_pages,
+            total_pages=total_pages
         )
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}", exc_info=True)
@@ -300,7 +312,6 @@ async def discover():
                 author=current_user,
             )
             OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
-            # If post.body is None, try to set it to the webpage title
             if not post.body:
                 webpage_title = get_webpage_title(form.post_link.data)
                 if webpage_title:
@@ -319,35 +330,47 @@ async def discover():
             flash(_("Your link is now posted!"))
             return redirect(url_for("main.discover"))
         elif request.method == "POST":
-            # If it's a POST request but validation failed, return errors as JSON
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return jsonify(form.errors), 400
-            # For non-AJAX requests, render the template with errors
             return render_template("feed.html", title=_("Discover"), form=form)
         else:
             page = request.args.get("page", 1, type=int)
-            posts = (
-                db.session.query(Post)
-                .join(User)
-                .filter(User.private_mode == False)
-                .order_by(Post.timestamp.desc())
-                .paginate(
-                    page=page,
-                    per_page=current_app.config["POSTS_PER_PAGE"],
-                    error_out=False,
+            search_query = request.args.get("q", "")
+            if search_query:
+                posts = (
+                    db.session.query(Post)
+                    .join(User)
+                    .filter(User.private_mode == False)
+                    .filter(Post.body.ilike(f"%{search_query}%"))
+                    .order_by(Post.timestamp.desc())
+                    .paginate(
+                        page=page,
+                        per_page=current_app.config["POSTS_PER_PAGE"],
+                        error_out=False,
+                    )
                 )
-            )
-            # Calculate current_page and total_pages
+            else:
+                posts = (
+                    db.session.query(Post)
+                    .join(User)
+                    .filter(User.private_mode == False)
+                    .order_by(Post.timestamp.desc())
+                    .paginate(
+                        page=page,
+                        per_page=current_app.config["POSTS_PER_PAGE"],
+                        error_out=False,
+                    )
+                )
             current_page = posts.page
-            total_pages = posts.pages or 1  # Use 1 if posts.pages is 0
+            total_pages = posts.pages or 1
 
             next_url = (
-                url_for("main.discover", page=posts.next_num)
+                url_for("main.discover", page=posts.next_num, q=search_query)
                 if posts.has_next
                 else None
             )
             prev_url = (
-                url_for("main.discover", page=posts.prev_num)
+                url_for("main.discover", page=posts.prev_num, q=search_query)
                 if posts.has_prev
                 else None
             )
@@ -367,6 +390,7 @@ async def discover():
             return jsonify({"error": "An unexpected error occurred"}), 500
         flash(_("An unexpected error occurred"))
         return redirect(url_for("main.discover"))
+
 
 
 @bp.route("/user/<username>/", methods=["POST", "GET"])
