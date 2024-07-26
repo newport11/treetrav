@@ -658,7 +658,7 @@ def get_favorites(username):
     return render_template(
         "favorites.html",
         user=user,
-        posts=favorites.items,
+        posts=favorites,
         next_url=next_url,
         prev_url=prev_url,
     )
