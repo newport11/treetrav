@@ -632,7 +632,7 @@ def get_following(username):
     return render_template(
         "following.html",
         user=user,
-        following=following.items,
+        following=following,  # Pass the whole pagination object
         next_url=next_url,
         prev_url=prev_url,
     )
