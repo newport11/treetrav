@@ -605,7 +605,7 @@ def get_followers(username):
     return render_template(
         "followers.html",
         user=user,
-        followers=followers.items,
+        followers=followers,  # Pass the whole pagination object
         next_url=next_url,
         prev_url=prev_url,
     )
