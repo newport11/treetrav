@@ -19,7 +19,7 @@ def get_user(id):
 @bp.route("/users/get_current_username", methods=["GET"])
 @token_auth.login_required
 def get_current_username():
-    print(token_auth.current_user().username)
+    current_app.logger.info(token_auth.current_user().username)
     return jsonify(User.query.get_or_404(token_auth.current_user().id).to_dict())
 
 

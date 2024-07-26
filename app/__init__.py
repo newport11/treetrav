@@ -59,7 +59,7 @@ def set_mini_profile_pic_filename(filename):
 
 def pic_exists(filename):
     file = os.path.join("app/static/profile_pics", f"{filename}")
-    print(file)
+    current_app.logger.info(file)
     if os.path.exists(file):
         return True
     return False
