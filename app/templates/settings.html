@@ -127,6 +127,7 @@
 $(document).ready(function() {
     var originalUsername = '{{ current_user.username }}';
     var originalEmail = '{{ current_user.email }}';
+    var originalDisplayName = '{{ current_user.display_name }}';
 
     $('.my-form').on('submit', function(e) {
         e.preventDefault();
@@ -172,9 +173,17 @@ $(document).ready(function() {
         }
 
         // Validate display name
-        if (displayName.length > 30) {
-            showError('display_name', 'Display Name must be 30 characters or less.');
-            isValid = false;
+        if (displayName !== originalDisplayName) {
+            if (displayName.length > 30) {
+                showError('display_name', 'Display Name must be 30 characters or less.');
+                isValid = false;
+            } else if (!/^[a-zA-Z0-9_-]+$/.test(displayName)) {
+                showError('display_name', 'Display Name must only contain letters, numbers, underscores, and hyphens.');
+                isValid = false;
+            } else if (!/^[a-zA-Z].*$/.test(displayName)) {
+                    showError('display_name', 'Display Name must start with a letter.');
+                    isValid = false;
+            }
         }
 
         // Validate about me
