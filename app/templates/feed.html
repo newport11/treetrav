@@ -2,41 +2,47 @@
 {% import 'bootstrap/wtf.html' as wtf %}
 {% block app_content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-        <h2>{{ title }}</h2>
+<div style="display: flex; align-items: center; justify-content: space-between;">
+    <h2>{{ title }}</h2>
 
-        <div style="display: flex; gap: 10px;">
-            {% include 'post_popup.html' %}
-        </div>
+    <div style="display: flex; gap: 10px;">
+        {% include 'post_popup.html' %}
     </div>
-    <!-- {% if form %}
-        {{ wtf.quick_form(form, extra_classes='my-form') }} -->
-    <br><br>
-    {% endif %}
-    {% for post in posts %}
-        {% include '_post.html' %}
-    {% endfor %}
-    {% if posts %}
-        <nav aria-label="...">
-            <ul class="pager">
-                <li class="previous{% if not prev_url %} invisible{% endif %}">
-                    <a href="{{ prev_url or '#' }}">
-                        <span aria-hidden="true">&larr;</span> {{ _('Newer posts') }}
-                    </a>
-                </li>
-                
-                <li class="page-info">
-                    {{ _('Page %(current)d of %(total)d', current=current_page, total=total_pages) }}
-                </li>
-                
-                <li class="next{% if not next_url %} invisible{% endif %}">
-                    <a href="{{ next_url or '#' }}">
-                        {{ _('Older posts') }} <span aria-hidden="true">&rarr;</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    {% endif %}
+</div>
+
+<!-- Search Form -->
+<form action="{{ url_for(request.endpoint) }}" method="GET" style="margin-top: 20px;">
+    <input type="text" name="q" placeholder="Search posts..." value="{{ request.args.get('q', '') }}">
+    <button type="submit">Search</button>
+</form>
+
+<br><br>
+
+{% for post in posts %}
+    {% include '_post.html' %}
+{% endfor %}
+
+{% if posts %}
+    <nav aria-label="...">
+        <ul class="pager">
+            <li class="previous{% if not prev_url %} invisible{% endif %}">
+                <a href="{{ prev_url or '#' }}">
+                    <span aria-hidden="true">&larr;</span> {{ _('Newer posts') }}
+                </a>
+            </li>
+            
+            <li class="page-info">
+                {{ _('Page %(current)d of %(total)d', current=current_page, total=total_pages) }}
+            </li>
+            
+            <li class="next{% if not next_url %} invisible{% endif %}">
+                <a href="{{ next_url or '#' }}">
+                    {{ _('Older posts') }} <span aria-hidden="true">&rarr;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+{% endif %}
 {% include 'footer.html' %}
 
 <style>
