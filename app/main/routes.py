@@ -341,7 +341,7 @@ async def discover():
             return render_template("feed.html", title=_("Discover"), form=form)
         else:
             page = request.args.get("page", 1, type=int)
-            search_query = request.args.get("q", "")
+            search_query = request.args.get("post_q", "")
             if search_query:
                 posts = (
                     db.session.query(Post)
@@ -395,6 +395,7 @@ async def discover():
                 prev_url=prev_url,
                 current_page=current_page,
                 total_pages=total_pages,
+                post_search_query=search_query,
             )
     except Exception as e:
         current_app.logger.error(f"An error occurred: {str(e)}", exc_info=True)
