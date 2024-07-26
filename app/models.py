@@ -221,9 +221,20 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
         if user is None or user.token_expiration < datetime.utcnow():
             return None
         return user
+    
+    @staticmethod
+    def search(query, page, per_page):
+        search = f"%{query}%"
+        users = User.query.filter(
+            db.or_(
+                User.username.ilike(search),
+                User.display_name.ilike(search),
+            )
+        ).paginate(page=page, per_page=per_page, error_out=False)
+        return users.items, users.total
 
     def __repr__(self):
-        return "<User {}>".format(self.username)
+        return f"<User {self.username}>"
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
