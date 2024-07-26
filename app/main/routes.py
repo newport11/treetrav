@@ -157,7 +157,8 @@ async def feed():
             posts_query = current_user.followed_posts().filter(
                 db.or_(
                     Post.body.ilike(f"%{search_query}%"),
-                    Post.link.ilike(f"%{search_query}%")
+                    Post.link.ilike(f"%{search_query}%"),
+                    Post.description.ilike(f"%{search_query}%")
                 )
             )
         else:
@@ -348,7 +349,8 @@ async def discover():
                     .filter(
                         db.or_(
                             Post.body.ilike(f"%{search_query}%"),
-                            Post.link.ilike(f"%{search_query}%")
+                            Post.link.ilike(f"%{search_query}%"),
+                            Post.description.ilike(f"%{search_query}%"),
                         )
                     )
                     .order_by(Post.timestamp.desc())
