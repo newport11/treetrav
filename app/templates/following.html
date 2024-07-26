@@ -13,31 +13,31 @@
         </div>
     <h1>{{ _('Following') }}</h1>
 </div>
-    {% for follower in following %}
-        {% include 'follower.html' %}
-    {% endfor %}
+{% for follower in following %}
+    {% include 'follower.html' %}
+{% endfor %}
 
-    {% if following.items %}
-        <nav aria-label="Following navigation">
-            <ul class="pager">
-                <li class="previous{% if not prev_url %} invisible{% endif %}">
-                    <a href="{{ prev_url or '#' }}">
-                        <span aria-hidden="true">&larr;</span> {{ _('Newer follows') }}
-                    </a>
-                </li>
-                
-                <li class="page-info">
-                    {{ _('Page %(current)d of %(total)d', current=following.page, total=following.pages) }}
-                </li>
-                
-                <li class="next{% if not next_url %} invisible{% endif %}">
-                    <a href="{{ next_url or '#' }}">
-                        {{ _('Older follows') }} <span aria-hidden="true">&rarr;</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    {% endif %}
+{% if following.items %}
+    <nav aria-label="Following navigation">
+        <ul class="pager">
+            <li class="previous{% if not prev_url %} invisible{% endif %}">
+                <a href="{{ prev_url or '#' }}">
+                    <span aria-hidden="true">&larr;</span> {{ _('Newer follows') }}
+                </a>
+            </li>
+            
+            <li class="page-info">
+                {{ _('Page %(current)d of %(total)d', current=following.page, total=following.pages) }}
+            </li>
+            
+            <li class="next{% if not next_url %} invisible{% endif %}">
+                <a href="{{ next_url or '#' }}">
+                    {{ _('Older follows') }} <span aria-hidden="true">&rarr;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+{% endif %}
 
 {% endblock %}
 
