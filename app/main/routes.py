@@ -299,7 +299,7 @@ def unfavorite_post(post_id):
 
 @bp.route("/discover/", methods=["GET", "POST"])
 @bp.route("/discover", methods=["GET", "POST"])
-@login_required
+#@login_required
 async def discover():
     try:
         form = PostForm()
