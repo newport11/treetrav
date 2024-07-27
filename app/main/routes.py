@@ -150,7 +150,7 @@ async def feed():
 
         # GET request handling
         page = request.args.get("page", 1, type=int)
-        search_query = request.args.get('post_q', '')
+        search_query = request.args.get("post_q", "")
 
         if search_query:
             # Filter posts based on the search query in both body and link
@@ -158,7 +158,7 @@ async def feed():
                 db.or_(
                     Post.body.ilike(f"%{search_query}%"),
                     Post.link.ilike(f"%{search_query}%"),
-                    Post.description.ilike(f"%{search_query}%")
+                    Post.description.ilike(f"%{search_query}%"),
                 )
             )
         else:
@@ -170,7 +170,7 @@ async def feed():
             posts = posts_query.paginate(
                 page=page,
                 per_page=current_app.config["POSTS_PER_PAGE"],
-                error_out=False
+                error_out=False,
             )
         else:
             posts = []  # or some default value
@@ -179,9 +179,17 @@ async def feed():
         current_page = posts.page
         total_pages = posts.pages or 1  # Use 1 if posts.pages is 0
 
-        next_url = url_for("main.feed", page=posts.next_num, q=search_query) if posts.has_next else None
-        prev_url = url_for("main.feed", page=posts.prev_num, q=search_query) if posts.has_prev else None
-        
+        next_url = (
+            url_for("main.feed", page=posts.next_num, q=search_query)
+            if posts.has_next
+            else None
+        )
+        prev_url = (
+            url_for("main.feed", page=posts.prev_num, q=search_query)
+            if posts.has_prev
+            else None
+        )
+
         return render_template(
             "feed.html",
             title=_("Feed"),
@@ -191,7 +199,7 @@ async def feed():
             next_url=next_url,
             prev_url=prev_url,
             current_page=current_page,
-            total_pages=total_pages
+            total_pages=total_pages,
         )
     except Exception as e:
         current_app.logger.error(f"An error occurred: {str(e)}", exc_info=True)
@@ -299,7 +307,7 @@ def unfavorite_post(post_id):
 
 @bp.route("/discover/", methods=["GET", "POST"])
 @bp.route("/discover", methods=["GET", "POST"])
-#@login_required
+# @login_required
 async def discover():
     try:
         form = PostForm()
@@ -403,7 +411,6 @@ async def discover():
             return jsonify({"error": "An unexpected error occurred"}), 500
         flash(_("An unexpected error occurred"))
         return redirect(url_for("main.discover"))
-
 
 
 @bp.route("/user/<username>/", methods=["POST", "GET"])
@@ -1013,7 +1020,7 @@ def settings():
 
         db.session.commit()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            #flash(_("Your changes have been saved."))
+            # flash(_("Your changes have been saved."))
             return jsonify({"message": "Your changes have been saved."}), 200
         return redirect(url_for("main.settings"))
 
@@ -1445,27 +1452,24 @@ def unfollow(username):
 
 
 @bp.route("/search")
-#@login_required
+# @login_required
 def search():
     if not g.search_form.validate():
         return redirect(url_for("main.discover"))
-    
+
     page = request.args.get("page", 1, type=int)
     query = g.search_form.q.data
-    users, total = User.search(g.search_form.q.data, page,
-                               current_app.config['POSTS_PER_PAGE'])
-    
+    users, total = User.search(
+        g.search_form.q.data, page, current_app.config["POSTS_PER_PAGE"]
+    )
+
     next_url = (
         url_for("main.search", q=query, page=page + 1)
         if total > page * current_app.config["POSTS_PER_PAGE"]
         else None
     )
-    prev_url = (
-        url_for("main.search", q=query, page=page - 1)
-        if page > 1
-        else None
-    )
-    
+    prev_url = url_for("main.search", q=query, page=page - 1) if page > 1 else None
+
     return render_template(
         "search.html",
         title=_("Search"),
@@ -1660,9 +1664,10 @@ def create_leaf():
         "leaf_creator.html", form=form, username=current_user.username
     )
 
-@bp.route('/api/suggestions')
+
+@bp.route("/api/suggestions")
 def get_suggestions():
-    query = request.args.get('q', '')
+    query = request.args.get("q", "")
     if not query:
         return jsonify([])
 
@@ -1671,15 +1676,15 @@ def get_suggestions():
 
 
 # FRONTEND AJAX RELATED ROUTES
-@bp.route('/query/check_username', methods=['POST'])
+@bp.route("/query/check_username", methods=["POST"])
 def check_username():
-    username = request.form['username']
+    username = request.form["username"]
     user = User.query.filter(User.username.ilike(username.strip())).first()
-    return jsonify({'exists': user is not None})
+    return jsonify({"exists": user is not None})
 
-@bp.route('/query/check_email', methods=['POST'])
+
+@bp.route("/query/check_email", methods=["POST"])
 def check_email():
-    email = request.form['email']
+    email = request.form["email"]
     user = User.query.filter_by(email=email.strip()).first()
-    return jsonify({'exists': user is not None})
-    
+    return jsonify({"exists": user is not None})

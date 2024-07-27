@@ -221,27 +221,32 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
         if user is None or user.token_expiration < datetime.utcnow():
             return None
         return user
-    
+
     @staticmethod
     def search(query, page, per_page):
         search = f"%{query}%"
         users = User.query.filter(
             db.or_(
                 func.lower(User.username).startswith(func.lower(query)),
-                func.lower(User.display_name).startswith(func.lower(query))
+                func.lower(User.display_name).startswith(func.lower(query)),
             )
         ).paginate(page=page, per_page=per_page, error_out=False)
         return users.items, users.total
-    
+
     @staticmethod
     def get_suggestions(query):
         # Example implementation: find users whose usernames start with the query
-        users = User.query.filter(
-            db.or_(
-                func.lower(User.username).startswith(func.lower(query)),
-                func.lower(User.display_name).startswith(func.lower(query))
+        users = (
+            User.query.filter(
+                db.or_(
+                    func.lower(User.username).startswith(func.lower(query)),
+                    func.lower(User.display_name).startswith(func.lower(query)),
+                )
             )
-        ).order_by(User.username.asc()).limit(5).all()
+            .order_by(User.username.asc())
+            .limit(5)
+            .all()
+        )
         return [user.username for user in users]
 
     def __repr__(self):

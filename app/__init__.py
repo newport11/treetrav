@@ -33,7 +33,7 @@ pagedown = PageDown()
 
 def decode_url(url):
     if url is None:
-        return ''
+        return ""
     try:
         return urllib.parse.unquote(url)
     except:
