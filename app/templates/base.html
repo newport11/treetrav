@@ -4,6 +4,29 @@
 {% block head %}
 {{ super() }}
 <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+<style>
+    html, body {
+        height: 100%;
+    }
+    body {
+        display: flex;
+        flex-direction: column;
+    }
+    .content-wrapper {
+        flex: 1 0 auto;
+        padding-bottom: 30px; /* Space between content and footer */
+    }
+    footer {
+        flex-shrink: 0;
+        background-color: #ffffff; /* White background for the footer */
+        color: #343a40; /* Dark text color for contrast */
+        padding: 20px 0;
+        margin-top: auto; /* Pushes the footer to the bottom */
+    }
+    footer a {
+        color: #007bff; /* Link color in footer */
+    }
+</style>
 {% endblock %}
 
 {% block title %}
