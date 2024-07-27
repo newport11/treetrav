@@ -140,14 +140,18 @@ $(document).ready(function() {
         var email = $('#email').val().trim();
         var displayName = $('#display_name').val().trim();
         var aboutMe = $('#about_me').val().trim();
+        const usernameMaxLength = 30;
+        const emailMaxLength = 140;
+        const displayNameMaxLength = 30;
+        const aboutMeMaxLength = 140;
 
         // Validate username
         if (username !== originalUsername) {
             if (username.length === 0) {
                 showError('username', 'Username is required.');
                 isValid = false;
-            } else if (username.length > 30) {
-                showError('username', 'Username must be 30 characters or less.');
+            } else if (username.length > usernameMaxLength) {
+                showError('username', 'Username must be ' + usernameMaxLength +' characters or less.');
                 isValid = false;
             } else if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
                 showError('username', 'Username must only contain letters, numbers, underscores, and hyphens.');
@@ -177,8 +181,8 @@ $(document).ready(function() {
             if (email.length === 0) {
                 showError('email', 'Email is required.');
                 isValid = false;
-            } else if (email.length > 140) {
-                showError('email', 'Email must be 140 characters or less.');
+            } else if (email.length > emailMaxLength) {
+                showError('email', 'Email must be ' + emailMaxLength + ' characters or less.');
                 isValid = false;
             } else if (!/\S+@\S+\.\S+/.test(email)) {
                 showError('email', 'Please enter a valid email address.');
@@ -202,8 +206,8 @@ $(document).ready(function() {
 
         // Validate display name
         if (displayName !== originalDisplayName) {
-            if (displayName.length > 30) {
-                showError('display_name', 'Display Name must be 30 characters or less.');
+            if (displayName.length > displayNameMaxLength) {
+                showError('display_name', 'Display Name must be ' + displayNameMaxLength + ' characters or less.');
                 isValid = false;
             } else if (!/^[a-zA-Z0-9_\- ]+$/.test(displayName)) {
                 showError('display_name', 'Display Name must only contain letters, numbers, underscores, hyphens, and spaces.');
@@ -216,7 +220,7 @@ $(document).ready(function() {
 
         // Validate about me
         if (aboutMe.length > 140) {
-            showError('about_me', 'About Me must be 140 characters or less.');
+            showError('about_me', 'About Me must be ' + aboutMeMaxLength + ' characters or less.');
             isValid = false;
         }
 
