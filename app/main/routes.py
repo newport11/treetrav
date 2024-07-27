@@ -22,7 +22,7 @@ from sqlalchemy import and_, func, or_, select, union, union_all
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
-from app import db
+from app import db, cache
 from app.favicon import get_favicon, hash_profile_pic
 from app.main import bp
 from app.main.forms import (
@@ -156,6 +156,14 @@ async def feed():
         page = request.args.get("page", 1, type=int)
         search_query = request.args.get("post_q", "")
 
+        # Create a cache key based on user, page, and search query
+        cache_key = f"feed:{current_user.id}:{page}:{search_query}"
+
+        # Try to get the cached result
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return cached_result
+
         if search_query:
             # Filter posts based on the search query in both body and link
             posts_query = current_user.followed_posts().filter(
@@ -193,8 +201,7 @@ async def feed():
             if posts.has_prev
             else None
         )
-
-        return render_template(
+        result = render_template(
             "feed.html",
             title=_("Feed"),
             form=form,
@@ -205,6 +212,10 @@ async def feed():
             current_page=current_page,
             total_pages=total_pages,
         )
+        # Cache the result
+        cache.set(cache_key, result)
+
+        return result
     except Exception as e:
         current_app.logger.error(f"An error occurred: {str(e)}", exc_info=True)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -354,6 +365,15 @@ async def discover():
         else:
             page = request.args.get("page", 1, type=int)
             search_query = request.args.get("post_q", "")
+
+            # Create a cache key based on user, page, and search query
+            cache_key = f"discover:{current_user.id}:{page}:{search_query}"
+
+            # Try to get the cached result
+            cached_result = cache.get(cache_key)
+            if cached_result is not None:
+                return cached_result
+
             if search_query:
                 posts = (
                     db.session.query(Post)
@@ -398,7 +418,7 @@ async def discover():
                 if posts.has_prev
                 else None
             )
-            return render_template(
+            result = render_template(
                 "feed.html",
                 title=_("Discover"),
                 form=form,
@@ -409,6 +429,10 @@ async def discover():
                 total_pages=total_pages,
                 post_search_query=search_query,
             )
+            # Cache the result
+            cache.set(cache_key, result)
+
+            return result
     except Exception as e:
         current_app.logger.error(f"An error occurred: {str(e)}", exc_info=True)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
