@@ -58,6 +58,10 @@ def before_request():
     g.search_form = SearchForm()
     g.locale = str(get_locale())
 
+@bp.context_processor
+def inject_current_year():
+    return {'current_year': datetime.now().year}
+
 
 @bp.route("/home", methods=["GET"])
 @bp.route("/", methods=["GET"])

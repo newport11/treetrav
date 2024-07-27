@@ -357,3 +357,8 @@
 #suggestions div:hover {
     background-color: #f0f0f0;
 }
+
+/* footer */
+footer {
+    margin-top: auto;
+}
