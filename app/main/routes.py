@@ -1660,6 +1660,14 @@ def create_leaf():
         "leaf_creator.html", form=form, username=current_user.username
     )
 
+@bp.route('/api/suggestions')
+def get_suggestions():
+    query = request.args.get('q', '')
+    if not query:
+        return jsonify([])
+
+    suggestions = User.get_suggestions(query)
+    return jsonify(suggestions)
 
 
 # FRONTEND AJAX RELATED ROUTES

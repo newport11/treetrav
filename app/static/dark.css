@@ -345,3 +345,12 @@ h4{
 .spinner-border {
     color: #5a9b16; 
 }
+
+#suggestions {
+    background-color: #333;
+    border-color: #555;
+}
+
+#suggestions div:hover {
+    background-color: #444;
+}

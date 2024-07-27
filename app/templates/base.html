@@ -37,6 +37,7 @@
                 <form id="userSearchForm" class="navbar-form navbar-left" method="get" action="{{ url_for('main.search') }}">
                     <div class="form-group">
                         {{ g.search_form.q(size=20, class='form-control', placeholder=g.search_form.q.label.text, id='userSearchInput') }}
+                        <div id="suggestions"></div>
                     </div>
                 </form>
                 <ul class="nav navbar-nav navbar-right">
@@ -72,4 +73,47 @@
     {{ super() }}
     {{ moment.include_moment() }}
     {{ moment.lang(g.locale) }}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('userSearchInput');
+        const suggestionsContainer = document.getElementById('suggestions');
+
+        searchInput.addEventListener('input', function() {
+            const query = this.value;
+            if (query.length > 2) {
+                fetch(`/api/suggestions?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        suggestionsContainer.innerHTML = '';
+                        data.forEach(suggestion => {
+                            const div = document.createElement('div');
+                            div.textContent = suggestion;
+                            div.addEventListener('click', function() {
+                                // Navigate to the user's profile page
+                                window.location.href = `/user/${encodeURIComponent(suggestion)}`;
+                            });
+                            suggestionsContainer.appendChild(div);
+                        });
+                        
+                        // Position the suggestions container
+                        const inputRect = searchInput.getBoundingClientRect();
+                        suggestionsContainer.style.width = inputRect.width + 'px';
+                        suggestionsContainer.style.display = 'block';
+                    });
+            } else {
+                suggestionsContainer.innerHTML = '';
+                suggestionsContainer.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('click', function(event) {
+            if (event.target !== searchInput && event.target !== suggestionsContainer) {
+                suggestionsContainer.innerHTML = '';
+                suggestionsContainer.style.display = 'none';
+            }
+        });
+    });
+
+
+    </script>
 {% endblock %}
