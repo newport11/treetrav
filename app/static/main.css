@@ -302,3 +302,31 @@
 .page-info {
     font-weight: bold;
 }
+
+/* User */
+.verified-icon-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.verified-icon-wrapper::after {
+    content: "Verified";
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.verified-icon-wrapper:hover::after {
+    opacity: 1;
+    visibility: visible;
+}

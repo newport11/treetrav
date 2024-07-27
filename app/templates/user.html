@@ -20,7 +20,9 @@
                             {{ user.username }}
                         {% endif %}
                         {% if user.verified == True %}
-                            <img src="{{ url_for('static', filename='green_check32.png') }}" class="green-check-icon" />
+                            <span class="verified-icon-wrapper">
+                                <img src="{{ url_for('static', filename='green_check32.png') }}" class="green-check-icon" />
+                            </span>
                         {% endif %}
                     </h1>
                     {% if user == current_user %}
