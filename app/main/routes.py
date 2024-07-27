@@ -366,8 +366,11 @@ async def discover():
             page = request.args.get("page", 1, type=int)
             search_query = request.args.get("post_q", "")
 
-            # Create a cache key based on user, page, and search query
-            cache_key = f"discover:{current_user.id}:{page}:{search_query}"
+            # Create a cache key based on authentication status, page, and search query
+            if current_user.is_authenticated:
+                cache_key = f"discover:user:{current_user.id}:{page}:{search_query}"
+            else:
+                cache_key = f"discover:anon:{page}:{search_query}"
 
             # Try to get the cached result
             cached_result = cache.get(cache_key)
