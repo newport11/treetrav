@@ -1,10 +1,10 @@
 import copy
 import logging
 from urllib.parse import urlparse
-from newspaper import Article
 
 import requests
 from bs4 import BeautifulSoup
+from newspaper import Article
 
 from app import db
 from app.models import Post, User
@@ -151,7 +151,7 @@ def get_webpage_title(url):
         h1 = soup.find("h1")
         if h1 and h1.string:
             return h1.string.strip()
-        
+
         # Check for newspaper
         article = Article(url)
         article.download()

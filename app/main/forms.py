@@ -18,7 +18,9 @@ from app.utils import is_subpath
 
 class SettingsForm(FlaskForm):
     username = StringField(_l("Username"), validators=[DataRequired(), Length(max=30)])
-    display_name = StringField(_l("Display Name (Optional)"), validators=[Length(max=30)])
+    display_name = StringField(
+        _l("Display Name (Optional)"), validators=[Length(max=30)]
+    )
     email = TextAreaField(_l("Email"), validators=[Length(min=0, max=140)])
     about_me = TextAreaField(_l("About me"), validators=[Length(min=0, max=140)])
     picture = FileField("Update Profile Picture")
