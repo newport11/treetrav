@@ -4,10 +4,11 @@ import urllib.parse
 from logging.handlers import RotatingFileHandler, SMTPHandler
 
 from elasticsearch import Elasticsearch
-from flask import Flask, current_app, request
+from flask import Flask, current_app
 from flask_babel import Babel
 from flask_babel import lazy_gettext as _l
 from flask_bootstrap import Bootstrap
+from flask_caching import Cache
 from flask_htmx import HTMX
 from flask_login import LoginManager
 from flask_mail import Mail
@@ -29,6 +30,7 @@ moment = Moment()
 babel = Babel()
 htmx = HTMX()
 pagedown = PageDown()
+cache = Cache()
 
 
 def decode_url(url):
@@ -71,6 +73,11 @@ def create_app(config_class=Config):
     app.config["SQLALCHEMY_POOL_PRE_PING"] = True
     app.config["SQLALCHEMY_POOL_RECYCLE"] = 20
 
+    # Redis Cache Configuration
+    app.config['CACHE_TYPE'] = 'redis'
+    app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
+    app.config['CACHE_DEFAULT_TIMEOUT'] = 60
+
     db.init_app(app)
     migrate.init_app(app, db)
     login.init_app(app)
@@ -80,6 +87,8 @@ def create_app(config_class=Config):
     htmx.init_app(app)
     babel.init_app(app)
     pagedown.init_app(app)
+    cache.init_app(app)
+    
     app.elasticsearch = (
         Elasticsearch([app.config["ELASTICSEARCH_URL"]], verify_certs=False)
         if app.config["ELASTICSEARCH_URL"]
@@ -145,6 +154,3 @@ def create_app(config_class=Config):
         app.logger.info("Treetrav startup")
 
     return app
-
-
-from app import models
