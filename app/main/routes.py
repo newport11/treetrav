@@ -244,8 +244,8 @@ def delete_post(post_id):
         return redirect(request.referrer)
     else:
         return redirect(request.referrer)
-
-
+    
+    
 @bp.route("/account/delete/<int:user_id>", methods=["POST"])
 @login_required
 def delete_account(user_id):
@@ -281,8 +281,14 @@ def delete_folder(folder_link):
         ):
             db.session.delete(post)
 
+    leaves = Leaf.query.filter_by(user_id=current_user.id).all()
+    for leaf in leaves:
+        if is_subpath(folder_link, leaf.folder_path):
+            db.session.delete(leaf)
+
     db.session.commit()
     flash(f"Folder '{folder_link}' deleted")
+
     previous_folder = folder_link.rstrip("/").rsplit("/", 1)[0]
     if len(folder_link.split("/")) <= 1:
         previous_folder = "/"
