@@ -1,7 +1,8 @@
 
 {% extends 'bootstrap/base.html' %}
 
-<head>
+{% block head %}
+    {{ super() }}
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -9,42 +10,39 @@
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-TTGSNM6P');</script>
     <!-- End Google Tag Manager -->
-</head>
-
-{% block head %}
-{{ super() }}
-<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-<style>
-    html, body {
-        height: 100%;
-    }
-    body {
-        display: flex;
-        flex-direction: column;
-    }
-    .content-wrapper {
-        flex: 1 0 auto;
-        padding-bottom: 30px; /* Space between content and footer */
-    }
-    footer {
-        flex-shrink: 0;
-        background-color: #ffffff; /* White background for the footer */
-        color: #343a40; /* Dark text color for contrast */
-        padding: 20px 0;
-        margin-top: auto; /* Pushes the footer to the bottom */
-    }
-    footer a {
-        color: #007bff; /* Link color in footer */
-    }
-</style>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        html, body {
+            height: 100%;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        .content-wrapper {
+            flex: 1 0 auto;
+            padding-bottom: 30px; /* Space between content and footer */
+        }
+        footer {
+            flex-shrink: 0;
+            background-color: #ffffff; /* White background for the footer */
+            color: #343a40; /* Dark text color for contrast */
+            padding: 20px 0;
+            margin-top: auto; /* Pushes the footer to the bottom */
+        }
+        footer a {
+            color: #007bff; /* Link color in footer */
+        }
+    </style>
 {% endblock %}
 
-<body>
+{% block body %}
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TTGSNM6P"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
-</body>
+    {{ super() }}
+{% endblock %}
 
 {% block title %}
     {% if title %}{{ title }} - treetrav{% else %}{{ _('treetrav') }}{% endif %}
