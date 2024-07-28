@@ -144,6 +144,7 @@ $(document).ready(function() {
         const emailMaxLength = 140;
         const displayNameMaxLength = 30;
         const aboutMeMaxLength = 140;
+        const forbiddenUsernames = {{ forbidden_usernames | tojson }};
 
         // Validate username
         if (username !== originalUsername) {
@@ -159,6 +160,9 @@ $(document).ready(function() {
             } else if (!/^[a-zA-Z].*$/.test(username)) {
                 showError('username', 'Username must start with a letter.');
                 isValid = false;
+            } else if (forbiddenUsernames.includes(username.toLowerCase())) {
+                        showError('username', 'This username is not allowed.');
+                        isValid = false;
             } else {
                 // Check if username already exists
                 $.ajax({

@@ -12,6 +12,7 @@ from wtforms import BooleanField, HiddenField, StringField, SubmitField, TextAre
 from wtforms.fields import SubmitField
 from wtforms.validators import DataRequired, Length, ValidationError
 
+from app.constants import FORBIDDEN_USERNAMES
 from app.models import Post, User
 from app.utils import is_subpath
 
@@ -52,6 +53,9 @@ class SettingsForm(FlaskForm):
                 )
             if not re.match(r"^[a-zA-Z].*$", username.data.strip()):
                 raise ValidationError(_("must start with letter"))
+            if username.data.strip() in FORBIDDEN_USERNAMES:
+                raise ValidationError(_("This username is not allowed"))
+
 
     def validate_email(self, email):
         if email.data != self.original_email:
