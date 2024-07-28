@@ -70,26 +70,32 @@ class PostForm(FlaskForm):
             raise ValidationError(_("must post valid link"))
 
     def validate_body(self, form):
+        post_body_max_length = 65
+
         length = len(self.data["post_body"])
-        if length > 65:
+        if length > post_body_max_length:
             raise ValidationError(
-                _(f"must be 65 characters or less, currently {length}")
+                _(f"must be {post_body_max_length} characters or less, currently {length}")
             )
 
     def validate_description(self, form):
+        post_description_max_length = 35
+
         length = len(self.data["post_description"])
-        if length > 35:
+        if length > post_description_max_length:
             raise ValidationError(
-                _(f"must be 35 characters or less, currently {length}")
+                _(f"must be {post_description_max_length} characters or less, currently {length}")
             )
 
     def validate_folder(self, form):
+        post_folder_max_length = 45
+
         folders = self.data["post_folder"].strip().strip("/").split("/")
         for folder in folders:
-            if len(folder) > 45:
+            if len(folder) > post_folder_max_length:
                 raise ValidationError(
                     _(
-                        f"individual folder length must be under 45 characters, currently {len(folder)}"
+                        f"individual folder length must be {post_folder_max_length} characters or less, currently {len(folder)}"
                     )
                 )
 
