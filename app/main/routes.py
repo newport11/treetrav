@@ -233,12 +233,17 @@ def delete_post(post_id):
             sharer_posts = Post.query.filter_by(user_id=share.sharer_id).all()
             for post in sharer_posts:
                 if post.id == post_id:
+                    # Delete associated Leaf objects
+                    Leaf.query.filter_by(post_id=post_id).delete()
                     db.session.delete(post)
                     db.session.commit()
                     flash("Link deleted")
                     return redirect(request.referrer)
+
     post = Post.query.filter_by(id=post_id).first_or_404()
     if current_user.id == post.user_id:
+        # Delete associated Leaf objects
+        Leaf.query.filter_by(post_id=post_id).delete()
         db.session.delete(post)
         db.session.commit()
         flash("Link deleted")
@@ -1281,13 +1286,6 @@ def create_leaf():
             return render_template(
                 "leaf_creator.html", form=form, username=current_user.username
             )
-        leaf = Leaf(
-            user_id=current_user.id,
-            folder_path=folder_path,
-            file_name=file_name,
-            md_text=md,
-        )
-        db.session.add(leaf)
 
         # use prod domain if env is prod, else use local domain
         if current_app.config["IS_PROD"].lower() == "true":
@@ -1296,6 +1294,8 @@ def create_leaf():
             url = current_app.config["LOCAL_DOMAIN"]
 
         link = f"{url}/{current_user.username}/{folder_path}/{file_name}"
+        
+        # Create the Post first
         post = Post(
             link=link,
             body=file_name,
@@ -1304,7 +1304,19 @@ def create_leaf():
             favicon_file_name="leaf.png",
         )
         db.session.add(post)
-        db.session.commit()
+        db.session.flush()  # This assigns an ID to the post without committing the transaction
+
+        # Now create the Leaf with the post_id
+        leaf = Leaf(
+            user_id=current_user.id,
+            folder_path=folder_path,
+            file_name=file_name,
+            md_text=md,
+            post_id=post.id  # Associate the Leaf with the Post
+        )
+        db.session.add(leaf)
+
+        db.session.commit()  # Commit both the Post and Leaf to the database
         flash(f"Leaf page was successfully created @ {folder_path}")
 
     return render_template(

@@ -7,7 +7,7 @@ from time import time
 import jwt
 from flask import current_app, url_for
 from flask_login import UserMixin
-from sqlalchemy import PrimaryKeyConstraint, func
+from sqlalchemy import ForeignKeyConstraint, PrimaryKeyConstraint, func
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login
@@ -374,6 +374,9 @@ class Post(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 
+    # New columns to link to Leaf
+    leaves = db.relationship('Leaf', backref='post', lazy=True)
+
     def to_dict(self):
         data = {
             "id": self.id,
@@ -385,6 +388,7 @@ class Post(db.Model):
             "favicon_file_name": self.favicon_file_name,
             "timestamp": self.timestamp,
             "user_id": self.user_id,
+            "leaves": [leaf.to_dict() for leaf in self.leaves],
             "_links": {"self": url_for("api.get_post", id=self.id)},
         }
 
@@ -438,9 +442,28 @@ class Leaf(db.Model):
     file_name = db.Column(db.String(75), primary_key=True, nullable=False)
     folder_path = db.Column(db.String(255), primary_key=True, nullable=False)
     md_text = db.Column(db.String(8000), nullable=False)
+    post_id = db.Column(db.Integer, nullable=True)  
 
-    def __init__(self, user_id, file_name, folder_path, md_text):
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['post_id'],
+            ['post.id'],
+            name='fk_leaf_post'
+        ),
+    )
+
+    def __init__(self, user_id, file_name, folder_path, md_text, post_id):
         self.user_id = user_id
         self.file_name = file_name
         self.folder_path = folder_path
         self.md_text = md_text
+        self.post_id = post_id
+
+    def to_dict(self):
+        return {
+            "user_id": self.user_id,
+            "file_name": self.file_name,
+            "folder_path": self.folder_path,
+            "md_text": self.md_text,
+            "post_id": self.post_id
+        }
