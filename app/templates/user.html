@@ -32,9 +32,6 @@
                     {% endif %}
                 </div>
                     {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
-                {% if user.last_seen %}
-                <p>{{ _('Last seen') }}: {{ moment(user.last_seen).format('LL') }}</p>
-                {% endif %}
                 <p>
                     <a href="{{ url_for('main.get_following', username=user.username) }}"> 
                         <span class="userpage-counts">
