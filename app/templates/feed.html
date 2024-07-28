@@ -12,7 +12,9 @@
         </form>
     </div>
     <div>
-        {% include 'post_popup.html' %}
+        {% if current_user.get_id() %}
+            {% include 'post_popup.html' %}
+        {% endif %}
     </div>
 </div>
 
