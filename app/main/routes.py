@@ -66,7 +66,7 @@ def inject_current_year():
 @bp.route("/home", methods=["GET"])
 @bp.route("/", methods=["GET"])
 def home():
-    return render_template("home.html", title=_("Feed"))
+    return render_template("home.html", title=_("Home"))
 
 
 @bp.route("/", methods=["GET", "POST"])
