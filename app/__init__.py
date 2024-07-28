@@ -74,9 +74,14 @@ def create_app(config_class=Config):
     app.config["SQLALCHEMY_POOL_RECYCLE"] = 20
 
     # Redis Cache Configuration
-    app.config['CACHE_TYPE'] = 'redis'
-    app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
-    app.config['CACHE_DEFAULT_TIMEOUT'] = 60
+    USE_REDIS = os.getenv("USE_REDIS", "False").lower() == "true"
+
+    if USE_REDIS:
+        app.config['CACHE_TYPE'] = 'redis'
+        app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
+        app.config['CACHE_DEFAULT_TIMEOUT'] = 60
+    else:
+        app.config['CACHE_TYPE'] = 'simple'
 
     db.init_app(app)
     migrate.init_app(app, db)
