@@ -22,12 +22,6 @@ def upgrade():
         batch_op.add_column(sa.Column('post_id', sa.Integer(), nullable=True))
         batch_op.create_foreign_key('fk_leaf_post', 'post', ['post_id'], ['id'])
 
-    with op.batch_alter_table('post', schema=None) as batch_op:
-        batch_op.drop_constraint('fk_post_leaf', type_='foreignkey')
-        batch_op.drop_column('leaf_folder_path')
-        batch_op.drop_column('leaf_user_id')
-        batch_op.drop_column('leaf_file_name')
-
     # ### end Alembic commands ###
 
 
