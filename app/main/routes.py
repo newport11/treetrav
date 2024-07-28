@@ -808,13 +808,13 @@ async def user_subfolder(username, path):
                         if get_leaf is None:
                             continue
                         else:
-                            temp_html = markdown.markdown(get_leaf.md_text)
+                            rendered_content = markdown.markdown(get_leaf.md_text)
                             return render_template(
                                 "leaf_page.html",
                                 user=user,
                                 form=empty_form,
                                 user_home_page=user_home_page,
-                                temp_html=temp_html,
+                                rendered_content=rendered_content,
                                 prevPath=prevPath,
                             )
 
@@ -1678,7 +1678,13 @@ def create_leaf():
             md_text=md,
         )
         db.session.add(leaf)
-        url = "https://treetrav.com"
+
+        # use prod domain if env is prod, else use local domain
+        if current_app.config["IS_PROD"].lower() == "true":
+            url = current_app.config["PROD_DOMAIN"]
+        else:
+            url = current_app.config["LOCAL_DOMAIN"]
+
         link = f"{url}/user/{current_user.username}/{folder_path}/{file_name}"
         post = Post(
             link=link,
