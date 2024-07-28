@@ -1678,7 +1678,13 @@ def create_leaf():
             md_text=md,
         )
         db.session.add(leaf)
-        url = "https://treetrav.com"
+
+        # use prod domain if env is prod, else use local domain
+        if current_app.config["IS_PROD"].lower() == "true":
+            url = current_app.config["PROD_DOMAIN"]
+        else:
+            url = current_app.config["LOCAL_DOMAIN"]
+
         link = f"{url}/user/{current_user.username}/{folder_path}/{file_name}"
         post = Post(
             link=link,

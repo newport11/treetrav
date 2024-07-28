@@ -19,6 +19,9 @@ class Config(object):
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
     ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY")
+    PROD_DOMAIN = os.environ.get("PROD_DOMAIN", "https://treetrav.com")
+    LOCAL_DOMAIN = os.environ.get("LOCAL_DOMAIN", "http://127.0.0.1:5000")
+    IS_PROD = os.environ.get("IS_PROD")
     ADMINS = ["treetrav.info@gmail.com"]
     ELASTICSEARCH_URL = os.environ.get("ELASTICSEARCH_URL")
     POSTS_PER_PAGE = 25
