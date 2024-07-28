@@ -1,3 +1,16 @@
+/* fonts */
+@font-face {
+    font-family: 'Poppins';
+    src: url('fonts/Poppins/Poppins-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* body */
+h2 {
+    font-family: 'Poppins', sans-serif;
+}
+
 .table {
     width: 100%;
     max-width: 100%;
@@ -253,22 +266,6 @@
     padding: 0.5rem;
     margin: 0;
 }
-
-/* fonts */
-@font-face {
-    font-family: 'FF Fago';
-    src: url('/fonts/FF-Fago-Regular.otf') format('opentype');
-    font-weight: normal;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'FF Fago';
-    src: url('/fonts/FF-Fago-Bold.otf') format('opentype');
-    font-weight: bold;
-    font-style: normal;
-}
-
 
 .spinner-border {
     color: #5a9b16; 
