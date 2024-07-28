@@ -133,7 +133,7 @@
                             div.textContent = suggestion;
                             div.addEventListener('click', function() {
                                 // Navigate to the user's profile page
-                                window.location.href = `/user/${encodeURIComponent(suggestion)}`;
+                                window.location.href = `/${encodeURIComponent(suggestion)}`;
                             });
                             suggestionsContainer.appendChild(div);
                         });

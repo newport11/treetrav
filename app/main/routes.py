@@ -1295,7 +1295,7 @@ def create_leaf():
         else:
             url = current_app.config["LOCAL_DOMAIN"]
 
-        link = f"{url}/user/{current_user.username}/{folder_path}/{file_name}"
+        link = f"{url}/{current_user.username}/{folder_path}/{file_name}"
         post = Post(
             link=link,
             body=file_name,
