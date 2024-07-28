@@ -808,13 +808,13 @@ async def user_subfolder(username, path):
                         if get_leaf is None:
                             continue
                         else:
-                            temp_html = markdown.markdown(get_leaf.md_text)
+                            rendered_content = markdown.markdown(get_leaf.md_text)
                             return render_template(
                                 "leaf_page.html",
                                 user=user,
                                 form=empty_form,
                                 user_home_page=user_home_page,
-                                temp_html=temp_html,
+                                rendered_content=rendered_content,
                                 prevPath=prevPath,
                             )
 

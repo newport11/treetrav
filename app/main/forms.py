@@ -201,5 +201,5 @@ class PageDownForm(FlaskForm):
     file_name = StringField(
         _l("File Name"), validators=[DataRequired(), Length(max=75)]
     )
-    pagedown = PageDownField("Enter your markdown", validators=[DataRequired()])
+    pagedown = PageDownField("Enter your markdown", validators=[DataRequired()], render_kw={"class": "custom-pagedown"})
     submit = SubmitField("Create Leaf Page")

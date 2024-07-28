@@ -49,6 +49,45 @@
             padding: 20px;
             border: 1px solid #fff;
         }
+
+        .leaf-form .form-group .flask-pagedown,
+        .leaf-form .form-group .flask-pagedown .flask-pagedown-input,
+        .custom-pagedown {
+            min-width: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        /* Hide the default preview */
+        .leaf-form .form-group .flask-pagedown-preview {
+            display: none;
+        }
+
+        /* Style for the custom preview */
+        .markdown-preview {
+            border: 1px solid #ccc;
+            padding: 10px;
+            min-height: 200px;
+            background-color: #f9f9f9;
+            overflow: auto; /* Allow scrolling for long content */
+        }
+
+        /* Styles for code blocks */
+        .markdown-preview pre {
+            background-color: #f0f0f0; /* Light gray background */
+            border: 1px solid #ddd; /* Border for the code block */
+            padding: 10px; /* Padding inside the code block */
+            overflow: auto; /* Allow scrolling for long lines */
+            border-radius: 4px; /* Rounded corners */
+            white-space: pre-wrap; /* Preserve whitespace and line breaks */
+            word-wrap: break-word; /* Break long words to fit */
+        }
+
+        .markdown-preview code {
+            background-color: #f0f0f0; /* Light gray background for inline code */
+            padding: 2px 4px; /* Padding for inline code */
+            border-radius: 4px; /* Rounded corners */
+        }
     </style>
 </head>
 <body>
@@ -66,16 +105,20 @@
     <head>
         {{ pagedown.html_head() }}
     </head>
-        <div class="row">
-            <div class="col-md-4">
-                {{ wtf.quick_form(form, extra_classes='leaf-form') }}
-            </div>
+    <div class="row">
+        <div class="col-md-6">
+            {{ wtf.quick_form(form, extra_classes='leaf-form') }}
         </div>
-        <body>
-            <br>
-            <br>
-            {{ temp_html | safe }}
-        </body>
+        <div class="col-md-6">
+            <h4 class="preview-label">Markdown Preview</h4>
+            <div class="markdown-preview"></div>
+        </div>
+    </div>
+    <body>
+        <br>
+        <br>
+        {{ rendered_content | safe }}
+    </body>
 </div>
 
 
@@ -96,10 +139,9 @@
         var url = "{{ url_for('main.actions') }}";
         window.location.href = url;
     }
-
-
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     // JavaScript to handle tab switching
     function openTab(evt, tabName) {
@@ -121,6 +163,19 @@
 
     // Open the default tab on page load
     document.getElementsByClassName("tablinks")[0].click();
+
+    // markdown preview
+    document.addEventListener('DOMContentLoaded', function() {
+        var input = document.querySelector('.flask-pagedown-input');
+        var preview = document.querySelector('.markdown-preview');
+        
+        if (input && preview) {
+            input.addEventListener('input', function() {
+                var markdownText = input.value;
+                preview.innerHTML = marked.parse(markdownText);
+            });
+        }
+    });
 </script>
     
 </body>
