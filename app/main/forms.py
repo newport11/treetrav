@@ -18,23 +18,6 @@ from app.utils import is_subpath
 
 
 class SettingsForm(FlaskForm):
-    username = StringField(_l("Username"), validators=[DataRequired(), Length(max=30)])
-    display_name = StringField(
-        _l("Display Name (Optional)"), validators=[Length(max=30)]
-    )
-    email = TextAreaField(_l("Email"), validators=[Length(min=0, max=140)])
-    about_me = TextAreaField(_l("About me"), validators=[Length(min=0, max=140)])
-    picture = FileField("Update Profile Picture")
-    private_mode = BooleanField(_l("Private Mode"), default=False)
-    dark_mode = BooleanField(_l("Dark Mode"), default=False)
-    description_text_color = StringField(
-        _l("Description Text Color"), default="#000000"
-    )
-    form_type = HiddenField(
-        "Form Type", default="settings_form"
-    )  # Include the form_type field as HiddenField
-    submit = SubmitField(_l("Save"))
-
     def __init__(self, original_username, original_email, *args, **kwargs):
         super(SettingsForm, self).__init__(*args, **kwargs)
         self.original_username = original_username
@@ -62,6 +45,24 @@ class SettingsForm(FlaskForm):
             user = User.query.filter_by(email=self.email.data.strip()).first()
             if user is not None:
                 raise ValidationError(_("please use a different email."))
+            
+    username = StringField(_l("Username"), validators=[DataRequired(), Length(max=30), validate_username])
+    display_name = StringField(
+        _l("Display Name (Optional)"), validators=[Length(max=30)]
+    )
+    email = TextAreaField(_l("Email"), validators=[Length(min=0, max=140), validate_email])
+    about_me = TextAreaField(_l("About me"), validators=[Length(min=0, max=140)])
+    profile_pic = FileField("Update Profile Picture")
+    private_mode = BooleanField(_l("Private Mode"), default=False)
+    dark_mode = BooleanField(_l("Dark Mode"), default=False)
+    description_text_color = StringField(
+        _l("Description Text Color"), default="#000000"
+    )
+    form_type = HiddenField(
+        "Form Type", default="settings_form"
+    )  # Include the form_type field as HiddenField
+    submit = SubmitField(_l("Save"))
+
 
 
 class EmptyForm(FlaskForm):

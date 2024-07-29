@@ -88,8 +88,8 @@
                     {{ form.description_text_color(class="form-control", type="color", id="description_text_color") }}
                 </div>
                 <div class="form-group">
-                    {{ form.picture.label(class="form-label") }}
-                    {{ form.picture(class="form-control-file", id="picture") }}
+                    {{ form.profile_pic.label(class="form-label") }}
+                    {{ form.profile_pic(class="form-control-file", id="profile_pic") }}
                 </div>
                 <div class="form-group">
                     {{ form.private_mode.label(class="form-check-label") }}
@@ -145,6 +145,18 @@ $(document).ready(function() {
         const displayNameMaxLength = 30;
         const aboutMeMaxLength = 140;
         const forbiddenUsernames = {{ forbidden_usernames | tojson }};
+
+        
+        // Validate file type
+        var fileInput = $('#profile_pic')[0];
+        if (fileInput.files.length > 0) {
+            var file = fileInput.files[0];
+            var fileType = file.type;
+            if (fileType !== 'image/jpeg' && fileType !== 'image/png') {
+                showError('profile_pic', 'Only JPG and PNG files are allowed.');
+                isValid = false;
+            }
+        }
 
         // Validate username
         if (username !== originalUsername) {
@@ -232,10 +244,14 @@ $(document).ready(function() {
             // Show loading spinner and disable submit button
             $('input[type="submit"]').prop('disabled', true);
 
+            var formData = new FormData(this);
+
             $.ajax({
                 url: $(this).attr('action'),
                 type: 'POST',
-                data: $(this).serialize(),
+                data: formData,
+                processData: false, // Prevent jQuery from automatically transforming the data into a query string
+                contentType: false, // Prevent jQuery from setting the Content-Type header
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 },
@@ -246,9 +262,12 @@ $(document).ready(function() {
                     showSuccessMessage(response.message);
                 },
                 error: function(xhr, status, error) {
-                    var errors = xhr.responseJSON;
-                    for (var field in errors) {
-                        showError(field, errors[field]);
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        // Display the error message from the server
+                        showError('profile_pic', xhr.responseJSON.error);
+                    } else {
+                        // Fallback error message
+                        showError('profile_pic', 'An error occurred while uploading the file.');
                     }
                 },
                 complete: function() {

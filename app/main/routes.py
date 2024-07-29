@@ -577,7 +577,10 @@ def get_follow_requests(username):
 @bp.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
-    def top_crop(img, target_size):
+    def allowed_file(filename):
+        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    def top_crop(img, target_size, quality=85):
         width, height = img.size
         target_ratio = target_size[0] / target_size[1]
         img_ratio = width / height
@@ -592,7 +595,26 @@ def settings():
             new_height = int(width / target_ratio)
             img = img.crop((0, 0, width, new_height))
 
-        return img.resize(target_size, Image.LANCZOS)
+        img = img.resize(target_size, Image.LANCZOS)
+
+        # Convert image to RGB if it's in a different mode
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+
+        # Compress the image
+        buffer = BytesIO()
+        img.save(buffer, format="JPEG", quality=quality)
+        compressed_img = Image.open(buffer)
+
+        # Check if the image is less than 1MB
+        while buffer.tell() > 1024 * 1024:
+            quality -= 5
+            buffer.seek(0)
+            buffer.truncate()
+            img.save(buffer, format="JPEG", quality=quality)
+            compressed_img = Image.open(buffer)
+
+        return compressed_img
 
     form = SettingsForm(current_user.username, current_user.email)
     if form.validate_on_submit():
@@ -603,17 +625,22 @@ def settings():
         current_user.private_mode = form.private_mode.data
         current_user.dark_mode = form.dark_mode.data
         current_user.description_text_color = form.description_text_color.data
-        picture = form.picture.data
+        profile_pic = form.profile_pic.data
+
         try:
-            if picture:
-                tmp_filename = current_user.username + secure_filename(picture.filename)
+            if profile_pic:
+                if not allowed_file(profile_pic.filename):
+                    flash("Only JPG and PNG files are allowed.", "error")
+                    return jsonify({"error": "Only JPG and PNG files are allowed."}), 400
+                tmp_filename = current_user.username + secure_filename(profile_pic.filename)
                 filename = hash_profile_pic(tmp_filename)
                 old_profile_pic = None
                 if current_user.profile_pic:
-                    old_profile_pic = current_user.profile_pic.rstrip(".png")
+                    old_profile_pic = current_user.profile_pic.rstrip(".jpg")
                 try:
-                    current_user.profile_pic = f"{filename}.png"
-                    img = Image.open(picture)
+                    current_user.profile_pic = f"{filename}.jpg"
+                    current_app.logger.info(f"Assigned profile_pic: {current_user.profile_pic}")
+                    img = Image.open(profile_pic)
 
                     # Check for EXIF orientation and rotate if necessary
                     if hasattr(img, "_getexif"):
@@ -628,20 +655,20 @@ def settings():
                                 elif orientation == 8:
                                     img = img.rotate(90, expand=True)
 
-                    # Center crop and resize the image to 155x155
+                    # Center crop, resize, and compress the image to 155x155
                     resized_picture = top_crop(img, (155, 155))
                     resized_picture.save(
-                        os.path.join("app/static/profile_pics", f"{filename}.png"),
-                        "PNG",
+                        os.path.join("app/static/profile_pics", f"{filename}.jpg"),
+                        "JPEG",
                     )
 
-                    # Center crop and resize to 25x25
+                    # Center crop, resize, and compress to 25x25
                     resized_picture_mini = top_crop(img, (25, 25))
                     resized_picture_mini.save(
                         os.path.join(
-                            "app/static/profile_pics", f"{filename}_mini_25.png"
+                            "app/static/profile_pics", f"{filename}_mini_25.jpg"
                         ),
-                        "PNG",
+                        "JPEG",
                     )
 
                     # Delete old pics
@@ -649,20 +676,21 @@ def settings():
                         files_to_delete = [
                             os.path.join(
                                 "app/static/profile_pics",
-                                f"{old_profile_pic}_mini_25.png",
+                                f"{old_profile_pic}_mini_25.jpg",
                             ),
                             os.path.join(
-                                "app/static/profile_pics", f"{old_profile_pic}.png"
+                                "app/static/profile_pics", f"{old_profile_pic}.jpg"
                             ),
                         ]
                         for file in files_to_delete:
                             if os.path.exists(file):
                                 os.remove(file)
                 except Exception as e:
+                    current_app.logger.error(f"Exception occurred. {e}")
                     flash(_("Error in uploading image. Please try again"), "error")
-        except RequestEntityTooLarge:
-            flash("File too large. Please upload a smaller file.", "error")
-            return redirect(url_for("main.settings"))
+        except RequestEntityTooLarge as e:
+            current_app.logger.error(f"Exception occurred. {e}")
+            return jsonify({"error": "File too large. Please upload a smaller file."}), 413
 
         db.session.commit()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
