@@ -2,7 +2,6 @@ import asyncio
 import os
 import urllib.parse
 from datetime import datetime
-from io import BytesIO
 
 import markdown
 from flask import (
@@ -17,8 +16,8 @@ from flask import (
 )
 from flask_babel import _, get_locale
 from flask_login import current_user, login_required
-from PIL import ExifTags, Image
-from sqlalchemy import and_, func, or_, select, union, union_all
+from PIL import Image
+from sqlalchemy import or_, union_all
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
@@ -577,41 +576,22 @@ def get_follow_requests(username):
 @bp.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
-    def top_crop(img, target_size, quality=85):
+    def top_crop(img, target_size):
         width, height = img.size
         target_ratio = target_size[0] / target_size[1]
         img_ratio = width / height
 
         if img_ratio > target_ratio:
-            # Image is wider than needed, crop the sides equally
             new_width = int(height * target_ratio)
             left = (width - new_width) // 2
             img = img.crop((left, 0, left + new_width, height))
         elif img_ratio < target_ratio:
-            # Image is taller than needed, crop the bottom
             new_height = int(width / target_ratio)
             img = img.crop((0, 0, width, new_height))
 
         img = img.resize(target_size, Image.LANCZOS)
 
-        # Convert image to RGB if it's in a different mode
-        if img.mode != 'RGB':
-            img = img.convert('RGB')
-
-        # Compress the image
-        buffer = BytesIO()
-        img.save(buffer, format="JPEG", quality=quality)
-        compressed_img = Image.open(buffer)
-
-        # Check if the image is less than 1MB
-        while buffer.tell() > 1024 * 1024:
-            quality -= 5
-            buffer.seek(0)
-            buffer.truncate()
-            img.save(buffer, format="JPEG", quality=quality)
-            compressed_img = Image.open(buffer)
-
-        return compressed_img
+        return img
 
     form = SettingsForm(current_user.username, current_user.email)
     if form.validate_on_submit():
@@ -684,8 +664,11 @@ def settings():
                     flash(_("Error in uploading image. Please try again"), "error")
         except RequestEntityTooLarge as e:
             current_app.logger.error(f"Exception occurred. {e}")
-            return jsonify({"error": "File too large. Please upload a smaller file."}), 413
-
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"error": "The file is too large. Maximum size is 1MB."}), 413
+            flash(_("The file is too large. Maximum size is 1MB."), "error")
+            return redirect(url_for("main.settings"))
+            
         db.session.commit()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             # flash(_("Your changes have been saved."))
