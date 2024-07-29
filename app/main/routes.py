@@ -1,8 +1,8 @@
 import asyncio
-from functools import wraps
 import os
 import urllib.parse
 from datetime import datetime
+from functools import wraps
 
 import markdown
 from flask import (
@@ -22,7 +22,7 @@ from sqlalchemy import or_, union_all
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
-from app import db, cache
+from app import cache, db
 from app.constants import FORBIDDEN_USERNAMES
 from app.favicon import get_favicon, hash_profile_pic
 from app.main import bp
@@ -51,6 +51,21 @@ from app.utils import (
 
 user_visit_counter_dict = {}
 
+
+@bp.before_app_request
+def before_request():
+    if current_user.is_authenticated:
+        current_user.last_seen = datetime.utcnow()
+        db.session.commit()
+    g.search_form = SearchForm()
+    g.locale = str(get_locale())
+
+
+@bp.context_processor
+def inject_current_year():
+    return {"current_year": datetime.now().year}
+
+
 def handle_ajax_request(f):
     @wraps(f)
     async def decorated_function(*args, **kwargs):
@@ -61,21 +76,9 @@ def handle_ajax_request(f):
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return jsonify({"error": "An unexpected error occurred"}), 500
             flash(_("An unexpected error occurred"))
-            return redirect(url_for(f'main.{f.__name__}'))
+            return redirect(url_for(f"main.{f.__name__}"))
+
     return decorated_function
-
-
-@bp.before_app_request
-def before_request():
-    if current_user.is_authenticated:
-        current_user.last_seen = datetime.utcnow()
-        db.session.commit()
-    g.search_form = SearchForm()
-    g.locale = str(get_locale())
-
-@bp.context_processor
-def inject_current_year():
-    return {'current_year': datetime.now().year}
 
 
 @bp.route("/home", methods=["GET"])
@@ -91,11 +94,13 @@ def home():
 async def feed():
     return await handle_route(route_type="feed")
 
+
 @bp.route("/discover/", methods=["GET", "POST"])
 @bp.route("/discover", methods=["GET", "POST"])
 @handle_ajax_request
 async def discover():
     return await handle_route(route_type="discover")
+
 
 async def handle_route(route_type):
     form = PostForm()
@@ -106,7 +111,7 @@ async def handle_route(route_type):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"message": "Your link is now posted!"}), 200
         flash(_("Your link is now posted!"))
-        return redirect(url_for(f'main.{route_type}'))
+        return redirect(url_for(f"main.{route_type}"))
     elif request.method == "POST":
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify(form.errors), 400
@@ -114,11 +119,13 @@ async def handle_route(route_type):
 
     return await handle_get_request(form, route_type)
 
+
 async def handle_post_submission(form):
     post = await create_post(form, current_user)
     db.session.add(post)
     db.session.commit()
     return "Your link is now posted!"
+
 
 async def handle_get_request(form, route_type):
     page = request.args.get("page", 1, type=int)
@@ -136,14 +143,19 @@ async def handle_get_request(form, route_type):
         title=_(route_type.capitalize()),
         form=form,
         posts=posts.items,
-        next_url=url_for(f"main.{route_type}", page=posts.next_num, q=search_query) if posts.has_next else None,
-        prev_url=url_for(f"main.{route_type}", page=posts.prev_num, q=search_query) if posts.has_prev else None,
+        next_url=url_for(f"main.{route_type}", page=posts.next_num, q=search_query)
+        if posts.has_next
+        else None,
+        prev_url=url_for(f"main.{route_type}", page=posts.prev_num, q=search_query)
+        if posts.has_prev
+        else None,
         current_page=posts.page,
         total_pages=posts.pages or 1,
         post_search_query=search_query,
     )
     cache.set(cache_key, result)
     return result
+
 
 def get_cache_key(route_type, page, search_query):
     if current_user.is_authenticated:
@@ -176,8 +188,8 @@ def delete_post(post_id):
         return redirect(request.referrer)
     else:
         return redirect(request.referrer)
-    
-    
+
+
 @bp.route("/account/delete/<int:user_id>", methods=["POST"])
 @login_required
 def delete_account(user_id):
@@ -409,14 +421,18 @@ def settings():
 
         try:
             if profile_pic:
-                tmp_filename = current_user.username + secure_filename(profile_pic.filename)
+                tmp_filename = current_user.username + secure_filename(
+                    profile_pic.filename
+                )
                 filename = hash_profile_pic(tmp_filename)
                 old_profile_pic = None
                 if current_user.profile_pic:
                     old_profile_pic = current_user.profile_pic.rstrip(".jpg")
                 try:
                     current_user.profile_pic = f"{filename}.jpg"
-                    current_app.logger.info(f"Assigned profile_pic: {current_user.profile_pic}")
+                    current_app.logger.info(
+                        f"Assigned profile_pic: {current_user.profile_pic}"
+                    )
                     img = Image.open(profile_pic)
 
                     # Check for EXIF orientation and rotate if necessary
@@ -468,10 +484,13 @@ def settings():
         except RequestEntityTooLarge as e:
             current_app.logger.error(f"Exception occurred. {e}")
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return jsonify({"error": "The file is too large. Maximum size is 1MB."}), 413
+                return (
+                    jsonify({"error": "The file is too large. Maximum size is 1MB."}),
+                    413,
+                )
             flash(_("The file is too large. Maximum size is 1MB."), "error")
             return redirect(url_for("main.settings"))
-            
+
         db.session.commit()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             # flash(_("Your changes have been saved."))
@@ -487,7 +506,12 @@ def settings():
         form.dark_mode.data = current_user.dark_mode
         form.description_text_color.data = current_user.description_text_color
 
-    return render_template("settings.html", title=_("Settings"), form=form, forbidden_usernames=FORBIDDEN_USERNAMES)
+    return render_template(
+        "settings.html",
+        title=_("Settings"),
+        form=form,
+        forbidden_usernames=FORBIDDEN_USERNAMES,
+    )
 
 
 @bp.route("/shared_folders", methods=["GET", "POST"])
@@ -1102,7 +1126,7 @@ def create_leaf():
             url = current_app.config["LOCAL_DOMAIN"]
 
         link = f"{url}/{current_user.username}/{folder_path}/{file_name}"
-        
+
         # Create the Post first
         post = Post(
             link=link,
@@ -1120,7 +1144,7 @@ def create_leaf():
             folder_path=folder_path,
             file_name=file_name,
             md_text=md,
-            post_id=post.id  # Associate the Leaf with the Post
+            post_id=post.id,  # Associate the Leaf with the Post
         )
         db.session.add(leaf)
 
@@ -1157,8 +1181,7 @@ def check_email():
     return jsonify({"exists": user is not None})
 
 
-
-#USER PROFILE ROUTE NEEDS TO BE AT BOTTOM SINCE IT ACTS AS A CATCH ALL ROUTE
+# USER PROFILE ROUTE NEEDS TO BE AT BOTTOM SINCE IT ACTS AS A CATCH ALL ROUTE
 @bp.route("/<username>/", methods=["POST", "GET"])
 @bp.route("/<username>", methods=["POST", "GET"])
 async def user(username):

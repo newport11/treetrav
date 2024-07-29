@@ -38,24 +38,31 @@ class SettingsForm(FlaskForm):
             if username.data.strip() in FORBIDDEN_USERNAMES:
                 raise ValidationError(_("This username is not allowed"))
 
-
     def validate_email(self, email):
         if email.data != self.original_email:
             user = User.query.filter_by(email=self.email.data.strip()).first()
             if user is not None:
                 raise ValidationError(_("please use a different email."))
-            
+
     def validate_profile_pic(self, field):
         if field.data:
             filename = field.data.filename
-            if not (filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg') or filename.lower().endswith('.png')):
+            if not (
+                filename.lower().endswith(".jpg")
+                or filename.lower().endswith(".jpeg")
+                or filename.lower().endswith(".png")
+            ):
                 raise ValidationError(_("Only JPG and PNG files are allowed."))
-            
-    username = StringField(_l("Username"), validators=[DataRequired(), Length(max=30), validate_username])
+
+    username = StringField(
+        _l("Username"), validators=[DataRequired(), Length(max=30), validate_username]
+    )
     display_name = StringField(
         _l("Display Name (Optional)"), validators=[Length(max=30)]
     )
-    email = TextAreaField(_l("Email"), validators=[Length(min=0, max=140), validate_email])
+    email = TextAreaField(
+        _l("Email"), validators=[Length(min=0, max=140), validate_email]
+    )
     about_me = TextAreaField(_l("About me"), validators=[Length(min=0, max=140)])
     profile_pic = FileField("Update Profile Picture", validators=[validate_profile_pic])
     private_mode = BooleanField(_l("Private Mode"), default=False)
@@ -67,7 +74,6 @@ class SettingsForm(FlaskForm):
         "Form Type", default="settings_form"
     )  # Include the form_type field as HiddenField
     submit = SubmitField(_l("Save"))
-
 
 
 class EmptyForm(FlaskForm):
@@ -85,7 +91,9 @@ class PostForm(FlaskForm):
         length = len(self.data["post_body"])
         if length > post_body_max_length:
             raise ValidationError(
-                _(f"must be {post_body_max_length} characters or less, currently {length}")
+                _(
+                    f"must be {post_body_max_length} characters or less, currently {length}"
+                )
             )
 
     def validate_description(self, form):
@@ -94,7 +102,9 @@ class PostForm(FlaskForm):
         length = len(self.data["post_description"])
         if length > post_description_max_length:
             raise ValidationError(
-                _(f"must be {post_description_max_length} characters or less, currently {length}")
+                _(
+                    f"must be {post_description_max_length} characters or less, currently {length}"
+                )
             )
 
     def validate_folder(self, form):
@@ -217,5 +227,9 @@ class PageDownForm(FlaskForm):
     file_name = StringField(
         _l("File Name"), validators=[DataRequired(), Length(max=75)]
     )
-    pagedown = PageDownField("Enter your markdown", validators=[DataRequired()], render_kw={"class": "custom-pagedown"})
+    pagedown = PageDownField(
+        "Enter your markdown",
+        validators=[DataRequired()],
+        render_kw={"class": "custom-pagedown"},
+    )
     submit = SubmitField("Create Leaf Page")

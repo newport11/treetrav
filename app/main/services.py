@@ -1,17 +1,22 @@
 # app/main/services.py
 
-import urllib.parse
 import asyncio
+import urllib.parse
+
 from flask import current_app
+
 from app import db
-from app.models import Post, User
-from app.utils import get_webpage_title
-from app.openai import generate_link_summary
 from app.favicon import get_favicon
+from app.models import Post, User
+from app.openai import generate_link_summary
+from app.utils import get_webpage_title
+
 
 async def create_post(form, current_user):
     folder_path = form.post_folder.data.strip()
-    folder_path = "/" if not folder_path or folder_path == "/" else folder_path.strip("/")
+    folder_path = (
+        "/" if not folder_path or folder_path == "/" else folder_path.strip("/")
+    )
 
     post = Post(
         link=urllib.parse.quote(form.post_link.data),
@@ -35,11 +40,14 @@ async def create_post(form, current_user):
 
     return post
 
+
 async def get_posts_query(route_type, current_user, search_query, page):
     if route_type == "feed":
         base_query = current_user.followed_posts()
     else:  # discover
-        base_query = db.session.query(Post).join(User).filter(User.private_mode == False)
+        base_query = (
+            db.session.query(Post).join(User).filter(User.private_mode == False)
+        )
 
     if search_query:
         base_query = base_query.filter(
