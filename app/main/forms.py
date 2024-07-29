@@ -46,13 +46,19 @@ class SettingsForm(FlaskForm):
             if user is not None:
                 raise ValidationError(_("please use a different email."))
             
+    def validate_profile_pic(form, field):
+        if field.data:
+            filename = field.data.filename
+            if not (filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg') or filename.lower().endswith('.png')):
+                raise ValidationError(_("Only JPG and PNG files are allowed."))
+            
     username = StringField(_l("Username"), validators=[DataRequired(), Length(max=30), validate_username])
     display_name = StringField(
         _l("Display Name (Optional)"), validators=[Length(max=30)]
     )
     email = TextAreaField(_l("Email"), validators=[Length(min=0, max=140), validate_email])
     about_me = TextAreaField(_l("About me"), validators=[Length(min=0, max=140)])
-    profile_pic = FileField("Update Profile Picture")
+    profile_pic = FileField("Update Profile Picture", validators=[validate_profile_pic])
     private_mode = BooleanField(_l("Private Mode"), default=False)
     dark_mode = BooleanField(_l("Dark Mode"), default=False)
     description_text_color = StringField(

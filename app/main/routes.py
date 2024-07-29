@@ -577,9 +577,6 @@ def get_follow_requests(username):
 @bp.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
-    def allowed_file(filename):
-        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-        return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
     def top_crop(img, target_size, quality=85):
         width, height = img.size
         target_ratio = target_size[0] / target_size[1]
@@ -629,9 +626,6 @@ def settings():
 
         try:
             if profile_pic:
-                if not allowed_file(profile_pic.filename):
-                    flash("Only JPG and PNG files are allowed.", "error")
-                    return jsonify({"error": "Only JPG and PNG files are allowed."}), 400
                 tmp_filename = current_user.username + secure_filename(profile_pic.filename)
                 filename = hash_profile_pic(tmp_filename)
                 old_profile_pic = None
