@@ -223,7 +223,7 @@ $(document).ready(function() {
         }
 
         // Validate about me
-        if (aboutMe.length > 140) {
+        if (aboutMe.length > aboutMeMaxLength) {
             showError('about_me', 'About Me must be ' + aboutMeMaxLength + ' characters or less.');
             isValid = false;
         }
