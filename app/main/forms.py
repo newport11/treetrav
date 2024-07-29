@@ -5,15 +5,14 @@ from flask import request
 from flask_babel import _
 from flask_babel import lazy_gettext as _l
 from flask_pagedown.fields import PageDownField
-from flask_wtf import FlaskForm, Form
-from flask_wtf.file import FileAllowed, FileField
-from sqlalchemy import func, text
+from flask_wtf import FlaskForm
+from flask_wtf.file import FileField
 from wtforms import BooleanField, HiddenField, StringField, SubmitField, TextAreaField
 from wtforms.fields import SubmitField
 from wtforms.validators import DataRequired, Length, ValidationError
 
 from app.constants import FORBIDDEN_USERNAMES
-from app.models import Post, User
+from app.models import User
 from app.utils import is_subpath
 
 
@@ -46,7 +45,7 @@ class SettingsForm(FlaskForm):
             if user is not None:
                 raise ValidationError(_("please use a different email."))
             
-    def validate_profile_pic(form, field):
+    def validate_profile_pic(self, field):
         if field.data:
             filename = field.data.filename
             if not (filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg') or filename.lower().endswith('.png')):
