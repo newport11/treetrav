@@ -52,7 +52,7 @@ class RegistrationForm(FlaskForm):
         if not re.match(r"^[a-zA-Z].*$", username.data.strip()):
             raise ValidationError(_("must start with letter"))
         if username.data.strip() in FORBIDDEN_USERNAMES:
-                raise ValidationError(_("This username is not allowed"))
+            raise ValidationError(_("This username is not allowed"))
 
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data.strip()).first()

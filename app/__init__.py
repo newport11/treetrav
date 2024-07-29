@@ -77,11 +77,11 @@ def create_app(config_class=Config):
     USE_REDIS = os.getenv("USE_REDIS", "False").lower() == "true"
 
     if USE_REDIS:
-        app.config['CACHE_TYPE'] = 'redis'
-        app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
-        app.config['CACHE_DEFAULT_TIMEOUT'] = 60
+        app.config["CACHE_TYPE"] = "redis"
+        app.config["CACHE_REDIS_URL"] = "redis://localhost:6379/0"
+        app.config["CACHE_DEFAULT_TIMEOUT"] = 60
     else:
-        app.config['CACHE_TYPE'] = 'simple'
+        app.config["CACHE_TYPE"] = "simple"
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -93,7 +93,7 @@ def create_app(config_class=Config):
     babel.init_app(app)
     pagedown.init_app(app)
     cache.init_app(app)
-    
+
     app.elasticsearch = (
         Elasticsearch([app.config["ELASTICSEARCH_URL"]], verify_certs=False)
         if app.config["ELASTICSEARCH_URL"]

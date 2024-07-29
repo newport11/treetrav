@@ -375,7 +375,7 @@ class Post(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 
     # New columns to link to Leaf
-    leaves = db.relationship('Leaf', backref='post', lazy=True)
+    leaves = db.relationship("Leaf", backref="post", lazy=True)
 
     def to_dict(self):
         data = {
@@ -442,14 +442,10 @@ class Leaf(db.Model):
     file_name = db.Column(db.String(75), primary_key=True, nullable=False)
     folder_path = db.Column(db.String(255), primary_key=True, nullable=False)
     md_text = db.Column(db.String(8000), nullable=False)
-    post_id = db.Column(db.Integer, nullable=True)  
+    post_id = db.Column(db.Integer, nullable=True)
 
     __table_args__ = (
-        ForeignKeyConstraint(
-            ['post_id'],
-            ['post.id'],
-            name='fk_leaf_post'
-        ),
+        ForeignKeyConstraint(["post_id"], ["post.id"], name="fk_leaf_post"),
     )
 
     def __init__(self, user_id, file_name, folder_path, md_text, post_id):
@@ -465,5 +461,5 @@ class Leaf(db.Model):
             "file_name": self.file_name,
             "folder_path": self.folder_path,
             "md_text": self.md_text,
-            "post_id": self.post_id
+            "post_id": self.post_id,
         }
