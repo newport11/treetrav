@@ -511,7 +511,7 @@ def settings():
         form.dark_mode.data = current_user.dark_mode
         form.description_text_color.data = current_user.description_text_color
         form.toggle_color.data = current_user.toggle_color
-        form.toggle_name.data = current_user.toggle_name
+        form.toggle_name.data = current_user.toggle_name if current_user.toggle_name else 'pics'
 
     return render_template(
         "settings.html",
