@@ -2,6 +2,7 @@ import asyncio
 import os
 import urllib.parse
 from datetime import datetime
+from functools import wraps
 
 import markdown
 from flask import (
@@ -21,7 +22,7 @@ from sqlalchemy import or_, union_all
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
-from app import db, cache
+from app import cache, db
 from app.constants import FORBIDDEN_USERNAMES
 from app.favicon import get_favicon, hash_profile_pic
 from app.main import bp
@@ -37,6 +38,7 @@ from app.main.forms import (
     ShareFolderForm,
 )
 from app.models import Leaf, Post, PostPic, ShareFolder, ShareFolderRequest, User
+from app.main.services import create_post, get_posts_query
 from app.openai import generate_link_summary
 from app.utils import (
     copy_folder_util,
@@ -59,9 +61,25 @@ def before_request():
     g.search_form = SearchForm()
     g.locale = str(get_locale())
 
+
 @bp.context_processor
 def inject_current_year():
-    return {'current_year': datetime.now().year}
+    return {"current_year": datetime.now().year}
+
+
+def handle_ajax_request(f):
+    @wraps(f)
+    async def decorated_function(*args, **kwargs):
+        try:
+            return await f(*args, **kwargs)
+        except Exception as e:
+            current_app.logger.error(f"An error occurred: {str(e)}", exc_info=True)
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"error": "An unexpected error occurred"}), 500
+            flash(_("An unexpected error occurred"))
+            return redirect(url_for(f"main.{f.__name__}"))
+
+    return decorated_function
 
 
 @bp.route("/home", methods=["GET"])
@@ -73,200 +91,78 @@ def home():
 @bp.route("/", methods=["GET", "POST"])
 @bp.route("/feed", methods=["GET", "POST"])
 @login_required
+@handle_ajax_request
 async def feed():
-    try:
-        form = PostForm()
-        if request.method == "POST" and form.validate_on_submit():
-            folder_path = form.post_folder.data.strip()
-            if folder_path and folder_path != "/":
-                folder_path = folder_path.strip("/")
-            else:
-                folder_path = "/"
-            folder_path = folder_path if form.post_folder.data else "/"
-            post_pic = form.post_pic.data
-            if post_pic and post_pic != '':
-                try:
-                    img = Image.open(post_pic)
-                    # Check for EXIF orientation and rotate if necessary
-                    if hasattr(img, "_getexif"):
-                        exif = img._getexif()
-                        if exif:
-                            orientation = exif.get(0x0112)
-                            if orientation:
-                                if orientation == 3:
-                                    img = img.rotate(180, expand=True)
-                                elif orientation == 6:
-                                    img = img.rotate(270, expand=True)
-                                elif orientation == 8:
-                                    img = img.rotate(90, expand=True)
+    return await handle_route(route_type="feed")
 
-                    # Center crop, resize, and compress the image to 155x155
-                    resized_picture = top_crop(img, (285, 285))
-                    post = PostPic(link=urllib.parse.quote(form.post_link.data),
-                            body=form.post_body.data,
-                            description=form.post_description.data.strip(),
-                            folder_link=folder_path,
-                            author=current_user)
-                    if not post.body:
-                        webpage_title = get_webpage_title(form.post_link.data)
-                        if webpage_title:
-                            post.body = webpage_title
-                        elif OPENAI_API_KEY:
-                            post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
-                    db.session.add(post)
-                    db.session.commit()
-                    post_pic_filename = f"{current_user.id}_{post.id}"
-                    resized_picture.save(
-                        os.path.join("app/static/post_pics", f"{post_pic_filename}.jpg"),
-                        "JPEG",
-                    )
-                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                        return jsonify({"message": "Your link is now posted!"}), 200
-                    flash(_("Your link is now posted!"))
-                    return redirect(url_for("main.feed"))
-                except Exception as e:
-                    current_app.logger.error(f"Exception occurred. {e}")
-                    flash(_("Error in uploading image. Please try again"), "error")
-            post = Post(
-                link=urllib.parse.quote(form.post_link.data),
-                body=form.post_body.data,
-                description=form.post_description.data.strip(),
-                folder_link=folder_path,
-                author=current_user,
-            )
-            OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
-            # If post.body is None, try to set it to the webpage title
-            if not post.body:
-                webpage_title = get_webpage_title(form.post_link.data)
-                if webpage_title:
-                    post.body = webpage_title
-                elif OPENAI_API_KEY:
-                    post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(
-                        "."
-                    )
-            favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
-            if favicon_file_name:
-                post.favicon_file_name = favicon_file_name
 
-            if current_user.inbound_shares and folder_path != "/":
-                for share in current_user.inbound_shares:
-                    sharee_folder_path = share.sharee_folder_path
-                    sharer_folder_path = share.sharer_folder_path
-                    sharer_id = share.sharer_id
-                    if sharee_folder_path == "/":
-                        path_to_check = sharer_folder_path.rstrip("/").rsplit("/", 1)[
-                            -1
-                        ]
-                    else:
-                        path_to_check = (
-                            sharee_folder_path
-                            + "/"
-                            + sharer_folder_path.rstrip("/").rsplit("/", 1)[-1]
-                        )
-                    if is_subpath(path_to_check, folder_path):
-                        sharer = User.query.filter_by(id=sharer_id).first()
-                        if sharer is None:
-                            continue
-                        else:
-                            post.author = sharer
-                            post.folder_link = (
-                                sharer_folder_path
-                                + post.folder_link[len(path_to_check) :]
-                            )
-                            db.session.add(post)
-                            db.session.commit()
-                            if (
-                                request.headers.get("X-Requested-With")
-                                == "XMLHttpRequest"
-                            ):
-                                return (
-                                    jsonify({"message": "Your link is now posted!"}),
-                                    200,
-                                )
-                            flash(_("Your link is now posted!"))
-                            return redirect(url_for("main.feed"))
+@bp.route("/discover/", methods=["GET", "POST"])
+@bp.route("/discover", methods=["GET", "POST"])
+@handle_ajax_request
+async def discover():
+    return await handle_route(route_type="discover")
 
+
+async def handle_route(route_type):
+    form = PostForm()
+    if request.method == "POST" and form.validate_on_submit():
+        post, commit_to_db = await create_post(form, current_user)
+        if commit_to_db:
             db.session.add(post)
             db.session.commit()
-            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return jsonify({"message": "Your link is now posted!"}), 200
-            flash(_("Your link is now posted!"))
-            return redirect(url_for("main.feed"))
-        elif request.method == "POST":
-            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return jsonify(form.errors), 400
-            return render_template("feed.html", title=_("Feed"), form=form)
-
-        # GET request handling
-        page = request.args.get("page", 1, type=int)
-        search_query = request.args.get("post_q", "")
-
-        # Create a cache key based on user, page, and search query
-        cache_key = f"feed:{current_user.id}:{page}:{search_query}"
-
-        # Try to get the cached result
-        cached_result = cache.get(cache_key)
-        if cached_result is not None:
-            return cached_result
-
-        if search_query:
-            # Filter posts based on the search query in both body and link
-            posts_query = current_user.followed_posts().filter(
-                db.or_(
-                    Post.body.ilike(f"%{search_query}%"),
-                    Post.link.ilike(f"%{search_query}%"),
-                    Post.description.ilike(f"%{search_query}%"),
-                )
-            )
-        else:
-            # If no search query, get all followed posts
-            posts_query = current_user.followed_posts()
-
-        # Ensure posts_query is not None before pagination
-        if posts_query is not None:
-            posts = posts_query.paginate(
-                page=page,
-                per_page=current_app.config["POSTS_PER_PAGE"],
-                error_out=False,
-            )
-        else:
-            posts = []  # or some default value
-
-        # Calculate current_page and total_pages
-        current_page = posts.page
-        total_pages = posts.pages or 1  # Use 1 if posts.pages is 0
-
-        next_url = (
-            url_for("main.feed", page=posts.next_num, q=search_query)
-            if posts.has_next
-            else None
-        )
-        prev_url = (
-            url_for("main.feed", page=posts.prev_num, q=search_query)
-            if posts.has_prev
-            else None
-        )
-        result = render_template(
-            "feed.html",
-            title=_("Feed"),
-            form=form,
-            posts=posts.items,
-            post_search_query=search_query,
-            next_url=next_url,
-            prev_url=prev_url,
-            current_page=current_page,
-            total_pages=total_pages,
-        )
-        # Cache the result
-        cache.set(cache_key, result)
-
-        return result
-    except Exception as e:
-        current_app.logger.error(f"An error occurred: {str(e)}", exc_info=True)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return jsonify({"error": "An unexpected error occurred"}), 500
-        flash(_("An unexpected error occurred"))
-        return redirect(url_for("main.feed"))
+            return jsonify({"message": "Your link is now posted!"}), 200
+        flash(_("Your link is now posted!"))
+        return redirect(url_for(f"main.{route_type}"))
+    elif request.method == "POST":
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(form.errors), 400
+        return render_template("feed.html", title=_(route_type.capitalize()), form=form)
+
+    return await handle_get_request(form, route_type)
+
+
+async def handle_post_submission(form):
+    post = await create_post(form, current_user)
+    db.session.add(post)
+    db.session.commit()
+    return "Your link is now posted!"
+
+
+async def handle_get_request(form, route_type):
+    page = request.args.get("page", 1, type=int)
+    search_query = request.args.get("post_q", "")
+
+    cache_key = get_cache_key(route_type, page, search_query)
+    cached_result = cache.get(cache_key)
+    if cached_result is not None:
+        return cached_result
+
+    posts = await get_posts_query(route_type, current_user, search_query, page)
+
+    result = render_template(
+        "feed.html",
+        title=_(route_type.capitalize()),
+        form=form,
+        posts=posts.items,
+        next_url=url_for(f"main.{route_type}", page=posts.next_num, q=search_query)
+        if posts.has_next
+        else None,
+        prev_url=url_for(f"main.{route_type}", page=posts.prev_num, q=search_query)
+        if posts.has_prev
+        else None,
+        current_page=posts.page,
+        total_pages=posts.pages or 1,
+        post_search_query=search_query,
+    )
+    cache.set(cache_key, result)
+    return result
+
+
+def get_cache_key(route_type, page, search_query):
+    if current_user.is_authenticated:
+        return f"{route_type}:user:{current_user.id}:{page}:{search_query}"
+    return f"{route_type}:anon:{page}:{search_query}"
 
 
 @bp.route("/post/delete/<int:post_id>", methods=["POST"])
@@ -392,174 +288,6 @@ def unfavorite_post(post_id):
         current_user.unfavorite(post)
         db.session.commit()
         return redirect(request.referrer)
-
-
-@bp.route("/discover/", methods=["GET", "POST"])
-@bp.route("/discover", methods=["GET", "POST"])
-# @login_required
-async def discover():
-    try:
-        form = PostForm()
-        if request.method == "POST" and form.validate_on_submit():
-            folder_path = form.post_folder.data.strip()
-            if folder_path and folder_path != "/":
-                folder_path = folder_path.strip("/")
-            else:
-                folder_path = "/"
-            folder_path = folder_path if form.post_folder.data else "/"
-            post_pic = form.post_pic.data
-            if post_pic and post_pic != '':
-                try:
-                    img = Image.open(post_pic)
-                    # Check for EXIF orientation and rotate if necessary
-                    if hasattr(img, "_getexif"):
-                        exif = img._getexif()
-                        if exif:
-                            orientation = exif.get(0x0112)
-                            if orientation:
-                                if orientation == 3:
-                                    img = img.rotate(180, expand=True)
-                                elif orientation == 6:
-                                    img = img.rotate(270, expand=True)
-                                elif orientation == 8:
-                                    img = img.rotate(90, expand=True)
-
-                    # Center crop, resize, and compress the image to 155x155
-                    resized_picture = top_crop(img, (285, 285))
-                    post = PostPic(link=urllib.parse.quote(form.post_link.data),
-                            body=form.post_body.data,
-                            description=form.post_description.data.strip(),
-                            folder_link=folder_path,
-                            author=current_user)
-                    if not post.body:
-                        webpage_title = get_webpage_title(form.post_link.data)
-                        if webpage_title:
-                            post.body = webpage_title
-                        elif OPENAI_API_KEY:
-                            post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
-                    db.session.add(post)
-                    db.session.commit()
-                    post_pic_filename = f"{current_user.id}_{post.id}"
-                    resized_picture.save(
-                        os.path.join("app/static/post_pics", f"{post_pic_filename}.jpg"),
-                        "JPEG",
-                    )
-                    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                        return jsonify({"message": "Your link is now posted!"}), 200
-                    flash(_("Your link is now posted!"))
-                    return redirect(url_for("main.user_pic"))
-                except Exception as e:
-                    current_app.logger.error(f"Exception occurred. {e}")
-                    flash(_("Error in uploading image. Please try again"), "error")
-            post = Post(
-                link=urllib.parse.quote(form.post_link.data),
-                body=form.post_body.data,
-                description=form.post_description.data.strip(),
-                folder_link=folder_path,
-                author=current_user,
-            )
-            OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
-            if not post.body:
-                webpage_title = get_webpage_title(form.post_link.data)
-                if webpage_title:
-                    post.body = webpage_title
-                elif OPENAI_API_KEY:
-                    post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(
-                        "."
-                    )
-            favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
-            if favicon_file_name:
-                post.favicon_file_name = favicon_file_name
-            db.session.add(post)
-            db.session.commit()
-            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return jsonify({"message": "Your link is now posted!"}), 200
-            flash(_("Your link is now posted!"))
-            return redirect(url_for("main.discover"))
-        elif request.method == "POST":
-            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return jsonify(form.errors), 400
-            return render_template("feed.html", title=_("Discover"), form=form)
-        else:
-            page = request.args.get("page", 1, type=int)
-            search_query = request.args.get("post_q", "")
-
-            # Create a cache key based on authentication status, page, and search query
-            if current_user.is_authenticated:
-                cache_key = f"discover:user:{current_user.id}:{page}:{search_query}"
-            else:
-                cache_key = f"discover:anon:{page}:{search_query}"
-
-            # Try to get the cached result
-            cached_result = cache.get(cache_key)
-            if cached_result is not None:
-                return cached_result
-
-            if search_query:
-                posts = (
-                    db.session.query(Post)
-                    .join(User)
-                    .filter(User.private_mode == False)
-                    .filter(
-                        db.or_(
-                            Post.body.ilike(f"%{search_query}%"),
-                            Post.link.ilike(f"%{search_query}%"),
-                            Post.description.ilike(f"%{search_query}%"),
-                        )
-                    )
-                    .order_by(Post.timestamp.desc())
-                    .paginate(
-                        page=page,
-                        per_page=current_app.config["POSTS_PER_PAGE"],
-                        error_out=False,
-                    )
-                )
-            else:
-                posts = (
-                    db.session.query(Post)
-                    .join(User)
-                    .filter(User.private_mode == False)
-                    .order_by(Post.timestamp.desc())
-                    .paginate(
-                        page=page,
-                        per_page=current_app.config["POSTS_PER_PAGE"],
-                        error_out=False,
-                    )
-                )
-            current_page = posts.page
-            total_pages = posts.pages or 1
-
-            next_url = (
-                url_for("main.discover", page=posts.next_num, q=search_query)
-                if posts.has_next
-                else None
-            )
-            prev_url = (
-                url_for("main.discover", page=posts.prev_num, q=search_query)
-                if posts.has_prev
-                else None
-            )
-            result = render_template(
-                "feed.html",
-                title=_("Discover"),
-                form=form,
-                posts=posts.items,
-                next_url=next_url,
-                prev_url=prev_url,
-                current_page=current_page,
-                total_pages=total_pages,
-                post_search_query=search_query,
-            )
-            # Cache the result
-            cache.set(cache_key, result)
-
-            return result
-    except Exception as e:
-        current_app.logger.error(f"An error occurred: {str(e)}", exc_info=True)
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return jsonify({"error": "An unexpected error occurred"}), 500
-        flash(_("An unexpected error occurred"))
-        return redirect(url_for("main.discover"))
 
 
 @bp.route("/stats/user_visit_counts")
@@ -698,14 +426,18 @@ def settings():
 
         try:
             if profile_pic:
-                tmp_filename = current_user.username + secure_filename(profile_pic.filename)
+                tmp_filename = current_user.username + secure_filename(
+                    profile_pic.filename
+                )
                 filename = hash_profile_pic(tmp_filename)
                 old_profile_pic = None
                 if current_user.profile_pic:
                     old_profile_pic = current_user.profile_pic.rstrip(".jpg")
                 try:
                     current_user.profile_pic = f"{filename}.jpg"
-                    current_app.logger.info(f"Assigned profile_pic: {current_user.profile_pic}")
+                    current_app.logger.info(
+                        f"Assigned profile_pic: {current_user.profile_pic}"
+                    )
                     img = Image.open(profile_pic)
 
                     # Check for EXIF orientation and rotate if necessary
@@ -757,10 +489,13 @@ def settings():
         except RequestEntityTooLarge as e:
             current_app.logger.error(f"Exception occurred. {e}")
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return jsonify({"error": "The file is too large. Maximum size is 1MB."}), 413
+                return (
+                    jsonify({"error": "The file is too large. Maximum size is 1MB."}),
+                    413,
+                )
             flash(_("The file is too large. Maximum size is 1MB."), "error")
             return redirect(url_for("main.settings"))
-            
+
         db.session.commit()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             # flash(_("Your changes have been saved."))
@@ -778,7 +513,12 @@ def settings():
         form.toggle_color.data = current_user.toggle_color
         form.toggle_name.data = current_user.toggle_name
 
-    return render_template("settings.html", title=_("Settings"), form=form, forbidden_usernames=FORBIDDEN_USERNAMES)
+    return render_template(
+        "settings.html",
+        title=_("Settings"),
+        form=form,
+        forbidden_usernames=FORBIDDEN_USERNAMES,
+    )
 
 
 @bp.route("/shared_folders", methods=["GET", "POST"])
@@ -1393,7 +1133,7 @@ def create_leaf():
             url = current_app.config["LOCAL_DOMAIN"]
 
         link = f"{url}/{current_user.username}/{folder_path}/{file_name}"
-        
+
         # Create the Post first
         post = Post(
             link=link,
@@ -1411,7 +1151,7 @@ def create_leaf():
             folder_path=folder_path,
             file_name=file_name,
             md_text=md,
-            post_id=post.id  # Associate the Leaf with the Post
+            post_id=post.id,  # Associate the Leaf with the Post
         )
         db.session.add(leaf)
 

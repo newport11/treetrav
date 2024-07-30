@@ -18,12 +18,11 @@
     </div>
 </div>
 
-
-{% for post in posts %}
-    {% include '_post.html' %}
-{% endfor %}
-
 {% if posts %}
+    {% for post in posts %}
+        {% include '_post.html' %}
+    {% endfor %}
+
     <nav aria-label="...">
         <ul class="pager">
             <li class="previous{% if not prev_url %} invisible{% endif %}">
@@ -43,7 +42,12 @@
             </li>
         </ul>
     </nav>
+{% else %}
+    <div class="alert alert-info" role="alert">
+        Oops, no posts found!
+    </div>
 {% endif %}
+
 {% include 'all_rights_reserved.html' %}
 
 {% endblock %}
