@@ -111,12 +111,15 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(128))
     posts = db.relationship("Post", backref="author", lazy="dynamic")
+    pic_posts = db.relationship("PostPic", backref="author", lazy="dynamic")
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     verified = db.Column(db.Boolean, default=False)
     profile_pic = db.Column(db.String(500))
     private_mode = db.Column(db.Boolean, default=False)
     dark_mode = db.Column(db.Boolean, default=False)
+    toggle_color = db.Column(db.String(10), default="#5a9b16")
+    toggle_name = db.Column(db.String(8), default="pics")
     description_text_color = db.Column(db.String(10), default="#000000")
     token = db.Column(db.String(32), index=True, unique=True)
     token_expiration = db.Column(db.DateTime)
@@ -179,6 +182,7 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
             "last_seen": self.last_seen.isoformat() + "Z",
             "about_me": self.about_me,
             "post_count": self.posts.count(),
+            "pic_post_count": self.pic_posts.count(),
             "follower_count": self.followers.count(),
             "followed_count": self.followed.count(),
             "verified": self.verified,
@@ -397,6 +401,37 @@ class Post(db.Model):
     def __repr__(self):
         return "<Post {}>".format(self.body)
 
+
+class PostPic(db.Model):
+    # __searchable__ = ['body']
+    id = db.Column(db.Integer, primary_key=True)
+    link = db.Column(db.String(2048))
+    body = db.Column(db.String(140))
+    description = db.Column(db.String(140))
+    folder_name = db.Column(db.String(255))
+    folder_link = db.Column(db.String(1000))
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+
+    def to_dict(self):
+        data = {
+            "id": self.id,
+            "link": self.link,
+            "body": self.body,
+            "description": self.description,
+            "folder_name": self.folder_name,
+            "folder_link": self.folder_link,
+            "timestamp": self.timestamp,
+            "user_id": self.user_id,
+            "_links": {"self": url_for("api.get_pic_post", id=self.id)},
+        }
+
+        return data
+
+    def __repr__(self):
+        return "<PostPic {}>".format(self.body)
+    
 
 class ShareFolderRequest(db.Model):
     __tablename__ = "share_requests"

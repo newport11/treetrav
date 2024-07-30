@@ -11,7 +11,7 @@
             </div>
 
             <div class="modal-body">
-                <form method="POST" action="" class="my-form" id="yourForm">
+                <form method="POST" enctype="multipart/form-data" action="" class="my-form" id="yourForm">
                     {{ form.hidden_tag() }}
                     
                     <div class="form-group">
@@ -31,6 +31,12 @@
                         <textarea class="form-control" id="post_description" name="post_description" placeholder="e.g. My Description">{{ form.post_description.data or '' }}</textarea>
                         <div class="invalid-feedback" id="post_description_error"></div>
                     </div>
+
+                    <div class="form-group">
+                        <label for="post_pic">Upload picture (Optional)</label>
+                        <input type="file" class="form-control-file" id="post_pic" name="post_pic" accept="image/*">
+                        <div class="invalid-feedback" id="post_picerror"></div>
+                    </div>                  
 
                     <div class="form-group">
                         <label for="post_folder">Folder</label>
@@ -66,6 +72,7 @@
             var postLink = $('#post_link').val();
             var postBody = $('#post_body').val();
             var postDescription = $('#post_description').val();
+            var postPic = $('#post_pic').val();
             var postFolder = $('#post_folder').val();
             const postBodyMaxLength = 65;
             const postDescriptionMaxLength = 35;
@@ -103,14 +110,17 @@
                 // Show loading spinner and disable submit button
                 $loadingSpinner.show();
                 $('input[type="submit"]').prop('disabled', true);
+                var formData = new FormData(this);
 
                 $.ajax({
                     url: $(this).attr('action'),
                     type: 'POST',
-                    data: $(this).serialize(),
+                    data: formData,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     },
+                    processData: false,  
+                    contentType: false, 
                     success: function(response) {
                         // Clear the form
                         $('#yourForm')[0].reset();

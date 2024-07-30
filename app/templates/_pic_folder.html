@@ -1,0 +1,36 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+
+<table class="table table-hover">
+    <tr>
+        <td width="25px">
+            <a href="{{ url_for('main.user_pics_subfolder', username=folder.author.username, path=folder.folder_link) }}">
+                <img width="25" height="25" src="https://img.icons8.com/3d-fluency/25/folder-invoices--v1.png" alt="folder-invoices--v1"/>
+            </a>
+        </td>
+        <td style="max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            
+            {% block post %}
+            <a href="{{ url_for('main.user_pics_subfolder', username=folder.author.username, path=folder.folder_link) }}" class="userpage-folder-text">
+                {{ folder.folder_name }}
+            </a> 
+            {% endblock %}
+
+            {{ _('<em class="when-text"> • %(when)s </em>', when=moment(folder.timestamp).fromNow()) }}
+
+        </td>
+
+        <td>
+            {% block delete %}
+            {% if current_user.id == folder.user_id%}
+
+            <div style="text-align: right;"> 
+                {% include 'delete_popup.html' %}
+            </div>
+
+            {% endif %}
+            {% endblock %}
+
+        </td>
+        
+    </tr>
+</table>

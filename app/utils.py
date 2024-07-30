@@ -1,6 +1,7 @@
 import copy
 import logging
 from urllib.parse import urlparse
+from PIL import Image
 
 import requests
 from bs4 import BeautifulSoup
@@ -166,3 +167,21 @@ def get_webpage_title(url):
     except Exception as e:
         logging.error(f"Error fetching webpage title: {str(e)}")
         return None
+
+
+def top_crop(img, target_size):
+    width, height = img.size
+    target_ratio = target_size[0] / target_size[1]
+    img_ratio = width / height
+
+    if img_ratio > target_ratio:
+        new_width = int(height * target_ratio)
+        left = (width - new_width) // 2
+        img = img.crop((left, 0, left + new_width, height))
+    elif img_ratio < target_ratio:
+        new_height = int(width / target_ratio)
+        img = img.crop((0, 0, width, new_height))
+
+    img = img.resize(target_size, Image.LANCZOS)
+
+    return img

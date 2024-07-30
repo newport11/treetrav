@@ -63,9 +63,11 @@ class SettingsForm(FlaskForm):
     description_text_color = StringField(
         _l("Description Text Color"), default="#000000"
     )
+    toggle_color =  StringField(_l("Toggle Color"), default="#5a9b16")
+    toggle_name =  StringField(_l("Toggle Name"), default="pics", validators=[Length(min=1, max=5)])
     form_type = HiddenField(
         "Form Type", default="settings_form"
-    )  # Include the form_type field as HiddenField
+    )
     submit = SubmitField(_l("Save"))
 
 
@@ -108,12 +110,18 @@ class PostForm(FlaskForm):
                         f"individual folder length must be {post_folder_max_length} characters or less, currently {len(folder)}"
                     )
                 )
-
+    def validate_post_pic(self, field):
+        if field.data:
+            filename = field.data.filename
+            if not (filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg') or filename.lower().endswith('.png')):
+                raise ValidationError(_("Only JPG and PNG files are allowed."))
+            
     post_link = TextAreaField(_l("Link*"), validators=[DataRequired(), validate_post])
     post_body = TextAreaField(_l("Title"), validators=[validate_body])
     post_description = TextAreaField(
         _l("Description"), validators=[validate_description]
     )
+    post_pic = FileField("Upload Picture (Optional)", default= '', validators=[validate_post_pic])
     post_folder = TextAreaField(_l("Folder"), validators=[validate_folder])
     submit = SubmitField(_l("Post"))
 

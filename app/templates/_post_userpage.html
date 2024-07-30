@@ -18,7 +18,7 @@
 
             </a>
         </td>
-        <td style="max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <td style="max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             {% block post %}
             {% if post.description %}
                 {% if current_user.get_id() and current_user.description_text_color %}
@@ -42,7 +42,7 @@
 
             {% if post.body %} <a href="{{ decoded_link}}" target="_blank" class="posted-link-text">
                 {% if post.body | length > 65 %}
-                    {{ post.body[:40] }}...
+                    {{ post.body[:65] }}...
                 {% else %}
                     {{ post.body }}
                 {% endif %}

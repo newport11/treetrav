@@ -84,15 +84,14 @@
         </tr>
     </table>
 
-
-
     {% for folder in folders %}
-        {% include '_folder.html' %}
+        {% include '_pic_folder.html' %}
     {% endfor %}
 
-    {% for post in posts %}
-        {% include '_post_userpage.html' %}
+    {% for post_slice in posts|chunked(3) %}        
+        {% include '_pic_post_userpage.html' %}
     {% endfor %}
+
 
     {% if posts %}
         <nav aria-label="...">

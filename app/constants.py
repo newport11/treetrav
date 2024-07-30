@@ -41,6 +41,11 @@ FORBIDDEN_USERNAMES = [
     "create_leaf",
     "query",
     "post",
+    "posts",
+    "tokens",
+    "token",
+    "pic_posts",
+    "pic_post",
     "account",
     "folder",
     "stats",
@@ -49,5 +54,6 @@ FORBIDDEN_USERNAMES = [
     "favorites",
     "follow_requests",
     "user",
+    "p",
 ]
 
