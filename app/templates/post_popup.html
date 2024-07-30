@@ -15,7 +15,7 @@
                     {{ form.hidden_tag() }}
                     
                     <div class="form-group">
-                        <label for="post_link">Link URL(Required)</label>
+                        <label for="post_link">Link URL (Required)</label>
                         <textarea class="form-control" id="post_link" name="post_link" placeholder="e.g. https://google.com" required>{{ form.post_link.data or '' }}</textarea>
                         <div class="invalid-feedback" id="post_link_error"></div>
                     </div>
