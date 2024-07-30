@@ -6,6 +6,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-body">
+                
                 <form method="POST" action="{{ url_for('main.delete_folder', folder_link=folder.folder_link ) }}" class="my-form" id="yourForm">
                     <div class="modal-header d-flex justify-content-between align-items-center">
                         <h5 class="modal-title" id="deletePopupLabel">Are you sure you want to delete the folder?</h5>

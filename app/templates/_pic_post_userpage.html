@@ -18,10 +18,9 @@
         {% if post %}
         {% set decoded_link = decode_url(post.link) %}
 
-        <td style="width: 33.33%; text-align: center;" onclick="window.location='{{ decoded_link }}'">
+        <td style="width: 33.33%; text-align: center;">
             <a href="{{ decoded_link }}" target="_blank" style="display: block; text-decoration: none; color: inherit;">
                 <img src="{{ url_for('static', filename='post_pics/' + post.author.id|string + '_' + post.id|string + '.jpg') }}" alt="Post Image" class="large-image" style="width: 100%; height: auto;">
-                
                 <div class="title-text" style="font-size: 1.6em;"> 
                     <div class="half-break"></div>
                     {% if post.body %}

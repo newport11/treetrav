@@ -6,7 +6,7 @@
     <title>Toggle Button</title>
     <style>
         :root {
-            --toggle-color: {{ user.toggle_color }};
+            --toggle-color:  {% if user.toggle_color is not none %}{{ user.toggle_color }}{% else %}#5a9b16{% endif %};
         }
 
         .toggle-container {
