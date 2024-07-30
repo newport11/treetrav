@@ -14,6 +14,11 @@ unsized/
 app/static/profile_pics/*.png
 app/static/profile_pics/*.jpg
 app/static/profile_pics/*.jpeg
+
+app/static/post_pics/*.png
+app/static/post_pics/*.jpg
+app/static/post_pics/*.jpeg
+
 # ignore all favicons 
 app/static/favicons/*.png
 

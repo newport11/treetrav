@@ -37,8 +37,8 @@ from app.main.forms import (
     SettingsForm,
     ShareFolderForm,
 )
+from app.models import Leaf, Post, PostPic, ShareFolder, ShareFolderRequest, User
 from app.main.services import create_post, get_posts_query
-from app.models import Leaf, Post, ShareFolder, ShareFolderRequest, User
 from app.openai import generate_link_summary
 from app.utils import (
     copy_folder_util,
@@ -46,6 +46,7 @@ from app.utils import (
     is_subpath,
     move_folder_util,
     rename_folder_util,
+    top_crop,
     validate_folder_path,
 )
 
@@ -105,9 +106,10 @@ async def discover():
 async def handle_route(route_type):
     form = PostForm()
     if request.method == "POST" and form.validate_on_submit():
-        post = await create_post(form, current_user)
-        db.session.add(post)
-        db.session.commit()
+        post, commit_to_db = await create_post(form, current_user)
+        if commit_to_db:
+            db.session.add(post)
+            db.session.commit()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"message": "Your link is now posted!"}), 200
         flash(_("Your link is now posted!"))
@@ -188,8 +190,26 @@ def delete_post(post_id):
         return redirect(request.referrer)
     else:
         return redirect(request.referrer)
+    
+@bp.route("/post_pic/delete/<int:post_id>", methods=["POST"])
+@login_required
+def delete_post_pic(post_id):
+    post = PostPic.query.filter_by(id=post_id).first_or_404()
+    if current_user.id == post.user_id:
+        # Delete associated Leaf objects
+        db.session.delete(post)
+        db.session.commit()
 
-
+        #delete file
+        file = f"app/static/post_pics/{post.user_id}_{post_id}.jpg"
+        print(file)      
+        if os.path.exists(file):
+            os.remove(file)
+        flash("Link deleted")
+        return redirect(request.referrer)
+    else:
+        return redirect(request.referrer)
+    
 @bp.route("/account/delete/<int:user_id>", methods=["POST"])
 @login_required
 def delete_account(user_id):
@@ -391,23 +411,6 @@ def get_follow_requests(username):
 @bp.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
-    def top_crop(img, target_size):
-        width, height = img.size
-        target_ratio = target_size[0] / target_size[1]
-        img_ratio = width / height
-
-        if img_ratio > target_ratio:
-            new_width = int(height * target_ratio)
-            left = (width - new_width) // 2
-            img = img.crop((left, 0, left + new_width, height))
-        elif img_ratio < target_ratio:
-            new_height = int(width / target_ratio)
-            img = img.crop((0, 0, width, new_height))
-
-        img = img.resize(target_size, Image.LANCZOS)
-
-        return img
-
     form = SettingsForm(current_user.username, current_user.email)
     if form.validate_on_submit():
         current_user.display_name = form.display_name.data.strip()
@@ -417,6 +420,8 @@ def settings():
         current_user.private_mode = form.private_mode.data
         current_user.dark_mode = form.dark_mode.data
         current_user.description_text_color = form.description_text_color.data
+        current_user.toggle_color = form.toggle_color.data
+        current_user.toggle_name = form.toggle_name.data
         profile_pic = form.profile_pic.data
 
         try:
@@ -505,6 +510,8 @@ def settings():
         form.private_mode.data = current_user.private_mode
         form.dark_mode.data = current_user.dark_mode
         form.description_text_color.data = current_user.description_text_color
+        form.toggle_color.data = current_user.toggle_color
+        form.toggle_name.data = current_user.toggle_name
 
     return render_template(
         "settings.html",
@@ -1181,13 +1188,11 @@ def check_email():
     return jsonify({"exists": user is not None})
 
 
-# USER PROFILE ROUTE NEEDS TO BE AT BOTTOM SINCE IT ACTS AS A CATCH ALL ROUTE
-@bp.route("/<username>/", methods=["POST", "GET"])
-@bp.route("/<username>", methods=["POST", "GET"])
-async def user(username):
+@bp.route("/p/<username>", methods=["POST", "GET"])
+@bp.route("/p/<username>/", methods=["POST", "GET"])
+async def user_pics(username):
     user = User.query.filter(User.username.ilike(username)).first_or_404()
     followers = user.followers
-
     form = PostForm()
     if request.method == "POST" and form.validate_on_submit():
         folder_path = form.post_folder.data.strip()
@@ -1196,6 +1201,50 @@ async def user(username):
         else:
             folder_path = "/"
         folder_path = folder_path if form.post_folder.data else "/"
+        post_pic = form.post_pic.data
+        if post_pic and post_pic != '':
+            try:
+                img = Image.open(post_pic)
+                # Check for EXIF orientation and rotate if necessary
+                if hasattr(img, "_getexif"):
+                    exif = img._getexif()
+                    if exif:
+                        orientation = exif.get(0x0112)
+                        if orientation:
+                            if orientation == 3:
+                                img = img.rotate(180, expand=True)
+                            elif orientation == 6:
+                                img = img.rotate(270, expand=True)
+                            elif orientation == 8:
+                                img = img.rotate(90, expand=True)
+
+                # Center crop, resize, and compress the image to 155x155
+                resized_picture = top_crop(img, (285, 285))
+                post = PostPic(link=urllib.parse.quote(form.post_link.data),
+                        body=form.post_body.data,
+                        description=form.post_description.data.strip(),
+                        folder_link=folder_path,
+                        author=current_user)
+                if not post.body:
+                    webpage_title = get_webpage_title(form.post_link.data)
+                    if webpage_title:
+                        post.body = webpage_title
+                    elif OPENAI_API_KEY:
+                        post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+                db.session.add(post)
+                db.session.commit()
+                post_pic_filename = f"{current_user.id}_{post.id}"
+                resized_picture.save(
+                    os.path.join("app/static/post_pics", f"{post_pic_filename}.jpg"),
+                    "JPEG",
+                )
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify({"message": "Your link is now posted!"}), 200
+                flash(_("Your link is now posted!"))
+                return redirect(url_for("main.user_pic"))
+            except Exception as e:
+                current_app.logger.error(f"Exception occurred. {e}")
+                flash(_("Error in uploading image. Please try again"), "error")
         post = Post(
             link=urllib.parse.quote(form.post_link.data),
             body=form.post_body.data,
@@ -1226,7 +1275,303 @@ async def user(username):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify(form.errors), 400
         # For non-AJAX requests, render the template with errors
-        return render_template("user.html", title=_("Profile"), form=form)
+        return render_template("user.html", title=_(user.username), form=form)
+
+    empty_form = EmptyForm()
+
+    if current_user.get_id():
+        is_following = current_user in followers
+    else:
+        is_following = False
+    if user.private_mode == True and user != current_user and not is_following:
+        return render_template("user_private.html", user=user, form=empty_form)
+    else:
+        posts = user.pic_posts.filter_by(folder_link="/").order_by(PostPic.timestamp.desc())
+
+        page = request.args.get("page", 1, type=int)
+        posts = posts.paginate(
+            page=page, per_page=current_app.config["PIC_POSTS_PER_PAGE"], error_out=False
+        )
+
+        next_url = (
+            url_for("main.user_pics", username=user.username, page=posts.next_num)
+            if posts.has_next
+            else None
+        )
+        prev_url = (
+            url_for("main.user_pics", username=user.username, page=posts.prev_num)
+            if posts.has_prev
+            else None
+        )
+
+        # Calculate current_page and total_pages
+        current_page = posts.page
+        total_pages = posts.pages or 1
+
+        folders_tmp = (
+            user.pic_posts.filter(PostPic.folder_link != "/")
+            .order_by(PostPic.timestamp.desc())
+            .all()
+        )
+        folders = []
+        visited_folders = []
+
+        for post in folders_tmp:
+            post.folder_name = post.folder_link = post.folder_link.split("/")[0]
+            if post.folder_name != "" and post.folder_name not in visited_folders:
+                visited_folders.append(post.folder_name)
+                folders.append(post)
+
+        user_visit_counter_dict[f"user_{user.id}"] = (
+            user_visit_counter_dict.get(f"user_{user.id}", 0) + 1
+        )
+        return render_template(
+            "user_pics.html",
+            user=user,
+            posts=posts.items,
+            next_url=next_url,
+            prev_url=prev_url,
+            form=form,
+            empty_form=empty_form,
+            folders=folders,
+            current_page=current_page,
+            total_pages=total_pages,
+        )
+
+
+@bp.route("/p/<username>/<path:path>", methods=["POST", "GET"])
+async def user_pics_subfolder(username, path):
+    user = User.query.filter(User.username.ilike(username)).first_or_404()
+    followers = user.followers
+    empty_form = EmptyForm()
+
+    form = PostForm()
+
+    if request.method == "POST" and form.validate_on_submit():
+        folder_path = form.post_folder.data.strip()
+        if folder_path and folder_path != "/":
+            folder_path = folder_path.strip("/")
+        else:
+            folder_path = path
+        folder_path = folder_path if form.post_folder.data else path
+        post_pic = form.post_pic.data
+        if post_pic and post_pic != '':
+            try:
+                img = Image.open(post_pic)
+                # Check for EXIF orientation and rotate if necessary
+                if hasattr(img, "_getexif"):
+                    exif = img._getexif()
+                    if exif:
+                        orientation = exif.get(0x0112)
+                        if orientation:
+                            if orientation == 3:
+                                img = img.rotate(180, expand=True)
+                            elif orientation == 6:
+                                img = img.rotate(270, expand=True)
+                            elif orientation == 8:
+                                img = img.rotate(90, expand=True)
+
+                # Center crop, resize, and compress the image to 155x155
+                resized_picture = top_crop(img, (285, 285))
+                post = PostPic(link=urllib.parse.quote(form.post_link.data),
+                        body=form.post_body.data,
+                        description=form.post_description.data.strip(),
+                        folder_link=folder_path,
+                        author=current_user)
+                if not post.body:
+                    webpage_title = get_webpage_title(form.post_link.data)
+                    if webpage_title:
+                        post.body = webpage_title
+                    elif OPENAI_API_KEY:
+                        post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+                db.session.add(post)
+                db.session.commit()
+                post_pic_filename = f"{current_user.id}_{post.id}"
+                resized_picture.save(
+                    os.path.join("app/static/post_pics", f"{post_pic_filename}.jpg"),
+                    "JPEG",
+                )
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify({"message": "Your link is now posted!"}), 200
+                flash(_("Your link is now posted!"))
+                return redirect(url_for("main.user_pic_subfolder"))
+            except Exception as e:
+                current_app.logger.error(f"Exception occurred. {e}")
+                flash(_("Error in uploading image. Please try again"), "error")
+        post = Post(
+            link=urllib.parse.quote(form.post_link.data),
+            body=form.post_body.data,
+            description=form.post_description.data.strip(),
+            folder_link=folder_path,
+            author=current_user,
+        )
+        OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
+        # If post.body is None, try to set it to the webpage title
+        if not post.body:
+            webpage_title = get_webpage_title(form.post_link.data)
+            if webpage_title:
+                post.body = webpage_title
+            elif OPENAI_API_KEY:
+                post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
+        if favicon_file_name:
+            post.favicon_file_name = favicon_file_name
+
+        db.session.add(post)
+        db.session.commit()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"message": "Your link is now posted!"}), 200
+        flash(_("Your link is now posted!"))
+        return redirect(url_for("main.user_pic_subfolder"))
+    elif request.method == "POST":
+        # If it's a POST request but validation failed, return errors as JSON
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(form.errors), 400
+        # For non-AJAX requests, render the template with errors
+        return render_template("user_pic_subfolder.html", title=_("Profile"), form=form)
+
+    if current_user.get_id():
+        is_following = current_user in followers
+    else:
+        is_following = False
+    if user.private_mode == True and user != current_user and not is_following:
+        return render_template("user_private.html", user=user, form=empty_form)
+    else:
+        splitPath = path.rstrip("/").rsplit("/", 1)
+        prevPath = splitPath[0]
+        current_folder = splitPath[-1]
+        if len(path.split("/")) <= 1:
+            user_home_page = True
+        else:
+            user_home_page = False
+
+       
+        posts = user.pic_posts.filter_by(folder_link=path).order_by(PostPic.timestamp.desc())
+        folders_tmp = (
+            user.pic_posts.filter(PostPic.folder_link != path)
+            .order_by(PostPic.timestamp.desc())
+            .all()
+        )
+        folders = []
+        visited_folders = []
+        for post in folders_tmp:
+            if not is_subpath(path, post.folder_link):
+                continue
+            else:
+                post.folder_name = (
+                    post.folder_link.removeprefix(path).strip("/").split("/")[0]
+                )
+                post.folder_link = path + "/" + post.folder_name
+                if post.folder_name != "" and post.folder_name not in visited_folders:
+                    visited_folders.append(post.folder_name)
+                    folders.append(post)
+
+        return render_template(
+            "user_pics_subfolder.html",
+            user=user,
+            posts=posts,
+            form=form,
+            path=path,
+            empty_form=empty_form,
+            folders=folders,
+            prevPath=prevPath,
+            user_home_page=user_home_page,
+            current_folder=current_folder,
+        )
+    
+
+
+
+#USER PROFILE ROUTE NEEDS TO BE AT BOTTOM SINCE IT ACTS AS A CATCH ALL ROUTE
+@bp.route("/<username>/", methods=["POST", "GET"])
+@bp.route("/<username>", methods=["POST", "GET"])
+async def user(username):
+    user = User.query.filter(User.username.ilike(username)).first_or_404()
+    followers = user.followers
+
+    form = PostForm()
+    if request.method == "POST" and form.validate_on_submit():
+        folder_path = form.post_folder.data.strip()
+        if folder_path and folder_path != "/":
+            folder_path = folder_path.strip("/")
+        else:
+            folder_path = "/"
+        folder_path = folder_path if form.post_folder.data else "/"
+        post_pic = form.post_pic.data
+        if post_pic and post_pic != '':
+            try:
+                img = Image.open(post_pic)
+                # Check for EXIF orientation and rotate if necessary
+                if hasattr(img, "_getexif"):
+                    exif = img._getexif()
+                    if exif:
+                        orientation = exif.get(0x0112)
+                        if orientation:
+                            if orientation == 3:
+                                img = img.rotate(180, expand=True)
+                            elif orientation == 6:
+                                img = img.rotate(270, expand=True)
+                            elif orientation == 8:
+                                img = img.rotate(90, expand=True)
+
+                # Center crop, resize, and compress the image to 155x155
+                resized_picture = top_crop(img, (285, 285))
+                post = PostPic(link=urllib.parse.quote(form.post_link.data),
+                        body=form.post_body.data,
+                        description=form.post_description.data.strip(),
+                        folder_link=folder_path,
+                        author=current_user)
+                if not post.body:
+                    webpage_title = get_webpage_title(form.post_link.data)
+                    if webpage_title:
+                        post.body = webpage_title
+                    elif OPENAI_API_KEY:
+                        post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+                db.session.add(post)
+                db.session.commit()
+                post_pic_filename = f"{current_user.id}_{post.id}"
+                resized_picture.save(
+                    os.path.join("app/static/post_pics", f"{post_pic_filename}.jpg"),
+                    "JPEG",
+                )
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify({"message": "Your link is now posted!"}), 200
+                flash(_("Your link is now posted!"))
+                return redirect(url_for("main.user"))
+            except Exception as e:
+                current_app.logger.error(f"Exception occurred. {e}")
+                flash(_("Error in uploading image. Please try again"), "error")
+        post = Post(
+            link=urllib.parse.quote(form.post_link.data),
+            body=form.post_body.data,
+            description=form.post_description.data.strip(),
+            folder_link=folder_path,
+            author=current_user,
+        )
+        OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
+        # If post.body is None, try to set it to the webpage title
+        if not post.body:
+            webpage_title = get_webpage_title(form.post_link.data)
+            if webpage_title:
+                post.body = webpage_title
+            elif OPENAI_API_KEY:
+                post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
+        if favicon_file_name:
+            post.favicon_file_name = favicon_file_name
+
+        db.session.add(post)
+        db.session.commit()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"message": "Your link is now posted!"}), 200
+        flash(_("Your link is now posted!"))
+        return redirect(url_for("main.user"))
+    elif request.method == "POST":
+        # If it's a POST request but validation failed, return errors as JSON
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(form.errors), 400
+        # For non-AJAX requests, render the template with errors
+        return render_template("user.html", title=_(user.username), form=form)
 
     empty_form = EmptyForm()
 
@@ -1370,6 +1715,50 @@ async def user_subfolder(username, path):
         else:
             folder_path = path
         folder_path = folder_path if form.post_folder.data else path
+        post_pic = form.post_pic.data
+        if post_pic and post_pic != '':
+            try:
+                img = Image.open(post_pic)
+                # Check for EXIF orientation and rotate if necessary
+                if hasattr(img, "_getexif"):
+                    exif = img._getexif()
+                    if exif:
+                        orientation = exif.get(0x0112)
+                        if orientation:
+                            if orientation == 3:
+                                img = img.rotate(180, expand=True)
+                            elif orientation == 6:
+                                img = img.rotate(270, expand=True)
+                            elif orientation == 8:
+                                img = img.rotate(90, expand=True)
+
+                # Center crop, resize, and compress the image to 155x155
+                resized_picture = top_crop(img, (285, 285))
+                post = PostPic(link=urllib.parse.quote(form.post_link.data),
+                        body=form.post_body.data,
+                        description=form.post_description.data.strip(),
+                        folder_link=folder_path,
+                        author=current_user)
+                if not post.body:
+                    webpage_title = get_webpage_title(form.post_link.data)
+                    if webpage_title:
+                        post.body = webpage_title
+                    elif OPENAI_API_KEY:
+                        post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+                db.session.add(post)
+                db.session.commit()
+                post_pic_filename = f"{current_user.id}_{post.id}"
+                resized_picture.save(
+                    os.path.join("app/static/post_pics", f"{post_pic_filename}.jpg"),
+                    "JPEG",
+                )
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify({"message": "Your link is now posted!"}), 200
+                flash(_("Your link is now posted!"))
+                return redirect(url_for("main.user_subfolder"))
+            except Exception as e:
+                current_app.logger.error(f"Exception occurred. {e}")
+                flash(_("Error in uploading image. Please try again"), "error")
         post = Post(
             link=urllib.parse.quote(form.post_link.data),
             body=form.post_body.data,
@@ -1571,7 +1960,8 @@ async def user_subfolder(username, path):
             "user_subfolder.html",
             user=user,
             posts=posts,
-            form=empty_form,
+            form=form,
+            empty_form=empty_form,
             folders=folders,
             prevPath=prevPath,
             user_home_page=user_home_page,

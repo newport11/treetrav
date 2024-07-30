@@ -8,7 +8,7 @@ from app.api import bp
 from app.api.auth import token_auth
 from app.api.errors import bad_request
 from app.favicon import get_domain_from_url, get_favicon, hash_url
-from app.models import Post, User
+from app.models import Post, PostPic, User
 from app.openai import generate_link_summary
 from app.utils import get_webpage_title, is_subpath
 
@@ -18,6 +18,10 @@ from app.utils import get_webpage_title, is_subpath
 def get_post(id):
     return jsonify(Post.query.get_or_404(id).to_dict())
 
+@bp.route("/pic_posts/<int:id>", methods=["GET"])
+@token_auth.login_required
+def get_pic_post(id):
+    return jsonify(PostPic.query.get_or_404(id).to_dict())
 
 @bp.route("/post_link", methods=["POST"])
 @token_auth.login_required

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toggle Button</title>
+    <style>
+        :root {
+            --toggle-color: {{ user.toggle_color }};
+        }
+
+        .toggle-container {
+            display: flex;
+        }
+
+        .toggle-button {
+            display: flex;
+            align-items: center;
+            width: 100px;
+            height: 35px;
+            border: 2px solid var(--toggle-color);
+            border-radius: 17px;
+            background-color: var(--toggle-color);
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.3s;
+        }
+
+        .toggle-button .toggle-circle {
+            width: 50%;
+            height: 100%;
+            background-color: white;
+            border-radius: 17px;
+            position: absolute;
+            transition: left 0.3s;
+        }
+
+        .toggle-button .text {
+            flex: 1;
+            text-align: center;
+            font-weight: bold;
+            z-index: 1;
+            transition: color 0.3s;
+        }
+
+        .toggle-button.inactive .text.left,
+        .toggle-button.active .text.right {
+            color: var(--toggle-color);
+        }
+
+        .toggle-button.inactive .text.right,
+        .toggle-button.active .text.left {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .toggle-button.active .toggle-circle {
+            left: 50%;
+        }
+
+        .toggle-button.inactive .toggle-circle {
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="toggle-container">
+        <div id="toggleButton" class="toggle-button inactive">
+            <div class="text left">links</div>
+            {% if user.toggle_name %}
+                <div class="text right">{{ user.toggle_name }}</div>
+            {% else %}
+                <div class="text right">pics</div>
+            {% endif %}
+            <div class="toggle-circle"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleButton = document.getElementById('toggleButton');
+            toggleButton.addEventListener('click', function() {
+                if (toggleButton.classList.contains('inactive')) {
+                    toggleButton.classList.remove('inactive');
+                    toggleButton.classList.add('active');
+                    window.location.href = "{{ url_for('main.user_pics', username=user.username) }}";
+                } else {
+                    toggleButton.classList.remove('active');
+                    toggleButton.classList.add('inactive');
+                    window.location.href = "{{ url_for('main.user', username=user.username) }}";
+                }
+            });
+
+            // Set initial state based on current page
+            if (window.location.pathname.includes('/p/')) {
+                toggleButton.classList.remove('inactive');
+                toggleButton.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>
