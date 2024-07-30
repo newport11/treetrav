@@ -24,7 +24,8 @@
             {% if current_user.id == folder.user_id%}
 
             <div style="text-align: right;"> 
-                {% include 'delete_popup.html' %}
+                {% set pic_folder = true %}
+                {% include 'delete_popup.html' ignore missing with context %}
             </div>
 
             {% endif %}

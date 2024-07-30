@@ -202,7 +202,6 @@ def delete_post_pic(post_id):
 
         #delete file
         file = f"app/static/post_pics/{post.user_id}_{post_id}.jpg"
-        print(file)      
         if os.path.exists(file):
             os.remove(file)
         flash("Link deleted")
@@ -227,6 +226,8 @@ def delete_account(user_id):
 @bp.route("/folder/delete/<path:folder_link>", methods=["POST"])
 @login_required
 def delete_folder(folder_link):
+    print(folder_link)
+    print("folder link!!!")
     posts = Post.query.filter_by(user_id=current_user.id).all()
     if current_user.inbound_shares:
         for share in current_user.inbound_shares:
@@ -262,6 +263,40 @@ def delete_folder(folder_link):
         else redirect(
             url_for(
                 "main.user_subfolder",
+                username=current_user.username,
+                path=previous_folder,
+            )
+        )
+    )
+
+
+@bp.route("/pic_folder/delete/<path:folder_link>", methods=["POST"])
+@login_required
+def delete_pic_folder(folder_link):
+    posts = PostPic.query.filter_by(user_id=current_user.id).all()
+    for post in posts:
+        if (
+            post.folder_link != None
+            and is_subpath(folder_link, post.folder_link)
+            and current_user.id == post.user_id
+        ):
+            db.session.delete(post)
+            file = f"app/static/post_pics/{post.user_id}_{post.id}.jpg"
+            if os.path.exists(file):
+                os.remove(file)
+
+    db.session.commit()
+    flash(f"Folder '{folder_link}' deleted from {current_user.toggle_name}")
+
+    previous_folder = folder_link.rstrip("/").rsplit("/", 1)[0]
+    if len(folder_link.split("/")) <= 1:
+        previous_folder = "/"
+    return (
+        redirect(url_for("main.user_pics", username=current_user.username))
+        if previous_folder == "/"
+        else redirect(
+            url_for(
+                "main.user_pics_subfolder",
                 username=current_user.username,
                 path=previous_folder,
             )

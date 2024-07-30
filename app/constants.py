@@ -55,4 +55,5 @@ FORBIDDEN_USERNAMES = [
     "follow_requests",
     "user",
     "p",
+    "pic_folder",
 ]

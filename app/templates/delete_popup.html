@@ -6,19 +6,19 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-body">
-                
-                <form method="POST" action="{{ url_for('main.delete_folder', folder_link=folder.folder_link ) }}" class="my-form" id="yourForm">
-                    <div class="modal-header d-flex justify-content-between align-items-center">
-                        <h5 class="modal-title" id="deletePopupLabel">Are you sure you want to delete the folder?</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
 
-                    <div class="form-group">
-                        <input type="submit" class="btn btn-delete" value="Delete">
-                    </div>
-                </form>
+            <form method="POST" action="{% if not pic_folder %}{{ url_for('main.delete_folder', folder_link=folder.folder_link) }}{% else %}{{ url_for('main.delete_pic_folder', folder_link=folder.folder_link) }}{% endif %}" class="my-form" id="yourForm">
+                <div class="modal-header d-flex justify-content-between align-items-center">
+                    <h5 class="modal-title" id="deletePopupLabel">Are you sure you want to delete the folder?</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <input type="submit" class="btn btn-delete" value="Delete">
+                </div>
+            </form>
             </div>
         </div>
     </div>
