@@ -5,6 +5,7 @@ import os
 import urllib.parse
 
 from flask import current_app, flash
+from flask_babel import _
 
 from PIL import Image
 from app import db
