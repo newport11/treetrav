@@ -25,4 +25,5 @@ class Config(object):
     ADMINS = ["treetrav.info@gmail.com"]
     ELASTICSEARCH_URL = os.environ.get("ELASTICSEARCH_URL")
     POSTS_PER_PAGE = 25
+    USERS_PER_PAGE = 20
     PIC_POSTS_PER_PAGE = 15
