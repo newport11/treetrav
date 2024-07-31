@@ -54,7 +54,7 @@ def shorten_folder_path(path):
 
 def set_mini_profile_pic_filename(filename):
     try:
-        fn = filename.rstrip(".png")
+        fn = filename.rstrip(".jpg")
     except:
         fn = ""
     return fn
