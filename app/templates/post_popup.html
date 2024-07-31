@@ -72,11 +72,12 @@
             var postLink = $('#post_link').val();
             var postBody = $('#post_body').val();
             var postDescription = $('#post_description').val();
-            var postPic = $('#post_pic').val();
             var postFolder = $('#post_folder').val();
+            var fileInput = $('#post_pic')[0];
             const postBodyMaxLength = 65;
             const postDescriptionMaxLength = 35;
             const postFolderMaxLength = 45;
+
 
             // Validate post link
             if (!isValidUrl(postLink)) {
@@ -105,6 +106,27 @@
                     break;
                 }
             }
+
+
+            if (fileInput.files.length > 0) {
+                var fileSize = fileInput.files[0].size; // in bytes
+                var maxSize = 1 * 1024 * 1024; // 1MB in bytes
+                if (fileSize > maxSize) {
+                    showError('post_pic', 'File size exceeds 1MB limit.');
+                    return false;
+                }
+            }
+    
+            // Validate file type
+            if (fileInput.files.length > 0) {
+                var file = fileInput.files[0];
+                var fileType = file.type;
+                if (fileType !== 'image/jpeg' && fileType !== 'image/png') {
+                    showError('post_pic', 'Only JPG and PNG files are allowed.');
+                    isValid = false;
+                }
+            }
+
 
             if (isValid) {
                 // Show loading spinner and disable submit button
@@ -162,8 +184,13 @@
         }
 
         function showError(fieldId, message) {
-            $('#' + fieldId).addClass('is-invalid');
-            $('#' + fieldId + '_error').text(message);
+            if (message) {
+                $('#' + fieldId).addClass('is-invalid');
+                $('#' + fieldId + 'error').text(message);
+            } else {
+                $('#' + fieldId).removeClass('is-invalid');
+                $('#' + fieldId + 'error').text('');
+            }
         }
 
         function clearErrors() {
