@@ -974,29 +974,18 @@ def unfollow(username):
 @bp.route("/search")
 # @login_required
 def search():
-    if not g.search_form.validate():
-        return redirect(url_for("main.discover"))
+    query = request.args.get('q', '')
+    page = request.args.get('page', 1, type=int)
+    users, total = User.search(query, page, current_app.config['USERS_PER_PAGE'])
+    
+    total_pages = (total - 1) // current_app.config['USERS_PER_PAGE'] + 1
+    
+    next_url = url_for('search', q=query, page=page + 1) if total > page * current_app.config['USERS_PER_PAGE'] else None
+    prev_url = url_for('search', q=query, page=page - 1) if page > 1 else None
 
-    page = request.args.get("page", 1, type=int)
-    query = g.search_form.q.data
-    users, total = User.search(
-        g.search_form.q.data, page, current_app.config["POSTS_PER_PAGE"]
-    )
-
-    next_url = (
-        url_for("main.search", q=query, page=page + 1)
-        if total > page * current_app.config["POSTS_PER_PAGE"]
-        else None
-    )
-    prev_url = url_for("main.search", q=query, page=page - 1) if page > 1 else None
-
-    return render_template(
-        "search.html",
-        title=_("Search"),
-        users=users,
-        next_url=next_url,
-        prev_url=prev_url,
-    )
+    return render_template('search.html', title=_('Search'), users=users,
+                           next_url=next_url, prev_url=prev_url,
+                           query=query, current_page=page, total_pages=total_pages or 1)
 
 
 @bp.route("/actions", methods=["GET", "POST"])
