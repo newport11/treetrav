@@ -3,16 +3,15 @@
 
 {% block app_content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
-<div style="text-align: left;" class="subfolder_back">
-    <form method="get" action="{{ url_for('main.user', username=user.username ) }}">
-        <div style="display: inline-block; vertical-align: text-top;">
-            <button class="btn" type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
-                <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="30" height="30" name="back" />
-            </button>
+<div style="display: flex; align-items: center;" class="subfolder_back">
+    <form method="get" action="{{ url_for('main.user', username=user.username ) }}" style="margin-right: 10px;">
+        <button class="btn" type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
+            <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="30" height="30" name="back" alt="Back" />
+        </button>
     </form>
-        </div>
-    <h1>{{ _('Followers') }}</h1>
+    <h1 style="margin: 0;">{{ _('Followers') }}</h1>
 </div>
+
 {% for follower in followers %}
     {% include 'follower.html' %}
 {% endfor %}
