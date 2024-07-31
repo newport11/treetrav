@@ -240,7 +240,7 @@
             }
     
             // Validate display name
-            if (displayName !== originalDisplayName) {
+            if (displayName !== originalDisplayName && displayName.trim() !== '') {
                 if (displayName.length > displayNameMaxLength) {
                     showError('display_name', 'Display Name must be ' + displayNameMaxLength + ' characters or less.');
                     isValid = false;
@@ -251,6 +251,9 @@
                     showError('display_name', 'Display Name must start with a letter.');
                     isValid = false;
                 }
+            } else if (displayName.trim() === '') {
+                // Clear any existing error for empty display name
+                clearErrors('display_name');
             }
     
             // Validate about me
