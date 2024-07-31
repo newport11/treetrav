@@ -4,7 +4,7 @@
     <tr>
         <td width="25px">
             <a href="{{ url_for('main.user', username=follower.username) }}" >
-                {% set profile_pic = set_mini_profile_pic_filename( follower.profile_pic) ~ '_mini_25.png' %}
+                {% set profile_pic = set_mini_profile_pic_filename( follower.profile_pic) ~ '_mini_25.jpg' %}
                 {% if profile_pic and pic_exists(profile_pic) %}
                     <img src="{{ url_for( 'static', filename='/profile_pics/' + profile_pic) }}" />
                 {% else %}

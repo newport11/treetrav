@@ -7,7 +7,7 @@
                 
                 {% set favicon = post.favicon_file_name %}
 
-                {% set profile_pic = set_mini_profile_pic_filename(post.author.profile_pic) ~ '_mini_25.png' %}
+                {% set profile_pic = set_mini_profile_pic_filename(post.author.profile_pic) ~ '_mini_25.jpg' %}
                 {% if favicon %}
                     <img src="{{ url_for( 'static', filename='/favicons/' + favicon) }}" />
                 {% elif profile_pic and pic_exists(profile_pic) %}
