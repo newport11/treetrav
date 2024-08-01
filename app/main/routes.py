@@ -488,6 +488,8 @@ def settings():
                                 elif orientation == 8:
                                     img = img.rotate(90, expand=True)
 
+                    img = img.convert("RGB")
+
                     # Center crop, resize, and compress the image to 155x155
                     resized_picture = top_crop(img, (155, 155))
                     resized_picture.save(
