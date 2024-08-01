@@ -1243,6 +1243,7 @@ async def user_pics(username):
                                 img = img.rotate(270, expand=True)
                             elif orientation == 8:
                                 img = img.rotate(90, expand=True)
+                img = img.convert("RGB")
 
                 # Center crop, resize, and compress the image to 155x155
                 resized_picture = top_crop(img, (285, 285))
@@ -1396,6 +1397,7 @@ async def user_pics_subfolder(username, path):
                                 img = img.rotate(270, expand=True)
                             elif orientation == 8:
                                 img = img.rotate(90, expand=True)
+                img = img.convert("RGB")
 
                 # Center crop, resize, and compress the image to 155x155
                 resized_picture = top_crop(img, (285, 285))
@@ -1539,6 +1541,7 @@ async def user(username):
                                 img = img.rotate(270, expand=True)
                             elif orientation == 8:
                                 img = img.rotate(90, expand=True)
+                img = img.convert("RGB")
 
                 # Center crop, resize, and compress the image to 155x155
                 resized_picture = top_crop(img, (285, 285))
@@ -1757,6 +1760,7 @@ async def user_subfolder(username, path):
                                 img = img.rotate(270, expand=True)
                             elif orientation == 8:
                                 img = img.rotate(90, expand=True)
+                img = img.convert("RGB")
 
                 # Center crop, resize, and compress the image to 155x155
                 resized_picture = top_crop(img, (285, 285))
