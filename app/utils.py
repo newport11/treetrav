@@ -1,11 +1,11 @@
 import copy
 import logging
 from urllib.parse import urlparse
-from PIL import Image
 
 import requests
 from bs4 import BeautifulSoup
 from newspaper import Article
+from PIL import Image
 
 from app import db
 from app.models import Post, User

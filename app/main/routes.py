@@ -37,8 +37,8 @@ from app.main.forms import (
     SettingsForm,
     ShareFolderForm,
 )
-from app.models import Leaf, Post, PostPic, ShareFolder, ShareFolderRequest, User
 from app.main.services import create_post, get_posts_query
+from app.models import Leaf, Post, PostPic, ShareFolder, ShareFolderRequest, User
 from app.openai import generate_link_summary
 from app.utils import (
     copy_folder_util,
@@ -190,7 +190,8 @@ def delete_post(post_id):
         return redirect(request.referrer)
     else:
         return redirect(request.referrer)
-    
+
+
 @bp.route("/post_pic/delete/<int:post_id>", methods=["POST"])
 @login_required
 def delete_post_pic(post_id):
@@ -200,7 +201,7 @@ def delete_post_pic(post_id):
         db.session.delete(post)
         db.session.commit()
 
-        #delete file
+        # delete file
         file = f"app/static/post_pics/{post.user_id}_{post_id}.jpg"
         if os.path.exists(file):
             os.remove(file)
@@ -208,7 +209,8 @@ def delete_post_pic(post_id):
         return redirect(request.referrer)
     else:
         return redirect(request.referrer)
-    
+
+
 @bp.route("/account/delete/<int:user_id>", methods=["POST"])
 @login_required
 def delete_account(user_id):
@@ -500,9 +502,7 @@ def settings():
                     # Center crop, resize, and compress to 25x25
                     resized_picture_mini = top_crop(img, (25, 25))
                     resized_picture_mini.save(
-                        os.path.join(
-                            PROFILE_PICS_PATH, f"{filename}_mini_25.jpg"
-                        ),
+                        os.path.join(PROFILE_PICS_PATH, f"{filename}_mini_25.jpg"),
                         "JPEG",
                     )
 
@@ -513,9 +513,7 @@ def settings():
                                 PROFILE_PICS_PATH,
                                 f"{old_profile_pic}_mini_25.jpg",
                             ),
-                            os.path.join(
-                                PROFILE_PICS_PATH, f"{old_profile_pic}.jpg"
-                            ),
+                            os.path.join(PROFILE_PICS_PATH, f"{old_profile_pic}.jpg"),
                         ]
                         for file in files_to_delete:
                             if os.path.exists(file):
@@ -548,7 +546,9 @@ def settings():
         form.dark_mode.data = current_user.dark_mode
         form.description_text_color.data = current_user.description_text_color
         form.toggle_color.data = current_user.toggle_color
-        form.toggle_name.data = current_user.toggle_name if current_user.toggle_name else 'pics'
+        form.toggle_name.data = (
+            current_user.toggle_name if current_user.toggle_name else "pics"
+        )
 
     return render_template(
         "settings.html",
@@ -976,18 +976,29 @@ def unfollow(username):
 @bp.route("/search")
 # @login_required
 def search():
-    query = request.args.get('q', '')
-    page = request.args.get('page', 1, type=int)
-    users, total = User.search(query, page, current_app.config['USERS_PER_PAGE'])
-    
-    total_pages = (total - 1) // current_app.config['USERS_PER_PAGE'] + 1
-    
-    next_url = url_for('search', q=query, page=page + 1) if total > page * current_app.config['USERS_PER_PAGE'] else None
-    prev_url = url_for('search', q=query, page=page - 1) if page > 1 else None
+    query = request.args.get("q", "")
+    page = request.args.get("page", 1, type=int)
+    users, total = User.search(query, page, current_app.config["USERS_PER_PAGE"])
 
-    return render_template('search.html', title=_('Search'), users=users,
-                           next_url=next_url, prev_url=prev_url,
-                           query=query, current_page=page, total_pages=total_pages or 1)
+    total_pages = (total - 1) // current_app.config["USERS_PER_PAGE"] + 1
+
+    next_url = (
+        url_for("search", q=query, page=page + 1)
+        if total > page * current_app.config["USERS_PER_PAGE"]
+        else None
+    )
+    prev_url = url_for("search", q=query, page=page - 1) if page > 1 else None
+
+    return render_template(
+        "search.html",
+        title=_("Search"),
+        users=users,
+        next_url=next_url,
+        prev_url=prev_url,
+        query=query,
+        current_page=page,
+        total_pages=total_pages or 1,
+    )
 
 
 @bp.route("/actions", methods=["GET", "POST"])
@@ -1230,7 +1241,7 @@ async def user_pics(username):
             folder_path = "/"
         folder_path = folder_path if form.post_folder.data else "/"
         post_pic = form.post_pic.data
-        if post_pic and post_pic != '':
+        if post_pic and post_pic != "":
             try:
                 img = Image.open(post_pic)
                 # Check for EXIF orientation and rotate if necessary
@@ -1249,17 +1260,21 @@ async def user_pics(username):
 
                 # Center crop, resize, and compress the image to 155x155
                 resized_picture = top_crop(img, (285, 285))
-                post = PostPic(link=urllib.parse.quote(form.post_link.data),
-                        body=form.post_body.data,
-                        description=form.post_description.data.strip(),
-                        folder_link=folder_path,
-                        author=current_user)
+                post = PostPic(
+                    link=urllib.parse.quote(form.post_link.data),
+                    body=form.post_body.data,
+                    description=form.post_description.data.strip(),
+                    folder_link=folder_path,
+                    author=current_user,
+                )
                 if not post.body:
                     webpage_title = get_webpage_title(form.post_link.data)
                     if webpage_title:
                         post.body = webpage_title
                     elif OPENAI_API_KEY:
-                        post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+                        post.body = generate_link_summary(
+                            post.link, OPENAI_API_KEY
+                        ).rstrip(".")
                 db.session.add(post)
                 db.session.commit()
                 post_pic_filename = f"{current_user.id}_{post.id}"
@@ -1315,11 +1330,15 @@ async def user_pics(username):
     if user.private_mode == True and user != current_user and not is_following:
         return render_template("user_private.html", user=user, form=empty_form)
     else:
-        posts = user.pic_posts.filter_by(folder_link="/").order_by(PostPic.timestamp.desc())
+        posts = user.pic_posts.filter_by(folder_link="/").order_by(
+            PostPic.timestamp.desc()
+        )
 
         page = request.args.get("page", 1, type=int)
         posts = posts.paginate(
-            page=page, per_page=current_app.config["PIC_POSTS_PER_PAGE"], error_out=False
+            page=page,
+            per_page=current_app.config["PIC_POSTS_PER_PAGE"],
+            error_out=False,
         )
 
         next_url = (
@@ -1385,7 +1404,7 @@ async def user_pics_subfolder(username, path):
             folder_path = path
         folder_path = folder_path if form.post_folder.data else path
         post_pic = form.post_pic.data
-        if post_pic and post_pic != '':
+        if post_pic and post_pic != "":
             try:
                 img = Image.open(post_pic)
                 # Check for EXIF orientation and rotate if necessary
@@ -1404,17 +1423,21 @@ async def user_pics_subfolder(username, path):
 
                 # Center crop, resize, and compress the image to 155x155
                 resized_picture = top_crop(img, (285, 285))
-                post = PostPic(link=urllib.parse.quote(form.post_link.data),
-                        body=form.post_body.data,
-                        description=form.post_description.data.strip(),
-                        folder_link=folder_path,
-                        author=current_user)
+                post = PostPic(
+                    link=urllib.parse.quote(form.post_link.data),
+                    body=form.post_body.data,
+                    description=form.post_description.data.strip(),
+                    folder_link=folder_path,
+                    author=current_user,
+                )
                 if not post.body:
                     webpage_title = get_webpage_title(form.post_link.data)
                     if webpage_title:
                         post.body = webpage_title
                     elif OPENAI_API_KEY:
-                        post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+                        post.body = generate_link_summary(
+                            post.link, OPENAI_API_KEY
+                        ).rstrip(".")
                 db.session.add(post)
                 db.session.commit()
                 post_pic_filename = f"{current_user.id}_{post.id}"
@@ -1476,8 +1499,9 @@ async def user_pics_subfolder(username, path):
         else:
             user_home_page = False
 
-       
-        posts = user.pic_posts.filter_by(folder_link=path).order_by(PostPic.timestamp.desc())
+        posts = user.pic_posts.filter_by(folder_link=path).order_by(
+            PostPic.timestamp.desc()
+        )
         folders_tmp = (
             user.pic_posts.filter(PostPic.folder_link != path)
             .order_by(PostPic.timestamp.desc())
@@ -1509,11 +1533,9 @@ async def user_pics_subfolder(username, path):
             user_home_page=user_home_page,
             current_folder=current_folder,
         )
-    
 
 
-
-#USER PROFILE ROUTE NEEDS TO BE AT BOTTOM SINCE IT ACTS AS A CATCH ALL ROUTE
+# USER PROFILE ROUTE NEEDS TO BE AT BOTTOM SINCE IT ACTS AS A CATCH ALL ROUTE
 @bp.route("/<username>/", methods=["POST", "GET"])
 @bp.route("/<username>", methods=["POST", "GET"])
 async def user(username):
@@ -1530,7 +1552,7 @@ async def user(username):
             folder_path = "/"
         folder_path = folder_path if form.post_folder.data else "/"
         post_pic = form.post_pic.data
-        if post_pic and post_pic != '':
+        if post_pic and post_pic != "":
             try:
                 img = Image.open(post_pic)
                 # Check for EXIF orientation and rotate if necessary
@@ -1549,17 +1571,21 @@ async def user(username):
 
                 # Center crop, resize, and compress the image to 155x155
                 resized_picture = top_crop(img, (285, 285))
-                post = PostPic(link=urllib.parse.quote(form.post_link.data),
-                        body=form.post_body.data,
-                        description=form.post_description.data.strip(),
-                        folder_link=folder_path,
-                        author=current_user)
+                post = PostPic(
+                    link=urllib.parse.quote(form.post_link.data),
+                    body=form.post_body.data,
+                    description=form.post_description.data.strip(),
+                    folder_link=folder_path,
+                    author=current_user,
+                )
                 if not post.body:
                     webpage_title = get_webpage_title(form.post_link.data)
                     if webpage_title:
                         post.body = webpage_title
                     elif OPENAI_API_KEY:
-                        post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+                        post.body = generate_link_summary(
+                            post.link, OPENAI_API_KEY
+                        ).rstrip(".")
                 db.session.add(post)
                 db.session.commit()
                 post_pic_filename = f"{current_user.id}_{post.id}"
@@ -1748,7 +1774,7 @@ async def user_subfolder(username, path):
             folder_path = path
         folder_path = folder_path if form.post_folder.data else path
         post_pic = form.post_pic.data
-        if post_pic and post_pic != '':
+        if post_pic and post_pic != "":
             try:
                 img = Image.open(post_pic)
                 # Check for EXIF orientation and rotate if necessary
@@ -1767,17 +1793,21 @@ async def user_subfolder(username, path):
 
                 # Center crop, resize, and compress the image to 155x155
                 resized_picture = top_crop(img, (285, 285))
-                post = PostPic(link=urllib.parse.quote(form.post_link.data),
-                        body=form.post_body.data,
-                        description=form.post_description.data.strip(),
-                        folder_link=folder_path,
-                        author=current_user)
+                post = PostPic(
+                    link=urllib.parse.quote(form.post_link.data),
+                    body=form.post_body.data,
+                    description=form.post_description.data.strip(),
+                    folder_link=folder_path,
+                    author=current_user,
+                )
                 if not post.body:
                     webpage_title = get_webpage_title(form.post_link.data)
                     if webpage_title:
                         post.body = webpage_title
                     elif OPENAI_API_KEY:
-                        post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+                        post.body = generate_link_summary(
+                            post.link, OPENAI_API_KEY
+                        ).rstrip(".")
                 db.session.add(post)
                 db.session.commit()
                 post_pic_filename = f"{current_user.id}_{post.id}"

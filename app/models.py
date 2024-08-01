@@ -413,7 +413,6 @@ class PostPic(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
 
-
     def to_dict(self):
         data = {
             "id": self.id,
@@ -431,7 +430,7 @@ class PostPic(db.Model):
 
     def __repr__(self):
         return "<PostPic {}>".format(self.body)
-    
+
 
 class ShareFolderRequest(db.Model):
     __tablename__ = "share_requests"

@@ -6,8 +6,8 @@ import urllib.parse
 
 from flask import current_app, flash
 from flask_babel import _
-
 from PIL import Image
+
 from app import db
 from app.constants import POST_PICS_PATH
 from app.favicon import get_favicon
@@ -22,7 +22,7 @@ async def create_post(form, current_user):
         "/" if not folder_path or folder_path == "/" else folder_path.strip("/")
     )
     post_pic = form.post_pic.data
-    if post_pic and post_pic != '':
+    if post_pic and post_pic != "":
         try:
             img = Image.open(post_pic)
             # Check for EXIF orientation and rotate if necessary
@@ -40,17 +40,21 @@ async def create_post(form, current_user):
 
             # Center crop, resize, and compress the image to 155x155
             resized_picture = top_crop(img, (285, 285))
-            post = PostPic(link=urllib.parse.quote(form.post_link.data),
-                    body=form.post_body.data,
-                    description=form.post_description.data.strip(),
-                    folder_link=folder_path,
-                    author=current_user)
+            post = PostPic(
+                link=urllib.parse.quote(form.post_link.data),
+                body=form.post_body.data,
+                description=form.post_description.data.strip(),
+                folder_link=folder_path,
+                author=current_user,
+            )
             if not post.body:
                 webpage_title = get_webpage_title(form.post_link.data)
                 if webpage_title:
                     post.body = webpage_title
                 elif OPENAI_API_KEY:
-                    post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
+                    post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(
+                        "."
+                    )
             db.session.add(post)
             db.session.commit()
             post_pic_filename = f"{current_user.id}_{post.id}"

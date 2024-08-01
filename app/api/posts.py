@@ -18,10 +18,12 @@ from app.utils import get_webpage_title, is_subpath
 def get_post(id):
     return jsonify(Post.query.get_or_404(id).to_dict())
 
+
 @bp.route("/pic_posts/<int:id>", methods=["GET"])
 @token_auth.login_required
 def get_pic_post(id):
     return jsonify(PostPic.query.get_or_404(id).to_dict())
+
 
 @bp.route("/post_link", methods=["POST"])
 @token_auth.login_required

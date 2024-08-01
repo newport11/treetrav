@@ -1,6 +1,7 @@
 import logging
 import os
 import urllib.parse
+from itertools import zip_longest
 from logging.handlers import RotatingFileHandler, SMTPHandler
 
 from elasticsearch import Elasticsearch
@@ -16,7 +17,6 @@ from flask_migrate import Migrate
 from flask_moment import Moment
 from flask_pagedown import PageDown
 from flask_sqlalchemy import SQLAlchemy
-from itertools import zip_longest
 
 from app.constants import PROFILE_PICS_PATH
 from config import Config
@@ -68,11 +68,12 @@ def pic_exists(filename):
         return True
     return False
 
+
 def chunked(iterable, n):
     "Collect data into fixed-length chunks or blocks"
     args = [iter(iterable)] * n
     return zip_longest(*args)
-    
+
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -130,7 +131,7 @@ def create_app(config_class=Config):
     )
     app.jinja_env.globals.update(decode_url=decode_url)
 
-    app.jinja_env.filters['chunked'] = chunked
+    app.jinja_env.filters["chunked"] = chunked
 
     if not app.debug and not app.testing:
         if app.config["MAIL_SERVER"]:
