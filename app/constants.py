@@ -1,3 +1,5 @@
+import os
+
 FORBIDDEN_USERNAMES = [
     "api",
     "main",
@@ -57,3 +59,11 @@ FORBIDDEN_USERNAMES = [
     "p",
     "pic_folder",
 ]
+
+# Path constants
+APP_PATH = "app"
+
+STATIC_PATH = os.path.join(APP_PATH, "static")
+
+POST_PICS_PATH = os.path.join(STATIC_PATH, "post_pics")
+PROFILE_PICS_PATH = os.path.join(STATIC_PATH, "profile_pics")

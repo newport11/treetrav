@@ -23,7 +23,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
 from app import cache, db
-from app.constants import FORBIDDEN_USERNAMES
+from app.constants import FORBIDDEN_USERNAMES, POST_PICS_PATH, PROFILE_PICS_PATH
 from app.favicon import get_favicon, hash_profile_pic
 from app.main import bp
 from app.main.forms import (
@@ -493,7 +493,7 @@ def settings():
                     # Center crop, resize, and compress the image to 155x155
                     resized_picture = top_crop(img, (155, 155))
                     resized_picture.save(
-                        os.path.join("app/static/profile_pics", f"{filename}.jpg"),
+                        os.path.join(PROFILE_PICS_PATH, f"{filename}.jpg"),
                         "JPEG",
                     )
 
@@ -501,7 +501,7 @@ def settings():
                     resized_picture_mini = top_crop(img, (25, 25))
                     resized_picture_mini.save(
                         os.path.join(
-                            "app/static/profile_pics", f"{filename}_mini_25.jpg"
+                            PROFILE_PICS_PATH, f"{filename}_mini_25.jpg"
                         ),
                         "JPEG",
                     )
@@ -510,11 +510,11 @@ def settings():
                     if old_profile_pic:
                         files_to_delete = [
                             os.path.join(
-                                "app/static/profile_pics",
+                                PROFILE_PICS_PATH,
                                 f"{old_profile_pic}_mini_25.jpg",
                             ),
                             os.path.join(
-                                "app/static/profile_pics", f"{old_profile_pic}.jpg"
+                                PROFILE_PICS_PATH, f"{old_profile_pic}.jpg"
                             ),
                         ]
                         for file in files_to_delete:
@@ -1218,6 +1218,8 @@ def check_email():
 @bp.route("/p/<username>/", methods=["POST", "GET"])
 async def user_pics(username):
     user = User.query.filter(User.username.ilike(username)).first_or_404()
+    OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
+
     followers = user.followers
     form = PostForm()
     if request.method == "POST" and form.validate_on_submit():
@@ -1262,7 +1264,7 @@ async def user_pics(username):
                 db.session.commit()
                 post_pic_filename = f"{current_user.id}_{post.id}"
                 resized_picture.save(
-                    os.path.join("app/static/post_pics", f"{post_pic_filename}.jpg"),
+                    os.path.join(POST_PICS_PATH, f"{post_pic_filename}.jpg"),
                     "JPEG",
                 )
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -1371,6 +1373,7 @@ async def user_pics_subfolder(username, path):
     user = User.query.filter(User.username.ilike(username)).first_or_404()
     followers = user.followers
     empty_form = EmptyForm()
+    OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
 
     form = PostForm()
 
@@ -1416,7 +1419,7 @@ async def user_pics_subfolder(username, path):
                 db.session.commit()
                 post_pic_filename = f"{current_user.id}_{post.id}"
                 resized_picture.save(
-                    os.path.join("app/static/post_pics", f"{post_pic_filename}.jpg"),
+                    os.path.join(POST_PICS_PATH, f"{post_pic_filename}.jpg"),
                     "JPEG",
                 )
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -1516,6 +1519,7 @@ async def user_pics_subfolder(username, path):
 async def user(username):
     user = User.query.filter(User.username.ilike(username)).first_or_404()
     followers = user.followers
+    OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
 
     form = PostForm()
     if request.method == "POST" and form.validate_on_submit():
@@ -1560,7 +1564,7 @@ async def user(username):
                 db.session.commit()
                 post_pic_filename = f"{current_user.id}_{post.id}"
                 resized_picture.save(
-                    os.path.join("app/static/post_pics", f"{post_pic_filename}.jpg"),
+                    os.path.join(POST_PICS_PATH, f"{post_pic_filename}.jpg"),
                     "JPEG",
                 )
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -1577,7 +1581,6 @@ async def user(username):
             folder_link=folder_path,
             author=current_user,
         )
-        OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
         # If post.body is None, try to set it to the webpage title
         if not post.body:
             webpage_title = get_webpage_title(form.post_link.data)
@@ -1734,7 +1737,7 @@ async def user_subfolder(username, path):
     user = User.query.filter(User.username.ilike(username)).first_or_404()
     followers = user.followers
     empty_form = EmptyForm()
-
+    OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
     form = PostForm()
 
     if request.method == "POST" and form.validate_on_submit():
@@ -1779,7 +1782,7 @@ async def user_subfolder(username, path):
                 db.session.commit()
                 post_pic_filename = f"{current_user.id}_{post.id}"
                 resized_picture.save(
-                    os.path.join("app/static/post_pics", f"{post_pic_filename}.jpg"),
+                    os.path.join(POST_PICS_PATH, f"{post_pic_filename}.jpg"),
                     "JPEG",
                 )
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -1796,7 +1799,6 @@ async def user_subfolder(username, path):
             folder_link=folder_path,
             author=current_user,
         )
-        OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
         # If post.body is None, try to set it to the webpage title
         if not post.body:
             webpage_title = get_webpage_title(form.post_link.data)

@@ -9,6 +9,7 @@ from flask_babel import _
 
 from PIL import Image
 from app import db
+from app.constants import POST_PICS_PATH
 from app.favicon import get_favicon
 from app.models import Post, PostPic, User
 from app.openai import generate_link_summary
@@ -54,7 +55,7 @@ async def create_post(form, current_user):
             db.session.commit()
             post_pic_filename = f"{current_user.id}_{post.id}"
             resized_picture.save(
-                os.path.join("app/static/post_pics", f"{post_pic_filename}.jpg"),
+                os.path.join(POST_PICS_PATH, f"{post_pic_filename}.jpg"),
                 "JPEG",
             )
             return post, False

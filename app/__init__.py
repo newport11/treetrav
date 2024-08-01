@@ -18,6 +18,7 @@ from flask_pagedown import PageDown
 from flask_sqlalchemy import SQLAlchemy
 from itertools import zip_longest
 
+from app.constants import PROFILE_PICS_PATH
 from config import Config
 
 db = SQLAlchemy()
@@ -61,7 +62,7 @@ def set_mini_profile_pic_filename(filename):
 
 
 def pic_exists(filename):
-    file = os.path.join("app/static/profile_pics", f"{filename}")
+    file = os.path.join(PROFILE_PICS_PATH, f"{filename}")
     current_app.logger.info(file)
     if os.path.exists(file):
         return True
