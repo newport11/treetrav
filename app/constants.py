@@ -67,3 +67,4 @@ STATIC_PATH = os.path.join(APP_PATH, "static")
 
 POST_PICS_PATH = os.path.join(STATIC_PATH, "post_pics")
 PROFILE_PICS_PATH = os.path.join(STATIC_PATH, "profile_pics")
+FAVICONS_PATH = os.path.join(STATIC_PATH, "favicons")

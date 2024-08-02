@@ -10,6 +10,8 @@ import aiohttp
 import favicon
 from PIL import Image
 
+from app.constants import FAVICONS_PATH
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(current_dir, "app.log")
 
@@ -44,10 +46,9 @@ def get_domain_from_url(url):
 
 
 def favicon_exists(url):
-    directory_path = "app/static/favicons/"
     hashed_url = hash_url(url)
     filename = f"{hashed_url}.png"
-    file_path = os.path.join(directory_path, filename)
+    file_path = os.path.join(FAVICONS_PATH, filename)
     if os.path.exists(file_path):
         return f"{hashed_url}.png"
     else:
@@ -61,7 +62,7 @@ async def resize_favicon(url, domain):
                 img = Image.open(BytesIO(await response.read()))
                 resized_img = img.resize((25, 25), Image.LANCZOS)
                 hashed_url = hash_url(domain)
-                resized_img.save(f"app/static/favicons/{hashed_url}.png")
+                resized_img.save(os.path.join(FAVICONS_PATH, f"{hashed_url}.png"))
                 return f"{hashed_url}.png"
             else:
                 logger.error(f"Error: Unable to fetch favicon from {url}")

@@ -202,7 +202,7 @@ def delete_post_pic(post_id):
         db.session.commit()
 
         # delete file
-        file = f"app/static/post_pics/{post.user_id}_{post_id}.jpg"
+        file = os.path.join(POST_PICS_PATH, f"{post.user_id}_{post_id}.jpg")
         if os.path.exists(file):
             os.remove(file)
         flash("Link deleted")
@@ -283,7 +283,7 @@ def delete_pic_folder(folder_link):
             and current_user.id == post.user_id
         ):
             db.session.delete(post)
-            file = f"app/static/post_pics/{post.user_id}_{post.id}.jpg"
+            file = os.path.join(POST_PICS_PATH, f"{post.user_id}_{post.id}.jpg")
             if os.path.exists(file):
                 os.remove(file)
 
