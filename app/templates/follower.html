@@ -3,7 +3,7 @@
 <table class="table table-hover">
     <tr>
         <td width="25px">
-            <a href="{{ url_for('main.user', username=follower.username) }}" >
+            <a href="{{ url_for('user.user', username=follower.username) }}" >
                 {% set profile_pic = set_mini_profile_pic_filename( follower.profile_pic) ~ '_mini_25.jpg' %}
                 {% if profile_pic and pic_exists(profile_pic) %}
                     <img src="{{ url_for( 'static', filename='/profile_pics/' + profile_pic) }}" />
@@ -15,7 +15,7 @@
         </td>
         <td>
             {% block follower %}
-            <a href="{{ url_for('main.user', username=follower.username) }}">
+            <a href="{{ url_for('user.user', username=follower.username) }}">
                 {{ follower.username }}  {% if follower.verified == True %} <img src="{{ url_for( 'static', filename='green_check16.png') }}"  /> {% endif %}
             </a>
             {% endblock %}

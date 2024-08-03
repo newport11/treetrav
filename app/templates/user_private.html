@@ -35,7 +35,7 @@
                     <span class="userpage-counts">
                             {{ _('%(count)d', count=user.followers.count()) }}</span>
                     <span class="userpage-counts-text">followers</span></a>,
-                <a href="{{ url_for('main.user', username=user.username) }}"> 
+                <a href="{{ url_for('user.user', username=user.username) }}"> 
                     <span class="userpage-counts">
                                 {{ _('%(count)d', count=user.favorites.count()) }}  </span>
                     <span class="userpage-counts-text">favorites</span></a>, 

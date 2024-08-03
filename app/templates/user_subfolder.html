@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 <div  style="display: flex; align-items: center; justify-content: space-between;" class="subfolder_back">
     {% if user_home_page %}
-    <form method="get" action="{{ url_for('main.user', username=user.username) }}">
+    <form method="get" action="{{ url_for('user.user', username=user.username) }}">
         <div style="display: inline-block; vertical-align: text-top;">
             <button class="btn" type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
                 <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="30" height="30" name="back" />
@@ -13,7 +13,7 @@
         <h2 class="current_folder" style="display: inline-block; vertical-align: middle; margin-left: 10px;">/{{ current_folder }}</h2>
     </form>
     {% else %}
-    <form method="get" action="{{ url_for('main.user_subfolder', username=user.username, path=prevPath  ) }}">
+    <form method="get" action="{{ url_for('user.user_subfolder', username=user.username, path=prevPath  ) }}">
         <div style="display: inline-block; vertical-align: text-top;">
             <button class="btn" type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
                 <img src="{{ url_for( 'static', filename='backarrow.png') }}" width="30" height="30" name="back" />

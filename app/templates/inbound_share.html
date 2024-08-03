@@ -7,7 +7,7 @@
         
         <td> 
             <div class="requestor-info-container" style="display: inline-flex; justify-content: space-between;">
-                <a href="{{ url_for('main.user', username=share.sharer.username) }}" >
+                <a href="{{ url_for('user.user', username=share.sharer.username) }}" >
                     {% set profile_pic = set_mini_profile_pic_filename( share.sharer.profile_pic) ~ '_mini_25.jpg' %}
                     {% if profile_pic and pic_exists(profile_pic) %}
                         <img src="{{ url_for( 'static', filename='/profile_pics/' + profile_pic) }}" />
@@ -17,21 +17,21 @@
                             
                 </a>
 
-                <a class=user-link href="{{ url_for('main.user', username=share.sharer.username) }}">
+                <a class=user-link href="{{ url_for('user.user', username=share.sharer.username) }}">
                     {{ share.sharer.username }}  {% if share.sharer.verified == True %} <img src="{{ url_for( 'static', filename='green_check16.png') }}"  /> {% endif %}
                 </a>
             </div>
 
             <div class="requestor-info-container" style="display: inline-flex; justify-content: space-between;">
                 Shared from:
-                <a class=user-link-green href="{{ url_for('main.user_subfolder', username=share.sharer.username, path=share.sharer_folder_path) }}" >
+                <a class=user-link-green href="{{ url_for('user.user_subfolder', username=share.sharer.username, path=share.sharer_folder_path) }}" >
                     <em>   /{{ share.sharer_folder_path }} </em>
                 </a>
             </div>
 
             <div class="requestor-info-container" style="display: inline-flex; justify-content: space-between; ">
                 Mounted on:
-                <a class=user-link-green href="{{ url_for('main.user_subfolder', username=current_user.username, path=share.sharee_folder_path) }}" >
+                <a class=user-link-green href="{{ url_for('user.user_subfolder', username=current_user.username, path=share.sharee_folder_path) }}" >
                         <em>   /{{ share.sharee_folder_path.strip('/') }} </em>
                 </a>
             </div>

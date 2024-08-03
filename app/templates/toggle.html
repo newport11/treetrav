@@ -82,11 +82,11 @@
                 if (toggleButton.classList.contains('inactive')) {
                     toggleButton.classList.remove('inactive');
                     toggleButton.classList.add('active');
-                    window.location.href = "{{ url_for('main.user_pics', username=user.username) }}";
+                    window.location.href = "{{ url_for('user.user_pics', username=user.username) }}";
                 } else {
                     toggleButton.classList.remove('active');
                     toggleButton.classList.add('inactive');
-                    window.location.href = "{{ url_for('main.user', username=user.username) }}";
+                    window.location.href = "{{ url_for('user.user', username=user.username) }}";
                 }
             });
 

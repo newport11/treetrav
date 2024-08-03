@@ -25,7 +25,7 @@
             </div>
 
             <div class="requestor-info-container" style="display: inline-flex; justify-content: space-between;">
-                <a href="{{ url_for('main.user', username=request.requestor.username) }}" >
+                <a href="{{ url_for('user.user', username=request.requestor.username) }}" >
                         {% set profile_pic = set_mini_profile_pic_filename( request.requestor.profile_pic) ~ '_mini_25.jpg' %}
                         {% if profile_pic and pic_exists(profile_pic) %}
                             <img src="{{ url_for( 'static', filename='/profile_pics/' + profile_pic) }}" />
@@ -35,13 +35,13 @@
                             
                 </a>
 
-                <a href="{{ url_for('main.user', username=request.requestor.username) }}">
+                <a href="{{ url_for('user.user', username=request.requestor.username) }}">
                     {{ request.requestor.username }}  {% if request.requestor.verified == True %} <img src="{{ url_for( 'static', filename='green_check16.png') }}"  /> {% endif %}
                 </a>
             </div>
 
             <div class="requestor-info-container" style="display: inline-flex; justify-content: space-between;">
-                <a href="{{ url_for('main.user_subfolder', username=request.requestor.username, path=request.shared_folder_path) }}" >
+                <a href="{{ url_for('user.user_subfolder', username=request.requestor.username, path=request.shared_folder_path) }}" >
                           /{{ request.shared_folder_path }}
                 </a>
             </div>

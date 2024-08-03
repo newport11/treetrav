@@ -20,7 +20,7 @@
             </div>
 
             <div class="requestor-info-container" style="display: inline-flex; justify-content: space-between;">
-                <a href="{{ url_for('main.user', username=requestor.username) }}" >
+                <a href="{{ url_for('user.user', username=requestor.username) }}" >
                      
                     {% set profile_pic = set_mini_profile_pic_filename(requestor.profile_pic) ~ '_mini_25.jpg' %}
                     {% if profile_pic and pic_exists(profile_pic) %}
@@ -30,7 +30,7 @@
                     {% endif %}
                 </a>
 
-                <a href="{{ url_for('main.user', username=requestor.username) }}">
+                <a href="{{ url_for('user.user', username=requestor.username) }}">
                     {{ requestor.username }}  {% if requestor.verified == True %} <img src="{{ url_for( 'static', filename='green_check16.png') }}"  /> {% endif %}
                 </a>
             </div>
