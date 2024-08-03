@@ -43,6 +43,7 @@ from app.openai import generate_link_summary
 from app.utils import (
     copy_folder_util,
     get_webpage_title,
+    image_preprocessing,
     is_subpath,
     move_folder_util,
     rename_folder_util,
@@ -520,23 +521,8 @@ def settings():
                     current_app.logger.info(
                         f"Assigned profile_pic: {current_user.profile_pic}"
                     )
-                    img = Image.open(profile_pic)
 
-                    # Check for EXIF orientation and rotate if necessary
-                    if hasattr(img, "_getexif"):
-                        exif = img._getexif()
-                        if exif:
-                            orientation = exif.get(0x0112)
-                            if orientation:
-                                if orientation == 3:
-                                    img = img.rotate(180, expand=True)
-                                elif orientation == 6:
-                                    img = img.rotate(270, expand=True)
-                                elif orientation == 8:
-                                    img = img.rotate(90, expand=True)
-
-                    img = img.convert("RGB")
-
+                    img = image_preprocessing(profile_pic)
                     # Center crop, resize, and compress the image to 155x155
                     resized_picture = top_crop(img, (155, 155))
                     resized_picture.save(
@@ -1306,20 +1292,7 @@ async def user_pics_subfolder(username, path):
         post_pic = form.post_pic.data
         if post_pic and post_pic != "":
             try:
-                img = Image.open(post_pic)
-                # Check for EXIF orientation and rotate if necessary
-                if hasattr(img, "_getexif"):
-                    exif = img._getexif()
-                    if exif:
-                        orientation = exif.get(0x0112)
-                        if orientation:
-                            if orientation == 3:
-                                img = img.rotate(180, expand=True)
-                            elif orientation == 6:
-                                img = img.rotate(270, expand=True)
-                            elif orientation == 8:
-                                img = img.rotate(90, expand=True)
-                img = img.convert("RGB")
+                img = image_preprocessing(post_pic)
 
                 # Center crop, resize, and compress the image to 155x155
                 resized_picture = top_crop(img, (285, 285))
@@ -1453,20 +1426,7 @@ async def user(username):
         post_pic = form.post_pic.data
         if post_pic and post_pic != "":
             try:
-                img = Image.open(post_pic)
-                # Check for EXIF orientation and rotate if necessary
-                if hasattr(img, "_getexif"):
-                    exif = img._getexif()
-                    if exif:
-                        orientation = exif.get(0x0112)
-                        if orientation:
-                            if orientation == 3:
-                                img = img.rotate(180, expand=True)
-                            elif orientation == 6:
-                                img = img.rotate(270, expand=True)
-                            elif orientation == 8:
-                                img = img.rotate(90, expand=True)
-                img = img.convert("RGB")
+                img = image_preprocessing(post_pic)
 
                 # Center crop, resize, and compress the image to 155x155
                 resized_picture = top_crop(img, (285, 285))
@@ -1676,20 +1636,7 @@ async def user_subfolder(username, path):
         post_pic = form.post_pic.data
         if post_pic and post_pic != "":
             try:
-                img = Image.open(post_pic)
-                # Check for EXIF orientation and rotate if necessary
-                if hasattr(img, "_getexif"):
-                    exif = img._getexif()
-                    if exif:
-                        orientation = exif.get(0x0112)
-                        if orientation:
-                            if orientation == 3:
-                                img = img.rotate(180, expand=True)
-                            elif orientation == 6:
-                                img = img.rotate(270, expand=True)
-                            elif orientation == 8:
-                                img = img.rotate(90, expand=True)
-                img = img.convert("RGB")
+                img = image_preprocessing(post_pic)
 
                 # Center crop, resize, and compress the image to 155x155
                 resized_picture = top_crop(img, (285, 285))

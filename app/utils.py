@@ -185,3 +185,29 @@ def top_crop(img, target_size):
     img = img.resize(target_size, Image.LANCZOS)
 
     return img
+
+
+def image_preprocessing(image):
+    """preprocess image before uploading
+    Args:
+        image: before conversion
+
+    Return:
+        image: after conversion
+    """
+    img = Image.open(image)
+    # Check for EXIF orientation and rotate if necessary
+    if hasattr(img, "_getexif"):
+        exif = img._getexif()
+        if exif:
+            orientation = exif.get(0x0112)
+            if orientation:
+                if orientation == 3:
+                    img = img.rotate(180, expand=True)
+                elif orientation == 6:
+                    img = img.rotate(270, expand=True)
+                elif orientation == 8:
+                    img = img.rotate(90, expand=True)
+    img = img.convert("RGB")
+
+    return img

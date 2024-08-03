@@ -13,7 +13,7 @@ from app.constants import POST_PICS_PATH
 from app.favicon import get_favicon
 from app.models import Post, PostPic, User
 from app.openai import generate_link_summary
-from app.utils import get_webpage_title, top_crop
+from app.utils import get_webpage_title, image_preprocessing, top_crop
 
 
 async def create_post(form, current_user):
@@ -25,20 +25,7 @@ async def create_post(form, current_user):
     post_pic = form.post_pic.data
     if post_pic and post_pic != "":
         try:
-            img = Image.open(post_pic)
-            # Check for EXIF orientation and rotate if necessary
-            if hasattr(img, "_getexif"):
-                exif = img._getexif()
-                if exif:
-                    orientation = exif.get(0x0112)
-                    if orientation:
-                        if orientation == 3:
-                            img = img.rotate(180, expand=True)
-                        elif orientation == 6:
-                            img = img.rotate(270, expand=True)
-                        elif orientation == 8:
-                            img = img.rotate(90, expand=True)
-            img = img.convert("RGB")
+            img = image_preprocessing(post_pic)
 
             # Center crop, resize, and compress the image to 155x155
             resized_picture = top_crop(img, (285, 285))
