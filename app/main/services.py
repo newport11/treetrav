@@ -3,20 +3,42 @@
 import asyncio
 import os
 import urllib.parse
+from typing import Tuple
 
 from flask import current_app, flash
 from flask_babel import _
-from PIL import Image
+from flask_sqlalchemy import Pagination
 
 from app import db
 from app.constants import POST_PICS_PATH
 from app.favicon import get_favicon
+from app.main.forms import PostForm
 from app.models import Post, PostPic, User
 from app.openai import generate_link_summary
 from app.utils import get_webpage_title, image_preprocessing, top_crop
 
 
-async def create_post(form, current_user):
+async def create_post(
+    form: PostForm, current_user: User
+) -> Tuple[Post | PostPic, bool]:
+    """
+    Create a new post or post with picture based on the submitted form data.
+
+    This function handles the creation of a new post, including processing of
+    attached images, generating post body if not provided, and saving favicon.
+
+    Args:
+        form (PostForm): The submitted form containing post data.
+        current_user (User): The current authenticated user creating the post.
+
+    Returns:
+        Tuple[Post | PostPic, bool]: A tuple containing the created post
+        (either Post or PostPic) and a boolean indicating whether it's a regular
+        post (True) or a post with picture (False).
+
+    Raises:
+        Exception: If there's an error in uploading or processing the image.
+    """
     OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
     folder_path = form.post_folder.data.strip()
     folder_path = (
@@ -77,7 +99,25 @@ async def create_post(form, current_user):
     return post, True
 
 
-async def get_posts_query(route_type, current_user, search_query, page):
+async def get_posts_query(
+    route_type: str, current_user: User, search_query: str, page: int
+) -> Pagination:
+    """
+    Retrieve a paginated query of posts based on the route type and search query.
+
+    This function constructs a query to fetch posts either from the user's feed
+    or from all public posts (discover), applies search filtering if a query is
+    provided, and returns a paginated result.
+
+    Args:
+        route_type (str): The type of route ('feed' or 'discover').
+        current_user (User): The current authenticated user.
+        search_query (str): The search query to filter posts (if any).
+        page (int): The page number for pagination.
+
+    Returns:
+        Pagination: A paginated query result containing the requested posts.
+    """
     if route_type == "feed":
         base_query = current_user.followed_posts()
     else:  # discover
