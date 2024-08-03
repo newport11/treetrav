@@ -77,9 +77,9 @@ def chunked(iterable, n):
 
 def create_app(config_class=Config):
     app = Flask(__name__)
+
+    # Load configuration
     app.config.from_object(config_class)
-    app.config["SQLALCHEMY_POOL_PRE_PING"] = True
-    app.config["SQLALCHEMY_POOL_RECYCLE"] = 20
 
     # Redis Cache Configuration
     USE_REDIS = os.getenv("USE_REDIS", "False").lower() == "true"
@@ -108,21 +108,21 @@ def create_app(config_class=Config):
         else None
     )
 
+    # Register blueprints
     from app.errors import bp as errors_bp
-
     app.register_blueprint(errors_bp)
 
     from app.auth import bp as auth_bp
-
     app.register_blueprint(auth_bp, url_prefix="/auth")
 
     from app.main import bp as main_bp
-
     app.register_blueprint(main_bp)
 
     from app.api import bp as api_bp
-
     app.register_blueprint(api_bp, url_prefix="/api")
+
+    from app.routes import user_routes
+    app.register_blueprint(user_routes.bp)
 
     app.jinja_env.globals.update(shorten_folder_path=shorten_folder_path)
     app.jinja_env.globals.update(pic_exists=pic_exists)

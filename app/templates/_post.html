@@ -20,7 +20,7 @@
         </td>
         <td style="max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             {% set user_link %}
-                <a href="{{ url_for('main.user', username=post.author.username) }}" class="user-link">
+                <a href="{{ url_for('user.user', username=post.author.username) }}" class="user-link">
                     {{ post.author.username }}
                     {% if post.author.verified == True %} <img src="{{ url_for( 'static', filename='green_check16.png') }}" /> 
                     {% endif %}
@@ -79,11 +79,11 @@
                 <div class="favorite-copy-container" style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;"> 
 
                 {% if folder_path == "/" or not folder_path%}
-                    <a href="{{ url_for('main.user', username=post.author.username) }}"  class="folder-path-link" style="margin-right: 15px;" > 
+                    <a href="{{ url_for('user.user', username=post.author.username) }}"  class="folder-path-link" style="margin-right: 15px;" > 
                         {{ _('<em class="folder-path-text"> %(folder_path)s </em>', folder_path=folder_path )}}
                     </a>
                 {% else %}
-                    <a href="{{ url_for('main.user_subfolder', username=post.author.username, path=folder_path) }}"  class="folder-path-link" style="margin-right: 15px;">
+                    <a href="{{ url_for('user.user_subfolder', username=post.author.username, path=folder_path) }}"  class="folder-path-link" style="margin-right: 15px;">
                         {% if folder_path | length >= 30 %} 
                             {{ _('<em class="folder-path-text">
                                 .../%(folder_path)s
