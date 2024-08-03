@@ -1747,6 +1747,7 @@ async def user(username):
         return render_template(
             "user.html",
             user=user,
+            title=_(user.username),
             posts=posts.items,
             next_url=next_url,
             prev_url=prev_url,
@@ -1851,7 +1852,7 @@ async def user_subfolder(username, path):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify(form.errors), 400
         # For non-AJAX requests, render the template with errors
-        return render_template("user_subfolder.html", title=_("Profile"), form=form)
+        return render_template("user_subfolder.html", title=_(user.username), form=form)
 
     if current_user.get_id():
         is_following = current_user in followers
@@ -1986,6 +1987,7 @@ async def user_subfolder(username, path):
             return render_template(
                 "user_subfolder.html",
                 user=user,
+                title=_(user.username),
                 posts=posts,
                 empty_form=empty_form,
                 form=form,
@@ -2021,6 +2023,7 @@ async def user_subfolder(username, path):
         return render_template(
             "user_subfolder.html",
             user=user,
+            title=_(user.username),
             posts=posts,
             form=form,
             empty_form=empty_form,
