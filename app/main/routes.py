@@ -103,8 +103,10 @@ async def discover():
     return await handle_route(route_type="discover")
 
 
-async def handle_route(route_type):
+async def handle_route(route_type: str, user=None, username=None):
     form = PostForm()
+    route_type = route_type.lower()
+
     if request.method == "POST" and form.validate_on_submit():
         post, commit_to_db = await create_post(form, current_user)
         if commit_to_db:
@@ -113,50 +115,93 @@ async def handle_route(route_type):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"message": "Your link is now posted!"}), 200
         flash(_("Your link is now posted!"))
-        return redirect(url_for(f"main.{route_type}"))
+        if route_type == "user_pics":
+            return redirect(url_for("main.user_pics", username=username))
+        else:
+            return redirect(url_for(f"main.{route_type}"))
     elif request.method == "POST":
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify(form.errors), 400
-        return render_template("feed.html", title=_(route_type.capitalize()), form=form)
+        if route_type == "user_pics":
+            return render_template("user.html", title=_(username), form=form)
+        else:
+            return render_template("feed.html", title=_(route_type.capitalize()), form=form)
 
-    return await handle_get_request(form, route_type)
-
-
-async def handle_post_submission(form):
-    post = await create_post(form, current_user)
-    db.session.add(post)
-    db.session.commit()
-    return "Your link is now posted!"
+    return await handle_get_request(form, route_type, user=user, username=username)
 
 
-async def handle_get_request(form, route_type):
-    page = request.args.get("page", 1, type=int)
-    search_query = request.args.get("post_q", "")
+async def handle_get_request(form, route_type, user=None, username=None):
+    if route_type in ["feed", "discover"]:
+        # Existing logic for feed and discover routes
+        page = request.args.get("page", 1, type=int)
+        search_query = request.args.get("post_q", "")
 
-    cache_key = get_cache_key(route_type, page, search_query)
-    cached_result = cache.get(cache_key)
-    if cached_result is not None:
-        return cached_result
+        cache_key = get_cache_key(route_type, page, search_query)
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return cached_result
 
-    posts = await get_posts_query(route_type, current_user, search_query, page)
+        posts = await get_posts_query(route_type, current_user, search_query, page)
 
-    result = render_template(
-        "feed.html",
-        title=_(route_type.capitalize()),
-        form=form,
-        posts=posts.items,
-        next_url=url_for(f"main.{route_type}", page=posts.next_num, q=search_query)
-        if posts.has_next
-        else None,
-        prev_url=url_for(f"main.{route_type}", page=posts.prev_num, q=search_query)
-        if posts.has_prev
-        else None,
-        current_page=posts.page,
-        total_pages=posts.pages or 1,
-        post_search_query=search_query,
-    )
-    cache.set(cache_key, result)
-    return result
+        result = render_template(
+            "feed.html",
+            title=_(route_type.capitalize()),
+            form=form,
+            posts=posts.items,
+            next_url=url_for(f"main.{route_type}", page=posts.next_num, q=search_query)
+            if posts.has_next
+            else None,
+            prev_url=url_for(f"main.{route_type}", page=posts.prev_num, q=search_query)
+            if posts.has_prev
+            else None,
+            current_page=posts.page,
+            total_pages=posts.pages or 1,
+            post_search_query=search_query,
+        )
+        cache.set(cache_key, result)
+        return result
+    elif route_type == "user_pics":
+        # Logic for user_pics route
+        posts = user.pic_posts.filter_by(folder_link="/").order_by(PostPic.timestamp.desc())
+        page = request.args.get("page", 1, type=int)
+        posts = posts.paginate(
+            page=page,
+            per_page=current_app.config["PIC_POSTS_PER_PAGE"],
+            error_out=False,
+        )
+
+        next_url = url_for("main.user_pics", username=username, page=posts.next_num) if posts.has_next else None
+        prev_url = url_for("main.user_pics", username=username, page=posts.prev_num) if posts.has_prev else None
+
+        folders_tmp = user.pic_posts.filter(PostPic.folder_link != "/").order_by(PostPic.timestamp.desc()).all()
+        folders = []
+        visited_folders = []
+
+        for post in folders_tmp:
+            post.folder_name = post.folder_link = post.folder_link.split("/")[0]
+            if post.folder_name != "" and post.folder_name not in visited_folders:
+                visited_folders.append(post.folder_name)
+                folders.append(post)
+
+        user_visit_counter_dict[f"user_{user.id}"] = user_visit_counter_dict.get(f"user_{user.id}", 0) + 1
+
+        empty_form = EmptyForm()
+
+        return render_template(
+            "user_pics.html",
+            user=user,
+            posts=posts.items,
+            next_url=next_url,
+            prev_url=prev_url,
+            form=form,
+            empty_form=empty_form,
+            folders=folders,
+            current_page=posts.page,
+            total_pages=posts.pages or 1,
+        )
+    else:
+        # Handle other route types if needed
+        pass
 
 
 def get_cache_key(route_type, page, search_query):
@@ -1229,162 +1274,17 @@ def check_email():
 @bp.route("/p/<username>/", methods=["POST", "GET"])
 async def user_pics(username):
     user = User.query.filter(User.username.ilike(username)).first_or_404()
-    OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
-
     followers = user.followers
-    form = PostForm()
-    if request.method == "POST" and form.validate_on_submit():
-        folder_path = form.post_folder.data.strip()
-        if folder_path and folder_path != "/":
-            folder_path = folder_path.strip("/")
-        else:
-            folder_path = "/"
-        folder_path = folder_path if form.post_folder.data else "/"
-        post_pic = form.post_pic.data
-        if post_pic and post_pic != "":
-            try:
-                img = Image.open(post_pic)
-                # Check for EXIF orientation and rotate if necessary
-                if hasattr(img, "_getexif"):
-                    exif = img._getexif()
-                    if exif:
-                        orientation = exif.get(0x0112)
-                        if orientation:
-                            if orientation == 3:
-                                img = img.rotate(180, expand=True)
-                            elif orientation == 6:
-                                img = img.rotate(270, expand=True)
-                            elif orientation == 8:
-                                img = img.rotate(90, expand=True)
-                img = img.convert("RGB")
-
-                # Center crop, resize, and compress the image to 155x155
-                resized_picture = top_crop(img, (285, 285))
-                post = PostPic(
-                    link=urllib.parse.quote(form.post_link.data),
-                    body=form.post_body.data,
-                    description=form.post_description.data.strip(),
-                    folder_link=folder_path,
-                    author=current_user,
-                )
-                if not post.body:
-                    webpage_title = get_webpage_title(form.post_link.data)
-                    if webpage_title:
-                        post.body = webpage_title
-                    elif OPENAI_API_KEY:
-                        post.body = generate_link_summary(
-                            post.link, OPENAI_API_KEY
-                        ).rstrip(".")
-                db.session.add(post)
-                db.session.commit()
-                post_pic_filename = f"{current_user.id}_{post.id}"
-                resized_picture.save(
-                    os.path.join(POST_PICS_PATH, f"{post_pic_filename}.jpg"),
-                    "JPEG",
-                )
-                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                    return jsonify({"message": "Your link is now posted!"}), 200
-                flash(_("Your link is now posted!"))
-                return redirect(url_for("main.user_pic"))
-            except Exception as e:
-                current_app.logger.error(f"Exception occurred. {e}")
-                flash(_("Error in uploading image. Please try again"), "error")
-        post = Post(
-            link=urllib.parse.quote(form.post_link.data),
-            body=form.post_body.data,
-            description=form.post_description.data.strip(),
-            folder_link=folder_path,
-            author=current_user,
-        )
-        OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
-        # If post.body is None, try to set it to the webpage title
-        if not post.body:
-            webpage_title = get_webpage_title(form.post_link.data)
-            if webpage_title:
-                post.body = webpage_title
-            elif OPENAI_API_KEY:
-                post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
-        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
-        if favicon_file_name:
-            post.favicon_file_name = favicon_file_name
-
-        db.session.add(post)
-        db.session.commit()
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return jsonify({"message": "Your link is now posted!"}), 200
-        flash(_("Your link is now posted!"))
-        return redirect(url_for("main.user"))
-    elif request.method == "POST":
-        # If it's a POST request but validation failed, return errors as JSON
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return jsonify(form.errors), 400
-        # For non-AJAX requests, render the template with errors
-        return render_template("user.html", title=_(user.username), form=form)
-
-    empty_form = EmptyForm()
 
     if current_user.get_id():
         is_following = current_user in followers
     else:
         is_following = False
-    if user.private_mode == True and user != current_user and not is_following:
-        return render_template("user_private.html", user=user, form=empty_form)
-    else:
-        posts = user.pic_posts.filter_by(folder_link="/").order_by(
-            PostPic.timestamp.desc()
-        )
 
-        page = request.args.get("page", 1, type=int)
-        posts = posts.paginate(
-            page=page,
-            per_page=current_app.config["PIC_POSTS_PER_PAGE"],
-            error_out=False,
-        )
+    if user.private_mode and user != current_user and not is_following:
+        return render_template("user_private.html", user=user, form=EmptyForm())
 
-        next_url = (
-            url_for("main.user_pics", username=user.username, page=posts.next_num)
-            if posts.has_next
-            else None
-        )
-        prev_url = (
-            url_for("main.user_pics", username=user.username, page=posts.prev_num)
-            if posts.has_prev
-            else None
-        )
-
-        # Calculate current_page and total_pages
-        current_page = posts.page
-        total_pages = posts.pages or 1
-
-        folders_tmp = (
-            user.pic_posts.filter(PostPic.folder_link != "/")
-            .order_by(PostPic.timestamp.desc())
-            .all()
-        )
-        folders = []
-        visited_folders = []
-
-        for post in folders_tmp:
-            post.folder_name = post.folder_link = post.folder_link.split("/")[0]
-            if post.folder_name != "" and post.folder_name not in visited_folders:
-                visited_folders.append(post.folder_name)
-                folders.append(post)
-
-        user_visit_counter_dict[f"user_{user.id}"] = (
-            user_visit_counter_dict.get(f"user_{user.id}", 0) + 1
-        )
-        return render_template(
-            "user_pics.html",
-            user=user,
-            posts=posts.items,
-            next_url=next_url,
-            prev_url=prev_url,
-            form=form,
-            empty_form=empty_form,
-            folders=folders,
-            current_page=current_page,
-            total_pages=total_pages,
-        )
+    return await handle_route("user_pics", user=user, username=username)
 
 
 @bp.route("/p/<username>/<path:path>", methods=["POST", "GET"])
@@ -1459,7 +1359,6 @@ async def user_pics_subfolder(username, path):
             folder_link=folder_path,
             author=current_user,
         )
-        OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
         # If post.body is None, try to set it to the webpage title
         if not post.body:
             webpage_title = get_webpage_title(form.post_link.data)
