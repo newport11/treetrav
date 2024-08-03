@@ -17,6 +17,7 @@ from app.utils import get_webpage_title, top_crop
 
 
 async def create_post(form, current_user):
+    OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
     folder_path = form.post_folder.data.strip()
     folder_path = (
         "/" if not folder_path or folder_path == "/" else folder_path.strip("/")
@@ -37,6 +38,7 @@ async def create_post(form, current_user):
                             img = img.rotate(270, expand=True)
                         elif orientation == 8:
                             img = img.rotate(90, expand=True)
+            img = img.convert("RGB")
 
             # Center crop, resize, and compress the image to 155x155
             resized_picture = top_crop(img, (285, 285))
@@ -74,7 +76,6 @@ async def create_post(form, current_user):
         author=current_user,
     )
 
-    OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
     if not post.body:
         webpage_title = get_webpage_title(form.post_link.data)
         if webpage_title:
