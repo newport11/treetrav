@@ -443,6 +443,7 @@ def settings():
                 except Exception as e:
                     current_app.logger.error(f"Exception occurred. {e}")
                     flash(_("Error in uploading image. Please try again"), "error")
+                    return redirect(url_for("main.settings"))
         except RequestEntityTooLarge as e:
             current_app.logger.error(f"Exception occurred. {e}")
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
