@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 import os
 import urllib.parse
@@ -77,6 +78,10 @@ def chunked(iterable, n):
 
 def create_app(config_class=Config):
     app = Flask(__name__)
+
+    @app.context_processor
+    def inject_current_year():
+        return {"current_year": datetime.now().year}
 
     # Load configuration
     app.config.from_object(config_class)

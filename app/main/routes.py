@@ -55,11 +55,6 @@ def before_request():
     g.locale = str(get_locale())
 
 
-@bp.context_processor
-def inject_current_year():
-    return {"current_year": datetime.now().year}
-
-
 def handle_ajax_request(f):
     @wraps(f)
     async def decorated_function(*args, **kwargs):
