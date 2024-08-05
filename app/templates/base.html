@@ -61,7 +61,7 @@
 {% else %}
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 {% endif %}
-    <nav class="navbar navbar-default">
+    <nav class="navbar navbar-default navbar-fixed-top">
         <div class="container">
             <div class="navbar-header">
                 <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
@@ -98,7 +98,7 @@
 {% endblock %}
 
 {% block content %}
-    <div class="container">
+    <div class="container" style="padding-top: 70px;">
         {% with messages = get_flashed_messages() %}
         {% if messages %}
             {% for message in messages %}
@@ -159,4 +159,37 @@
 
 
     </script>
+{% endblock %}
+
+{% block style %}
+<style>
+    @media (max-width: 767px) {
+        body {
+            padding-top: 50px; /* Adjust this value based on your navbar height */
+        }
+
+        .navbar-collapse {
+            max-height: none;
+            position: fixed;
+            top: 50px; /* Should match the navbar height */
+            left: 0;
+            right: 0;
+            background-color: #f8f8f8; /* Match your navbar background color */
+            border-top: 1px solid #e7e7e7; /* Optional: adds a border */
+            z-index: 1000;
+        }
+
+        .navbar-collapse.in {
+            overflow-y: auto;
+        }
+
+        .navbar-default .navbar-collapse {
+            border-color: #e7e7e7;
+        }
+
+        .navbar-fixed-top .navbar-collapse {
+            max-height: calc(100vh - 50px);
+        }
+    }
+</style>
 {% endblock %}
