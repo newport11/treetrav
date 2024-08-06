@@ -128,7 +128,9 @@ async def user_pics_subfolder(username, path):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify(form.errors), 400
         # For non-AJAX requests, render the template with errors
-        return render_template("user_pic_subfolder.html", title=_(user.username), form=form)
+        return render_template(
+            "user_pic_subfolder.html", title=_(user.username), form=form
+        )
 
     if current_user.get_id():
         is_following = current_user in followers

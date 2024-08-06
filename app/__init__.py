@@ -1,7 +1,7 @@
-from datetime import datetime
 import logging
 import os
 import urllib.parse
+from datetime import datetime
 from itertools import zip_longest
 from logging.handlers import RotatingFileHandler, SMTPHandler
 
@@ -73,7 +73,9 @@ def pic_exists(filename):
 def chunked(iterable, n):
     "Collect data into fixed-length chunks or blocks"
     args = [iter(iterable)] * n
-    return zip_longest(*args)
+    return (
+        [item for item in chunk if item is not None] for chunk in zip_longest(*args)
+    )
 
 
 def create_app(config_class=Config):
@@ -115,18 +117,23 @@ def create_app(config_class=Config):
 
     # Register blueprints
     from app.errors import bp as errors_bp
+
     app.register_blueprint(errors_bp)
 
     from app.auth import bp as auth_bp
+
     app.register_blueprint(auth_bp, url_prefix="/auth")
 
     from app.main import bp as main_bp
+
     app.register_blueprint(main_bp)
 
     from app.api import bp as api_bp
+
     app.register_blueprint(api_bp, url_prefix="/api")
 
     from app.routes import user_routes
+
     app.register_blueprint(user_routes.bp)
 
     app.jinja_env.globals.update(shorten_folder_path=shorten_folder_path)

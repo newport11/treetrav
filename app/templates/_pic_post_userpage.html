@@ -1,69 +1,160 @@
+<table class="fixed-width-table">
+    <tr class="post-row-{{ post_slice|length }}">
+        {% for post in post_slice %}
+            {% if post %}
+                {% set decoded_link = decode_url(post.link) %}
+
+                <td class="content-cell">
+                    <a href="{{ decoded_link }}" target="_blank" style="display: block; text-decoration: none; color: inherit;">
+                        <img src="{{ url_for('static', filename='post_pics/' + post.author.id|string + '_' + post.id|string + '.jpg') }}" alt="Post Image" class="large-image intrinsic-size">
+                        <div class="title-text" style="font-size: 1.6em;"> 
+                            <div class="half-break"></div>
+                            {% if post.body %}
+                                <strong class="post-title">{{ post.body | truncate(65) }}</strong>
+                            {% else %}
+                                <strong class="post-title">{{ decoded_link | truncate(65) }}</strong>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="description-text">
+                            {% if post.description %}
+                                {% if current_user.get_id() and current_user.description_text_color %}
+                                    <span style="color: {{ current_user.description_text_color | safe }}; font-weight: bold;">
+                                        {{ post.description | truncate(65) }}
+                                    </span>
+                                {% else %}
+                                    <span class="posted-description-text">
+                                        {{ post.description | truncate(65) }}
+                                    </span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </a>
+                    
+                    <div class="when-text">
+                        {% set when_text = moment(post.timestamp).fromNow() %}
+                        {{ _('<em>  %(when)s</em>', when=when_text) }}
+                    </div>
+                </td>
+                <td class="icon-cell" style="background-color: inherit;">
+                    {% if current_user.get_id() %}
+                        {% if current_user.id == post.user_id %}
+                        <form method="post" action="{{ url_for('main.delete_post_pic', post_id=post.id ) }}" style="display: inline;">
+                            <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
+                                <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" style="pointer-events: none;" />
+                            </button>
+                        </form>
+                        {% endif %}
+                    {% endif %}
+                </td>
+            {% endif %}
+        {% endfor %}
+        {% for _ in range(3 - post_slice|length) %}
+            <td class="empty-content-cell"></td>
+            <td class="empty-icon-cell"></td>
+        {% endfor %}
+    </tr>
+</table>
+
 <style>
+
     .table td {
-      transition: background-color 0.3s;
+        transition: background-color 0.3s;
     }
     .table td:hover {
-      background-color: #f5f5f5; /* Adjust the hover color as needed */
+        background-color: #f5f5f5; /* Adjust the hover color as needed */
+    }
+
+    .intrinsic-size {
+        max-width: 100%;
+        height: auto;
     }
 
     .half-break {
         margin-bottom: 5px; /* Adjust this value as needed */
     }
-  </style>
+    .fixed-width-table {
+        width: 100%;
+        table-layout: fixed;
+    }
 
-<table class="table">
+    .fixed-width-table .content-cell {
+        width: calc(33.33% - 25px); /* Subtracting the width of the icon */
+        text-align: center;
+        vertical-align: top;
+    }
 
-    <tr>
-        {% for post in post_slice %}
-        {% if post %}
-        {% set decoded_link = decode_url(post.link) %}
+    .fixed-width-table .icon-cell {
+        width: 25px; /* Width of the trash icon */
+        padding: 0;
+        vertical-align: top;
+    }
 
-        <td style="width: 33.33%; text-align: center;">
-            <a href="{{ decoded_link }}" target="_blank" style="display: block; text-decoration: none; color: inherit;">
-                <img src="{{ url_for('static', filename='post_pics/' + post.author.id|string + '_' + post.id|string + '.jpg') }}" alt="Post Image" class="large-image" style="width: 100%; height: auto;">
-                <div class="title-text" style="font-size: 1.6em;"> 
-                    <div class="half-break"></div>
-                    {% if post.body %}
-                        <strong>{{ post.body | truncate(65) }}</strong>
-                    {% else %}
-                        <strong>{{ decoded_link | truncate(65) }}</strong>
-                    {% endif %}
-                </div>
-                
-                <div class="description-text">
-                    {% if post.description %}
-                        {% if current_user.get_id() and current_user.description_text_color %}
-                            <span style="color: {{ current_user.description_text_color | safe }}; font-weight: bold;">
-                                {{ post.description | truncate(65) }}
-                            </span>
-                        {% else %}
-                            <span class="posted-description-text">
-                                {{ post.description | truncate(65) }}
-                            </span>
-                        {% endif %}
-                    {% endif %}
-                </div>
-            </a>
-            
-            <div class="when-text">
-                {% set when_text = moment(post.timestamp).fromNow() %}
-                {{ _('<em>  %(when)s</em>', when=when_text) }}
-            </div>
-        </td>
-        <td style="background-color: inherit;">
-            {% if current_user.get_id() %}
-                {% if current_user.id == post.user_id %}
-                <form method="post" action="{{ url_for('main.delete_post_pic', post_id=post.id ) }}" style="display: inline;">
-                    <button type="submit" style="border: 0; background: transparent; padding: 0; cursor: pointer;">
-                        <img src="https://img.icons8.com/ios/25/trash--v1.png" width="25" height="25" name="delete" style="pointer-events: none;" />
-                    </button>
-                </form>
-                {% endif %}
-            {% endif %}
-        </td>
-        
-        {% endif %}
-        {% endfor %}
-        
-    </tr>
-</table>
+    .fixed-width-table td img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .title-text {
+        height: 2em; /* Adjust based on font-size and desired number of lines */
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* Show 2 lines of text */
+        -webkit-box-orient: vertical;
+        text-overflow: ellipsis;
+        word-wrap: break-word;
+    }
+
+    .post-title {
+        font-size: 0.9em; /* Adjust as needed */
+        line-height: 1.2; /* Adjust for better readability */
+        margin: 0;
+        padding: 0;
+    }
+
+    .post-row-1 .content-cell,
+    .post-row-2 .content-cell:nth-child(3) {
+        width: calc(33.33% - 25px);
+    }
+
+    .empty-cell {
+        background-color: transparent;
+    }
+
+    .content-cell,
+    .empty-content-cell {
+        width: calc(33.33% - 25px); /* Subtracting the width of the icon cell */
+        text-align: center;
+        vertical-align: top;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+
+    .icon-cell,
+    .empty-icon-cell {
+        width: 25px;
+        padding: 0;
+        vertical-align: top;
+    }
+
+    .empty-content-cell,
+    .empty-icon-cell {
+        border: none;
+        background: transparent;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const images = document.querySelectorAll('.intrinsic-size');
+    images.forEach(img => {
+        img.addEventListener('load', function() {
+            const td = this.closest('td');
+            if (td) {
+                td.style.width = this.naturalWidth + 'px';
+                td.style.height = this.naturalHeight + 'px';
+            }
+        });
+    });
+});
+</script>
