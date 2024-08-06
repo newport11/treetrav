@@ -21,15 +21,15 @@
                     </div>
                 
                     <div class="form-group">
-                        <label for="post_body">Link Description (Optional)</label>
-                        <textarea class="form-control" id="post_body" name="post_body" placeholder="e.g. MIT Course 1">{{ form.post_body.data or '' }}</textarea>
-                        <div class="invalid-feedback" id="post_body_error"></div>
+                        <label for="post_description">Link Description (Optional)</label>
+                        <textarea class="form-control" id="post_description" name="post_description" placeholder="e.g. MIT Course 1">{{ form.post_description.data or '' }}</textarea>
+                        <div class="invalid-feedback" id="post_description_error"></div>
                     </div>
                 
                     <div class="form-group">
-                        <label for="post_description">Link Title (Optional)</label>
-                        <textarea class="form-control" id="post_description" name="post_description" placeholder="e.g. Click here">{{ form.post_description.data or '' }}</textarea>
-                        <div class="invalid-feedback" id="post_description_error"></div>
+                        <label for="post_body">Link Title (Optional)</label>
+                        <textarea class="form-control" id="post_body" name="post_body" placeholder="e.g. Click here">{{ form.post_body.data or '' }}</textarea>
+                        <div class="invalid-feedback" id="post_body_error"></div>
                     </div>
 
                     <div class="form-group">
@@ -186,10 +186,10 @@
         function showError(fieldId, message) {
             if (message) {
                 $('#' + fieldId).addClass('is-invalid');
-                $('#' + fieldId + 'error').text(message);
+                $('#' + fieldId + '_error').text(message);
             } else {
                 $('#' + fieldId).removeClass('is-invalid');
-                $('#' + fieldId + 'error').text('');
+                $('#' + fieldId + '_error').text('');
             }
         }
 
