@@ -20,7 +20,7 @@ from app.utils import get_webpage_title, image_preprocessing, top_crop
 
 async def create_post(
     form: PostForm, current_user: User
-) -> Tuple[Post | PostPic, bool]:
+):
     """
     Create a new post or post with picture based on the submitted form data.
 
