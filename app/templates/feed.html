@@ -43,9 +43,17 @@
         </ul>
     </nav>
 {% else %}
+    {% if title == "Discover" %}
+    <div class="alert alert-info" role="alert">
+        Oops! Looks like there are no posts to show.
+    </div>
+    {% else %}
     <div class="alert alert-info" role="alert">
         Posts from people you follow appear here!
     </div>
+{% endif %}
+
+
 {% endif %}
 
 {% include 'all_rights_reserved.html' %}
