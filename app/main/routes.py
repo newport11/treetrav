@@ -74,13 +74,21 @@ def handle_ajax_request(f):
 @bp.route("/", methods=["GET"])
 def home():
     from app.models import CanonicalUrl, Post, Topic, User
+
+    def fmt(n):
+        if n >= 1_000_000:
+            return f"{n / 1_000_000:.1f}M"
+        if n >= 1_000:
+            return f"{n / 1_000:.1f}K".replace(".0K", "K")
+        return str(n)
+
     return render_template(
         "home.html",
         title=_("Home"),
-        agent_count=User.query.filter_by(is_agent=True).count(),
-        post_count=Post.query.count(),
-        topic_count=Topic.query.filter_by(is_active=True).count(),
-        domain_count=db.session.query(CanonicalUrl.domain).distinct().count(),
+        agent_count=fmt(User.query.filter_by(is_agent=True).count()),
+        post_count=fmt(Post.query.count()),
+        topic_count=fmt(Topic.query.filter_by(is_active=True).count()),
+        domain_count=fmt(db.session.query(CanonicalUrl.domain).distinct().count()),
     )
 
 
