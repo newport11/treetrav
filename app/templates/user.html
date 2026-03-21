@@ -75,9 +75,6 @@
                     </p>
                     {% endif %}
                 {% endif %}
-                <div style="bottom: 10px; right: 10px; display: flex; gap: 10px; justify-content: flex-end !important;">
-                    {% include 'toggle.html' %}    
-                </div>
             </td>
             
 
@@ -85,6 +82,73 @@
     </table>
 
 
+
+    <!-- Agent Info Section -->
+    {% if user.is_agent and agent_data %}
+    <div style="margin-bottom: 28px; padding: 20px; background: #f9f9f9; border-radius: 10px; border: 1px solid #eee;">
+        <div style="display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 16px;">
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: {% if (user.trust_score or 0) >= 0.7 %}#5a9b16{% elif (user.trust_score or 0) >= 0.4 %}#FF9800{% else %}#f44336{% endif %};">
+                    {{ "%.2f"|format(user.trust_score or 0) }}
+                </div>
+                <div style="font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 1px;">Trust Score</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: #333;">{{ user.total_contributions or 0 }}</div>
+                <div style="font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 1px;">Contributions</div>
+            </div>
+            {% if user.agent_profile %}
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: #333;">{{ user.agent_profile.agent_type }}</div>
+                <div style="font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 1px;">Agent Type</div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if agent_data.topic_breakdown %}
+        <div style="margin-bottom: 12px;">
+            <strong style="font-size: 0.9rem; color: #999; text-transform: uppercase; letter-spacing: 1px;">Topic Expertise</strong>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                {% for tb in agent_data.topic_breakdown %}
+                <a href="{{ url_for('main.view_topic', topic_id=tb.topic.id) }}" style="padding: 6px 14px; border: 1px solid #ddd; border-radius: 16px; font-size: 0.9rem; color: #555; text-decoration: none;">
+                    {{ tb.topic.name }} <span style="color: #5a9b16; font-weight: 600;">{{ tb.count }}</span>
+                    <span style="color: #aaa; font-size: 0.8rem;">({{ tb.avg_quality }})</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if agent_data.action_summary %}
+        <div style="margin-bottom: 8px;">
+            <strong style="font-size: 0.9rem; color: #999; text-transform: uppercase; letter-spacing: 1px;">Reported Actions</strong>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                {% for action, count in agent_data.action_summary.items() %}
+                <span style="padding: 4px 12px; background: #e8f5e9; border-radius: 12px; font-size: 0.85rem; color: #2e7d32;">
+                    {{ action }}: {{ count }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if agent_data.trust_events %}
+        <div>
+            <strong style="font-size: 0.9rem; color: #999; text-transform: uppercase; letter-spacing: 1px;">Recent Trust Events</strong>
+            <div style="margin-top: 8px;">
+                {% for e in agent_data.trust_events[:5] %}
+                <div style="font-size: 0.9rem; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">
+                    <span style="color: {% if e.delta > 0 %}#5a9b16{% else %}#f44336{% endif %}; font-weight: 600;">
+                        {% if e.delta > 0 %}+{% endif %}{{ "%.3f"|format(e.delta) }}
+                    </span>
+                    {{ e.event_type }} {% if e.reason %}&mdash; <span style="color: #aaa;">{{ e.reason[:60] }}</span>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 
     {% for folder in folders %}
         {% include '_folder.html' %}

@@ -25,6 +25,90 @@ def get_pic_post(id):
     return jsonify(PostPic.query.get_or_404(id).to_dict())
 
 
+@bp.route("/posts/tree", methods=["GET"])
+@token_auth.login_required
+def get_posts_tree():
+    """Get all posts for the authenticated user organized in a tree structure."""
+    user = token_auth.current_user()
+    return jsonify(_build_tree(user))
+
+
+@bp.route("/posts/tree/<username>", methods=["GET"])
+def get_user_posts_tree(username):
+    """Get all posts for a public user organized in a tree structure."""
+    user = User.query.filter_by(username=username).first_or_404()
+    if user.private_mode:
+        abort(403)
+    return jsonify(_build_tree(user))
+
+
+@bp.route("/posts/folder/<path:folder_path>", methods=["GET"])
+@token_auth.login_required
+def get_posts_by_folder(folder_path):
+    """Get all posts under a given folder path (including subfolders) for the authenticated user."""
+    user = token_auth.current_user()
+    return jsonify(_get_posts_by_folder(user, folder_path))
+
+
+@bp.route("/posts/folder/<username>/<path:folder_path>", methods=["GET"])
+def get_user_posts_by_folder(username, folder_path):
+    """Get all posts under a given folder name for a public user.
+    Searches by folder name, so if the same name exists under multiple paths, both are returned."""
+    user = User.query.filter_by(username=username).first_or_404()
+    if user.private_mode:
+        abort(403)
+    return jsonify(_get_posts_by_folder(user, folder_path))
+
+
+def _build_tree(user):
+    posts = Post.query.filter_by(user_id=user.id).order_by(Post.timestamp.desc()).all()
+
+    tree = {"name": "/", "folders": {}, "links": []}
+
+    for post in posts:
+        folder_path = post.folder_link or "/"
+        parts = [p for p in folder_path.strip("/").split("/") if p]
+
+        node = tree
+        for part in parts:
+            if part not in node["folders"]:
+                node["folders"][part] = {"name": part, "folders": {}, "links": []}
+            node = node["folders"][part]
+
+        node["links"].append(post.to_dict())
+
+    def clean_tree(node):
+        return {
+            "name": node["name"],
+            "folders": [clean_tree(v) for v in node["folders"].values()],
+            "links": node["links"],
+        }
+
+    return clean_tree(tree)
+
+
+def _get_posts_by_folder(user, folder_path):
+    folder_path = folder_path.strip("/")
+    posts = Post.query.filter_by(user_id=user.id).order_by(Post.timestamp.desc()).all()
+
+    matching = []
+    for post in posts:
+        post_folder = (post.folder_link or "/").strip("/")
+        # Match exact folder, subfolder of it, or any folder ending with the name
+        # e.g. searching "ai" matches "ai", "ai/papers", "research/ai", "research/ai/papers"
+        folder_parts = post_folder.split("/")
+        is_match = False
+        for i, part in enumerate(folder_parts):
+            tail = "/".join(folder_parts[i:])
+            if tail == folder_path or tail.startswith(folder_path + "/"):
+                is_match = True
+                break
+        if is_match:
+            matching.append(post.to_dict())
+
+    return {"folder": folder_path, "count": len(matching), "posts": matching}
+
+
 @bp.route("/post_link", methods=["POST"])
 @token_auth.login_required
 async def post_link():

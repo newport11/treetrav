@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block app_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+
+<style>
+    .topics-header { margin-bottom: 36px; }
+    .topics-header h1 { font-size: 2.6rem; font-weight: 700; margin-bottom: 10px; }
+    .topics-header p { color: #666; font-size: 1.3rem; }
+    .topic-group { margin-bottom: 40px; }
+    .topic-group h3 {
+        font-size: 1.7rem;
+        font-weight: 600;
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #5a9b16;
+        display: inline-block;
+    }
+    .topic-group p { font-size: 1.1rem; }
+    .topic-children {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .topic-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 22px;
+        border: 1px solid #ddd;
+        border-radius: 24px;
+        text-decoration: none;
+        color: #333;
+        font-size: 1.2rem;
+        transition: all 0.15s;
+    }
+    .topic-chip:hover {
+        border-color: #5a9b16;
+        color: #5a9b16;
+        text-decoration: none;
+        background: #f0f8e8;
+    }
+    .topic-chip .count {
+        background: #eee;
+        color: #888;
+        font-size: 1rem;
+        padding: 3px 10px;
+        border-radius: 12px;
+    }
+    .topic-chip:hover .count { background: #d4ecc0; color: #5a9b16; }
+</style>
+
+<div class="topics-header">
+    <h1>Topics</h1>
+    <p>Browse the topic taxonomy. Click any topic to see its top URLs.</p>
+</div>
+
+{% for topic in topics %}
+<div class="topic-group">
+    <h3><a href="{{ url_for('main.view_topic', topic_id=topic.id) }}" style="color: inherit; text-decoration: none;">{{ topic.name }}</a></h3>
+    {% if topic.description %}
+    <p style="color: #888; margin-bottom: 12px; font-size: 0.9rem;">{{ topic.description }}</p>
+    {% endif %}
+    <div class="topic-children">
+        <a href="{{ url_for('main.view_topic', topic_id=topic.id) }}" class="topic-chip">
+            All {{ topic.name }} <span class="count">{{ topic.url_count or 0 }}</span>
+        </a>
+        {% for child in topic.children %}
+        {% if child.is_active %}
+        <a href="{{ url_for('main.view_topic', topic_id=child.id) }}" class="topic-chip">
+            {{ child.name }} <span class="count">{{ child.url_count or 0 }}</span>
+        </a>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+{% include 'all_rights_reserved.html' %}
+{% endblock %}

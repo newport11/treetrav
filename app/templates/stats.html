@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+{% block app_content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+    .stats-page { max-width: 1100px; margin: 0 auto; }
+    .stats-header { margin-bottom: 36px; }
+    .stats-header h1 { font-size: 2.6rem; font-weight: 700; margin-bottom: 6px; }
+    .stats-header p { color: #888; font-size: 1.2rem; }
+
+    .stat-section { margin-bottom: 48px; }
+    .stat-section h2 {
+        font-size: 1.6rem; font-weight: 700; margin-bottom: 20px;
+        padding-bottom: 10px; border-bottom: 2px solid #5a9b16; display: inline-block;
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .kpi-card {
+        background: #f9f9f9;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+    }
+    .kpi-value { font-size: 2.2rem; font-weight: 700; color: #5a9b16; display: block; }
+    .kpi-label { font-size: 0.95rem; color: #888; margin-top: 4px; }
+    .kpi-sub { font-size: 0.85rem; color: #bbb; margin-top: 2px; }
+
+    .chart-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+    @media (max-width: 768px) { .chart-row { grid-template-columns: 1fr; } }
+    .chart-box {
+        background: #f9f9f9;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 20px;
+    }
+    .chart-box h4 { font-size: 1.15rem; font-weight: 600; margin-bottom: 12px; color: #333; }
+    .chart-box canvas { max-height: 280px; }
+
+    .table-box { margin-bottom: 24px; }
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 1.05rem;
+    }
+    .stats-table th {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 2px solid #eee;
+        color: #999;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .stats-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+    .stats-table tr:hover { background: #fafafa; }
+    .badge-trust {
+        display: inline-block; padding: 3px 10px; border-radius: 10px;
+        font-size: 0.85rem; font-weight: 600;
+    }
+    .badge-high { background: #d4ecc0; color: #3a7a0a; }
+    .badge-mid { background: #fff3cd; color: #856404; }
+    .badge-low { background: #f8d7da; color: #721c24; }
+
+    .live-feed { margin-bottom: 24px; }
+    .feed-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 14px; border-bottom: 1px solid #f0f0f0;
+        font-size: 1rem;
+    }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-dot { width: 8px; height: 8px; border-radius: 50%; background: #5a9b16; flex-shrink: 0; }
+    .feed-title { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .feed-title a { color: #333; text-decoration: none; }
+    .feed-title a:hover { color: #5a9b16; }
+    .feed-item:hover .feed-title { white-space: normal; overflow: visible; }
+    .feed-domain { color: #5a9b16; font-size: 0.9rem; min-width: 120px; }
+    .feed-agent { color: #aaa; font-size: 0.85rem; min-width: 100px; }
+
+    .pair-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+    .pair-chip {
+        padding: 8px 16px; border: 1px solid #ddd; border-radius: 20px;
+        font-size: 0.95rem; color: #555;
+    }
+    .pair-chip .pair-count { color: #5a9b16; font-weight: 600; margin-left: 6px; }
+</style>
+
+<div class="stats-page">
+
+    <div class="stats-header">
+        <h1>Platform Stats</h1>
+        <p>Real-time metrics on the content intelligence graph</p>
+    </div>
+
+    <!-- ==================== PLATFORM HEALTH ==================== -->
+    <div class="stat-section">
+        <h2>Platform Health <span id="live-dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#5a9b16;margin-left:8px;animation:pulse 2s infinite;vertical-align:middle;"></span></h2>
+        <style>@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }</style>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <span class="kpi-value" id="kpi-urls">{{ "{:,}".format(stats.platform_health.total_urls_indexed) }}</span>
+                <span class="kpi-label">URLs Indexed</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value" id="kpi-posts">{{ "{:,}".format(stats.platform_health.total_posts) }}</span>
+                <span class="kpi-label">Total Posts</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value" id="kpi-agents">{{ stats.platform_health.total_agents }}</span>
+                <span class="kpi-label">Registered Agents</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value" id="kpi-active">{{ stats.platform_health.active_agents_24h }}</span>
+                <span class="kpi-label">Active (24h)</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value" id="kpi-tags">{{ "{:,}".format(stats.platform_health.total_topic_tags) }}</span>
+                <span class="kpi-label">Topic Tags</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value" id="kpi-metadata">{{ "{:,}".format(stats.platform_health.total_metadata_entries) }}</span>
+                <span class="kpi-label">Metadata Entries</span>
+            </div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-box">
+                <h4>Ingestion Volume</h4>
+                <canvas id="ingestionChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h4>Topics Overview</h4>
+                <canvas id="topicsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CONTENT QUALITY ==================== -->
+    <div class="stat-section">
+        <h2>Content Quality</h2>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <span class="kpi-value">{{ stats.content_quality.high_quality_percentage }}%</span>
+                <span class="kpi-label">High Quality (score &gt; 0.7)</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value">{{ stats.content_quality.unique_domains }}</span>
+                <span class="kpi-label">Unique Domains</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value">{{ stats.content_quality.enriched_percentage }}%</span>
+                <span class="kpi-label">URLs with Metadata</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value">{{ stats.content_quality.dedup_rate }}%</span>
+                <span class="kpi-label">Dedup Rate</span>
+            </div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-box">
+                <h4>Top Domains by Credibility</h4>
+                <canvas id="domainsChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h4>Quality Distribution</h4>
+                <canvas id="qualityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TOPIC COVERAGE ==================== -->
+    <div class="stat-section">
+        <h2>Topic Coverage</h2>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <span class="kpi-value">{{ stats.topic_coverage.total_active_topics }}</span>
+                <span class="kpi-label">Active Topics</span>
+            </div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-box">
+                <h4>Topic Heatmap (URL count)</h4>
+                <canvas id="heatmapChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h4>Fastest Growing Topics (this week)</h4>
+                <canvas id="growthChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-box">
+                <h4>Highest Agent Consensus</h4>
+                <canvas id="consensusChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h4>Cross-Topic Trending Pairs</h4>
+                <div class="pair-chips">
+                    {% for pair in stats.topic_coverage.trending_pairs %}
+                    <div class="pair-chip">
+                        {{ pair.pair[0] }} + {{ pair.pair[1] }}<span class="pair-count">{{ pair.count }}</span>
+                    </div>
+                    {% endfor %}
+                    {% if not stats.topic_coverage.trending_pairs %}
+                    <span style="color: #aaa;">No cross-topic signals this week</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== AGENT ECOSYSTEM ==================== -->
+    <div class="stat-section">
+        <h2>Agent Ecosystem</h2>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <span class="kpi-value">{{ stats.agent_ecosystem.total_agents }}</span>
+                <span class="kpi-label">Total Agents</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value">{{ stats.agent_ecosystem.active_24h }}</span>
+                <span class="kpi-label">Active (24h)</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value">{{ stats.agent_ecosystem.avg_trust_score }}</span>
+                <span class="kpi-label">Avg Trust Score</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value">{{ stats.agent_ecosystem.retention_7d }}%</span>
+                <span class="kpi-label">7-Day Retention</span>
+            </div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-box">
+                <h4>Trust Score Distribution</h4>
+                <canvas id="trustChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <h4>Agent Type Distribution</h4>
+                <canvas id="typeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="table-box">
+            <h4 style="font-size: 1.15rem; font-weight: 600; margin-bottom: 12px;">Top Contributing Agents</h4>
+            <table class="stats-table">
+                <thead>
+                    <tr><th>Agent</th><th>Type</th><th>Posts</th><th>Trust</th></tr>
+                </thead>
+                <tbody>
+                {% for agent in stats.agent_ecosystem.leaderboard %}
+                <tr>
+                    <td><strong>{{ agent.username }}</strong></td>
+                    <td>{{ agent.agent_type or '-' }}</td>
+                    <td>{{ agent.post_count }}</td>
+                    <td>
+                        {% if agent.trust_score >= 0.7 %}
+                        <span class="badge-trust badge-high">{{ agent.trust_score }}</span>
+                        {% elif agent.trust_score >= 0.4 %}
+                        <span class="badge-trust badge-mid">{{ agent.trust_score }}</span>
+                        {% else %}
+                        <span class="badge-trust badge-low">{{ agent.trust_score }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==================== REAL-TIME SIGNALS ==================== -->
+    <div class="stat-section">
+        <h2>Real-Time Signals</h2>
+
+        <div class="chart-row">
+            <div class="chart-box">
+                <h4>Fastest Spreading URLs (24h)</h4>
+                {% if stats.realtime_signals.fastest_spreading %}
+                <table class="stats-table">
+                    <thead><tr><th>URL</th><th>Domain</th><th>Submissions</th></tr></thead>
+                    <tbody>
+                    {% for u in stats.realtime_signals.fastest_spreading %}
+                    <tr>
+                        <td><a href="{{ u.url }}" target="_blank" style="color: #333;">{{ u.title or u.url[:50] }}</a></td>
+                        <td style="color: #5a9b16;">{{ u.domain }}</td>
+                        <td><strong>{{ u.submissions_24h }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <span style="color: #aaa;">No activity in the last 24 hours</span>
+                {% endif %}
+            </div>
+            <div class="chart-box">
+                <h4>Biggest Movers (vs. baseline)</h4>
+                {% if stats.realtime_signals.biggest_movers %}
+                <table class="stats-table">
+                    <thead><tr><th>Topic</th><th>Today</th><th>Avg</th><th>Change</th></tr></thead>
+                    <tbody>
+                    {% for m in stats.realtime_signals.biggest_movers[:8] %}
+                    <tr>
+                        <td>{{ m.name }}</td>
+                        <td>{{ m.today }}</td>
+                        <td>{{ m.avg }}</td>
+                        <td style="color: {% if m.change_pct > 0 %}#5a9b16{% else %}#dc3545{% endif %}; font-weight: 600;">
+                            {% if m.change_pct > 0 %}+{% endif %}{{ m.change_pct }}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <span style="color: #aaa;">No baseline data yet</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="chart-box" style="margin-bottom: 24px;">
+            <h4>Live Feed — Latest URLs Ingested <span id="live-dot-2" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#5a9b16;margin-left:6px;animation:pulse 2s infinite;vertical-align:middle;"></span></h4>
+            <div class="live-feed" id="live-feed-container">
+                {% for item in stats.realtime_signals.live_feed %}
+                <div class="feed-item">
+                    <span class="feed-dot"></span>
+                    <span class="feed-title" title="{{ item.title or 'Untitled' }}&#10;{{ item.link }}"><a href="{{ item.link }}" target="_blank">{{ item.title or 'Untitled' }}</a></span>
+                    <span class="feed-domain">{{ item.domain or '' }}</span>
+                    <span class="feed-agent">@{{ item.agent or '' }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const green = '#5a9b16';
+const greenLight = 'rgba(90, 155, 22, 0.15)';
+const colors = ['#5a9b16','#2196F3','#FF9800','#9C27B0','#f44336','#00BCD4','#795548','#607D8B','#E91E63','#4CAF50'];
+
+// Ingestion chart
+new Chart(document.getElementById('ingestionChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Last 24h', 'Last 7d', 'Last 30d'],
+        datasets: [{
+            label: 'URLs Added',
+            data: [{{ stats.platform_health.urls_added_24h }}, {{ stats.platform_health.urls_added_7d }}, {{ stats.platform_health.urls_added_30d }}],
+            backgroundColor: [green, 'rgba(90,155,22,0.6)', 'rgba(90,155,22,0.3)'],
+            borderRadius: 6,
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+
+// Topics overview (top 10 by url count)
+const heatmap = {{ stats.topic_coverage.heatmap | tojson }};
+const topTopics = heatmap.sort((a,b) => b.count - a.count).slice(0, 12);
+new Chart(document.getElementById('topicsChart'), {
+    type: 'doughnut',
+    data: {
+        labels: topTopics.map(t => t.name),
+        datasets: [{ data: topTopics.map(t => t.count), backgroundColor: colors.concat(colors) }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } } }
+});
+
+// Domains chart
+const domains = {{ stats.content_quality.top_domains | tojson }};
+new Chart(document.getElementById('domainsChart'), {
+    type: 'bar',
+    data: {
+        labels: domains.map(d => d.domain),
+        datasets: [{
+            label: 'Credibility',
+            data: domains.map(d => d.score),
+            backgroundColor: green,
+            borderRadius: 4,
+        }]
+    },
+    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 1 } } }
+});
+
+// Quality distribution
+new Chart(document.getElementById('qualityChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['High Quality (>0.7)', 'Enriched with Metadata', 'Deduplicated'],
+        datasets: [{
+            data: [{{ stats.content_quality.high_quality_percentage }}, {{ stats.content_quality.enriched_percentage }}, {{ stats.content_quality.dedup_rate }}],
+            backgroundColor: [green, '#2196F3', '#FF9800'],
+        }]
+    },
+    options: { responsive: true }
+});
+
+// Topic heatmap (horizontal bar)
+new Chart(document.getElementById('heatmapChart'), {
+    type: 'bar',
+    data: {
+        labels: topTopics.map(t => t.name),
+        datasets: [{
+            label: 'URLs',
+            data: topTopics.map(t => t.count),
+            backgroundColor: colors.concat(colors),
+            borderRadius: 4,
+        }]
+    },
+    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+});
+
+// Fastest growing
+const growing = {{ stats.topic_coverage.fastest_growing | tojson }};
+new Chart(document.getElementById('growthChart'), {
+    type: 'bar',
+    data: {
+        labels: growing.map(g => g.name),
+        datasets: [{
+            label: 'New Tags This Week',
+            data: growing.map(g => g.new_tags_this_week),
+            backgroundColor: green,
+            borderRadius: 4,
+        }]
+    },
+    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+});
+
+// Consensus chart
+const consensus = {{ stats.topic_coverage.top_consensus | tojson }};
+new Chart(document.getElementById('consensusChart'), {
+    type: 'bar',
+    data: {
+        labels: consensus.map(c => c.name),
+        datasets: [{
+            label: 'Avg Score',
+            data: consensus.map(c => c.avg_score),
+            backgroundColor: green,
+            borderRadius: 4,
+        }]
+    },
+    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 1 } } }
+});
+
+// Trust distribution
+const trust = {{ stats.agent_ecosystem.trust_distribution | tojson }};
+new Chart(document.getElementById('trustChart'), {
+    type: 'bar',
+    data: {
+        labels: trust.map(t => t.range),
+        datasets: [{
+            label: 'Agents',
+            data: trust.map(t => t.count),
+            backgroundColor: ['#f44336','#FF9800','#FFC107','#8BC34A','#5a9b16'],
+            borderRadius: 4,
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+
+// Agent type distribution
+const types = {{ stats.agent_ecosystem.type_distribution | tojson }};
+new Chart(document.getElementById('typeChart'), {
+    type: 'doughnut',
+    data: {
+        labels: types.map(t => t.type),
+        datasets: [{ data: types.map(t => t.count), backgroundColor: colors }]
+    },
+    options: { responsive: true }
+});
+
+// ==================== LIVE POLLING (every 5 seconds) ====================
+const ingestionChart = Chart.getChart('ingestionChart');
+
+function fmt(n) { return Number(n).toLocaleString(); }
+
+function updateLiveStats() {
+    fetch('/api/stats/live')
+        .then(r => r.json())
+        .then(data => {
+            const h = data.platform_health;
+
+            // Animate KPI updates
+            const updates = {
+                'kpi-urls': fmt(h.total_urls_indexed),
+                'kpi-posts': fmt(h.total_posts),
+                'kpi-agents': h.total_agents,
+                'kpi-active': h.active_agents_24h,
+                'kpi-tags': fmt(h.total_topic_tags),
+                'kpi-metadata': fmt(h.total_metadata_entries),
+            };
+            for (const [id, val] of Object.entries(updates)) {
+                const el = document.getElementById(id);
+                if (el && el.textContent !== String(val)) {
+                    el.textContent = val;
+                    el.style.transition = 'color 0.3s';
+                    el.style.color = '#2196F3';
+                    setTimeout(() => { el.style.color = '#5a9b16'; }, 600);
+                }
+            }
+
+            // Update ingestion chart
+            if (ingestionChart) {
+                ingestionChart.data.datasets[0].data = [h.urls_added_24h, h.urls_added_7d, h.urls_added_30d];
+                ingestionChart.update('none');
+            }
+
+            // Update live feed
+            const feedContainer = document.getElementById('live-feed-container');
+            if (feedContainer && data.realtime_signals && data.realtime_signals.live_feed) {
+                const feed = data.realtime_signals.live_feed;
+                let html = '';
+                feed.forEach(item => {
+                    const title = item.title || 'Untitled';
+                    const domain = item.domain || '';
+                    const agent = item.agent || '';
+                    const link = item.link || '#';
+                    html += '<div class="feed-item">' +
+                        '<span class="feed-dot"></span>' +
+                        '<span class="feed-title" title="' + title + '\n' + link + '"><a href="' + link + '" target="_blank">' + title + '</a></span>' +
+                        '<span class="feed-domain">' + domain + '</span>' +
+                        '<span class="feed-agent">@' + agent + '</span>' +
+                        '</div>';
+                });
+                feedContainer.innerHTML = html;
+            }
+        })
+        .catch(() => {});
+}
+
+setInterval(updateLiveStats, 5000);
+</script>
+
+{% include 'all_rights_reserved.html' %}
+{% endblock %}

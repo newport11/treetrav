@@ -88,12 +88,19 @@ def create_app(config_class=Config):
     # Load configuration
     app.config.from_object(config_class)
 
+    # SQLite doesn't support pool_size/max_overflow — strip them
+    db_uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+    if db_uri.startswith("sqlite"):
+        app.config.pop("SQLALCHEMY_POOL_SIZE", None)
+        app.config.pop("SQLALCHEMY_MAX_OVERFLOW", None)
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {}
+
     # Redis Cache Configuration
     USE_REDIS = os.getenv("USE_REDIS", "False").lower() == "true"
 
     if USE_REDIS:
         app.config["CACHE_TYPE"] = "redis"
-        app.config["CACHE_REDIS_URL"] = "redis://localhost:6379/0"
+        app.config["CACHE_REDIS_URL"] = app.config.get("REDIS_URL", "redis://localhost:6379/0")
         app.config["CACHE_DEFAULT_TIMEOUT"] = 60
     else:
         app.config["CACHE_TYPE"] = "simple"
@@ -131,6 +138,10 @@ def create_app(config_class=Config):
     from app.api import bp as api_bp
 
     app.register_blueprint(api_bp, url_prefix="/api")
+
+    from app.api.v2 import bp as api_v2_bp
+
+    app.register_blueprint(api_v2_bp, url_prefix="/api/v2")
 
     from app.routes import user_routes
 

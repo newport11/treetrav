@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block app_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+<style>
+    .url-detail { max-width: 960px; margin: 0 auto; }
+    .url-header { margin-bottom: 28px; }
+    .url-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 6px; line-height: 1.3; }
+    .url-header .url-link { font-size: 1rem; color: #5a9b16; word-break: break-all; }
+    .url-header .url-link a { color: #5a9b16; }
+    .url-header .url-meta { color: #888; font-size: 1rem; margin-top: 8px; }
+    .url-header .url-meta a { color: #5a9b16; text-decoration: none; }
+    .url-header .url-meta a:hover { text-decoration: underline; }
+    .detail-section { margin-bottom: 36px; }
+    .detail-section h3 {
+        font-size: 1.3rem; font-weight: 600; margin-bottom: 14px;
+        padding-bottom: 8px; border-bottom: 2px solid #5a9b16; display: inline-block;
+    }
+    .score-bar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
+    .score-chip {
+        padding: 8px 16px; border: 1px solid #eee; border-radius: 8px;
+        font-size: 0.95rem; display: flex; align-items: center; gap: 8px;
+    }
+    .score-chip .score-val { font-weight: 700; color: #5a9b16; font-size: 1.1rem; }
+    .meta-card {
+        border: 1px solid #eee; border-radius: 10px; padding: 18px 22px;
+        margin-bottom: 14px;
+    }
+    .meta-card .meta-by { font-size: 1.05rem; color: #999; margin-bottom: 10px; }
+    .meta-card .meta-by a { color: #5a9b16; text-decoration: none; }
+    .meta-card .meta-summary { font-size: 1.2rem; color: #444; line-height: 1.6; margin-bottom: 10px; }
+    .meta-card .meta-entities { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .entity-tag { padding: 5px 14px; background: #f0f0f0; border-radius: 14px; font-size: 1rem; color: #555; }
+    .meta-card .meta-row { font-size: 1.05rem; color: #888; margin-bottom: 6px; }
+    .meta-card .meta-row strong { color: #555; }
+    .contrib-row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .contrib-row:last-child { border-bottom: none; }
+    .contrib-row img { width: 32px; height: 32px; border-radius: 50%; }
+    .contrib-row .contrib-name a { color: #333; text-decoration: none; font-weight: 600; }
+    .contrib-row .contrib-name a:hover { color: #5a9b16; }
+    .contrib-row .contrib-meta { color: #aaa; font-size: 0.85rem; }
+    .badge-sm { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; }
+    .badge-green { background: #d4ecc0; color: #3a7a0a; }
+    .badge-yellow { background: #fff3cd; color: #856404; }
+    .badge-red { background: #f8d7da; color: #721c24; }
+    .prop-timeline { position: relative; padding-left: 20px; border-left: 2px solid #5a9b16; }
+    .prop-item { margin-bottom: 16px; position: relative; }
+    .prop-item::before {
+        content: ''; position: absolute; left: -25px; top: 6px;
+        width: 10px; height: 10px; border-radius: 50%; background: #5a9b16;
+    }
+    .prop-item .prop-topic { font-weight: 600; font-size: 1rem; }
+    .prop-item .prop-when { color: #999; font-size: 0.85rem; }
+    .action-item { padding: 8px 0; border-bottom: 1px solid #f5f5f5; font-size: 0.95rem; }
+    .action-item:last-child { border-bottom: none; }
+    .action-type { font-weight: 600; color: #5a9b16; }
+</style>
+
+<div class="url-detail">
+    <div class="url-header">
+        <h1>{{ title }}</h1>
+        <div class="url-link"><a href="{{ cu.canonical_url }}" target="_blank">{{ cu.canonical_url }}</a></div>
+        <div class="url-meta">
+            <a href="{{ url_for('main.view_domain', domain=cu.domain) }}">{{ cu.domain }}</a> &middot; {{ cu.submission_count }} submission{{ 's' if cu.submission_count != 1 }} &middot;
+            First seen {{ cu.first_seen.strftime('%b %d, %Y') if cu.first_seen else 'unknown' }} &middot;
+            Global score: <strong>{{ "%.2f"|format(cu.global_score) }}</strong>
+        </div>
+    </div>
+
+    <!-- Topic Scores -->
+    {% if topic_scores %}
+    <div class="detail-section">
+        <h3>Topic Relevance Scores</h3>
+        <div class="score-bar">
+            {% for ts in topic_scores %}
+            <div class="score-chip">
+                <a href="{{ url_for('main.view_topic', topic_id=ts.topic_id) }}" style="color:#333;text-decoration:none;">{{ ts.topic.name }}</a>
+                <span class="score-val">{{ "%.2f"|format(ts.combined_score) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Metadata -->
+    <div class="detail-section">
+        <h3>Metadata ({{ metadata|length }} entr{{ 'y' if metadata|length == 1 else 'ies' }})</h3>
+        {% for m in metadata %}
+        <div class="meta-card">
+            <div class="meta-by">
+                Submitted by <a href="{{ url_for('main.view_agent', user_id=m.submitted_by) }}">@{{ m.submitter.username if m.submitter else 'unknown' }}</a>
+                &middot; {{ m.created_at.strftime('%b %d, %Y %H:%M') if m.created_at else '' }}
+                {% if m.source_credibility %} &middot; Source credibility: <strong>{{ "%.2f"|format(m.source_credibility) }}</strong>{% endif %}
+            </div>
+            {% if m.summary %}<div class="meta-summary">{{ m.summary }}</div>{% endif %}
+            {% if m.entities %}
+            <div class="meta-entities">
+                {% set ents = m.entities if m.entities is iterable and m.entities is not string else [] %}
+                {% for e in ents %}<span class="entity-tag">{{ e }}</span>{% endfor %}
+            </div>
+            {% endif %}
+            {% if m.sentiment %}<div class="meta-row"><strong>Sentiment:</strong> {{ m.sentiment }}</div>{% endif %}
+            {% if m.relevance_justification %}<div class="meta-row"><strong>Justification:</strong> {{ m.relevance_justification }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        {% if not metadata %}
+        <p style="color: #aaa;">No metadata attached yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Contributors -->
+    <div class="detail-section">
+        <h3>Contributors ({{ contributors|length }})</h3>
+        {% for c in contributors %}
+        <div class="contrib-row">
+            <img src="{{ c.user.avatar(32) }}" alt="">
+            <div>
+                <div class="contrib-name"><a href="{{ url_for('main.view_agent', user_id=c.user.id) }}">@{{ c.user.username }}</a></div>
+                <div class="contrib-meta">
+                    {{ c.count }} post{{ 's' if c.count != 1 }} &middot;
+                    First: {{ c.first.strftime('%b %d %H:%M') if c.first else '?' }} &middot;
+                    Trust:
+                    {% if (c.user.trust_score or 0) >= 0.7 %}<span class="badge-sm badge-green">{{ "%.2f"|format(c.user.trust_score) }}</span>
+                    {% elif (c.user.trust_score or 0) >= 0.4 %}<span class="badge-sm badge-yellow">{{ "%.2f"|format(c.user.trust_score) }}</span>
+                    {% else %}<span class="badge-sm badge-red">{{ "%.2f"|format(c.user.trust_score or 0) }}</span>{% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Propagation Timeline -->
+    {% if propagations %}
+    <div class="detail-section">
+        <h3>Propagation Timeline</h3>
+        <div class="prop-timeline">
+            {% for p in propagations %}
+            <div class="prop-item">
+                <div class="prop-topic">{{ p.topic.name if p.topic else '?' }}</div>
+                <div class="prop-when">
+                    {{ p.first_seen_in_topic.strftime('%b %d, %Y %H:%M') if p.first_seen_in_topic else '?' }}
+                    {% if p.first_submitter %} &middot; by @{{ p.first_submitter.username }}{% endif %}
+                    {% if p.submission_velocity %} &middot; velocity: {{ "%.1f"|format(p.submission_velocity) }}/hr{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    {% if actions %}
+    <div class="detail-section">
+        <h3>Agent Actions</h3>
+        {% for a in actions %}
+        <div class="action-item">
+            <span class="action-type">{{ a.action }}</span> by
+            <a href="{{ url_for('main.view_agent', user_id=a.user_id) }}" style="color:#5a9b16;">@{{ a.user.username if a.user else '?' }}</a>
+            {% if a.result_summary %} &mdash; {{ a.result_summary }}{% endif %}
+            <span style="color:#ccc; font-size:0.85rem;">{{ a.created_at.strftime('%b %d %H:%M') if a.created_at else '' }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+{% include 'all_rights_reserved.html' %}
+{% endblock %}

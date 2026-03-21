@@ -18,7 +18,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
 from app import db
-from app.constants import FORBIDDEN_USERNAMES, POST_PICS_PATH, PROFILE_PICS_PATH
+from app.constants import FORBIDDEN_USERNAMES, PROFILE_PICS_PATH
 from app.favicon import hash_profile_pic
 from app.helpers.route_helpers import handle_route
 from app.main import bp
@@ -32,7 +32,7 @@ from app.main.forms import (
     SettingsForm,
     ShareFolderForm,
 )
-from app.models import Leaf, Post, PostPic, ShareFolder, ShareFolderRequest, User
+from app.models import Leaf, Post, ShareFolder, ShareFolderRequest, User
 from app.utils import (
     copy_folder_util,
     image_preprocessing,
@@ -73,7 +73,15 @@ def handle_ajax_request(f):
 @bp.route("/home", methods=["GET"])
 @bp.route("/", methods=["GET"])
 def home():
-    return render_template("home.html", title=_("Home"))
+    from app.models import CanonicalUrl, Post, Topic, User
+    return render_template(
+        "home.html",
+        title=_("Home"),
+        agent_count=User.query.filter_by(is_agent=True).count(),
+        post_count=Post.query.count(),
+        topic_count=Topic.query.filter_by(is_active=True).count(),
+        domain_count=db.session.query(CanonicalUrl.domain).distinct().count(),
+    )
 
 
 @bp.route("/", methods=["GET", "POST"])
@@ -123,24 +131,6 @@ def delete_post(post_id):
     else:
         return redirect(request.referrer)
 
-
-@bp.route("/post_pic/delete/<int:post_id>", methods=["POST"])
-@login_required
-def delete_post_pic(post_id):
-    post = PostPic.query.filter_by(id=post_id).first_or_404()
-    if current_user.id == post.user_id:
-        # Delete associated Leaf objects
-        db.session.delete(post)
-        db.session.commit()
-
-        # delete file
-        file = os.path.join(POST_PICS_PATH, f"{post.user_id}_{post_id}.jpg")
-        if os.path.exists(file):
-            os.remove(file)
-        flash("Link deleted")
-        return redirect(request.referrer)
-    else:
-        return redirect(request.referrer)
 
 
 @bp.route("/account/delete/<int:user_id>", methods=["POST"])
@@ -203,39 +193,6 @@ def delete_folder(folder_link):
         )
     )
 
-
-@bp.route("/pic_folder/delete/<path:folder_link>", methods=["POST"])
-@login_required
-def delete_pic_folder(folder_link):
-    posts = PostPic.query.filter_by(user_id=current_user.id).all()
-    for post in posts:
-        if (
-            post.folder_link != None
-            and is_subpath(folder_link, post.folder_link)
-            and current_user.id == post.user_id
-        ):
-            db.session.delete(post)
-            file = os.path.join(POST_PICS_PATH, f"{post.user_id}_{post.id}.jpg")
-            if os.path.exists(file):
-                os.remove(file)
-
-    db.session.commit()
-    flash(f"Folder '{folder_link}' deleted from {current_user.toggle_name}")
-
-    previous_folder = folder_link.rstrip("/").rsplit("/", 1)[0]
-    if len(folder_link.split("/")) <= 1:
-        previous_folder = "/"
-    return (
-        redirect(url_for("user.user_pics", username=current_user.username))
-        if previous_folder == "/"
-        else redirect(
-            url_for(
-                "user.user_pics_subfolder",
-                username=current_user.username,
-                path=previous_folder,
-            )
-        )
-    )
 
 
 @bp.route("/post/favorite/<int:post_id>", methods=["POST"])
@@ -892,30 +849,57 @@ def unfollow(username):
 
 
 @bp.route("/search")
-# @login_required
 def search():
-    query = request.args.get("q", "")
+    from app.models import CanonicalUrl, Topic, UrlMetadata, UrlTopicScore
+    query = request.args.get("q", "").strip()
     page = request.args.get("page", 1, type=int)
-    users, total = User.search(query, page, current_app.config["USERS_PER_PAGE"])
 
-    total_pages = (total - 1) // current_app.config["USERS_PER_PAGE"] + 1
+    # Users
+    users, user_total = User.search(query, page, current_app.config["USERS_PER_PAGE"])
 
-    next_url = (
-        url_for("search", q=query, page=page + 1)
-        if total > page * current_app.config["USERS_PER_PAGE"]
-        else None
-    )
-    prev_url = url_for("search", q=query, page=page - 1) if page > 1 else None
+    # Topics
+    pattern = f"%{query}%"
+    topics = Topic.query.filter(
+        db.or_(Topic.name.ilike(pattern), Topic.description.ilike(pattern)),
+        Topic.is_active == True,
+    ).limit(10).all()
+
+    # Content — use semantic search if available
+    content_results = []
+    if query:
+        try:
+            from app.models import UrlEmbedding
+            has_embeddings = UrlEmbedding.query.first() is not None
+            if has_embeddings:
+                from app.services.embeddings import semantic_search as sem_search
+                raw = sem_search(query, limit=10)
+                for canonical_url_id, similarity in raw:
+                    cu = CanonicalUrl.query.get(canonical_url_id)
+                    if not cu:
+                        continue
+                    sample_post = Post.query.filter_by(canonical_url_id=cu.id).first()
+                    meta = UrlMetadata.query.filter_by(canonical_url_id=cu.id).first()
+                    best_score = UrlTopicScore.query.filter_by(canonical_url_id=cu.id).order_by(UrlTopicScore.combined_score.desc()).first()
+                    content_results.append({
+                        "url": cu.canonical_url,
+                        "domain": cu.domain,
+                        "title": sample_post.body if sample_post else None,
+                        "summary": meta.summary[:150] if meta and meta.summary else None,
+                        "topic": best_score.topic.name if best_score and best_score.topic else None,
+                        "similarity": round(similarity, 3),
+                    })
+        except Exception:
+            pass
 
     return render_template(
         "search.html",
         title=_("Search"),
         users=users,
-        next_url=next_url,
-        prev_url=prev_url,
+        topics=topics,
+        content_results=content_results,
         query=query,
         current_page=page,
-        total_pages=total_pages or 1,
+        total_pages=max(1, (user_total - 1) // current_app.config["USERS_PER_PAGE"] + 1) if user_total else 1,
     )
 
 
@@ -1126,6 +1110,367 @@ def get_suggestions():
 
     suggestions = User.get_suggestions(query)
     return jsonify(suggestions)
+
+
+@bp.route("/api/unified_search")
+def unified_search():
+    """Unified search returning users, topics, and content matches."""
+    from app.models import Topic
+    query = request.args.get("q", "").strip()
+    if not query or len(query) < 2:
+        return jsonify({"users": [], "topics": [], "urls": []})
+
+    pattern = f"%{query}%"
+
+    # Users
+    users = User.get_suggestions(query)
+
+    # Topics
+    topics = Topic.query.filter(
+        db.or_(Topic.name.ilike(pattern), Topic.description.ilike(pattern)),
+        Topic.is_active == True,
+    ).limit(5).all()
+    topic_results = [{"id": t.id, "name": t.name, "path": t.path, "url_count": t.url_count} for t in topics]
+
+    # Content (posts matching title)
+    posts = (
+        Post.query.filter(
+            db.or_(Post.body.ilike(pattern), Post.description.ilike(pattern))
+        )
+        .order_by(Post.timestamp.desc())
+        .limit(5)
+        .all()
+    )
+    url_results = [{"id": p.id, "title": p.body, "link": p.link, "username": p.author.username if p.author else None} for p in posts]
+
+    return jsonify({"users": users[:5], "topics": topic_results, "urls": url_results})
+
+
+@bp.route("/stats")
+def stats():
+    from app.services.stats import get_all_stats
+    data = get_all_stats()
+    return render_template("stats.html", title=_("Stats"), stats=data)
+
+
+@bp.route("/api/stats")
+def api_stats():
+    from app.services.stats import get_all_stats
+    return jsonify(get_all_stats())
+
+
+@bp.route("/api/stats/live")
+def api_stats_live():
+    """Lightweight endpoint for real-time polling — platform health + live feed only."""
+    from app.services.stats import get_platform_health, get_realtime_signals
+    return jsonify({
+        "platform_health": get_platform_health(),
+        "realtime_signals": get_realtime_signals(),
+    })
+
+
+@bp.route("/url/<int:canonical_id>")
+def view_url(canonical_id):
+    """URL detail page — metadata, contributors, topic scores, actions, audit trail."""
+    from app.models import (
+        AgentAction, CanonicalUrl, PostTopicTag, UrlMetadata,
+        UrlPropagation, UrlTopicScore,
+    )
+    cu = CanonicalUrl.query.get_or_404(canonical_id)
+
+    # Posts referencing this URL
+    posts = Post.query.filter_by(canonical_url_id=canonical_id).order_by(Post.timestamp.desc()).all()
+    title = posts[0].body if posts else cu.canonical_url[:60]
+
+    # Topic scores
+    topic_scores = (
+        UrlTopicScore.query.filter_by(canonical_url_id=canonical_id)
+        .order_by(UrlTopicScore.combined_score.desc()).all()
+    )
+
+    # Metadata entries
+    metadata = UrlMetadata.query.filter_by(canonical_url_id=canonical_id).order_by(UrlMetadata.created_at.desc()).all()
+
+    # Contributors
+    user_map = {}
+    for p in posts:
+        if p.user_id not in user_map:
+            user_map[p.user_id] = {"first": p.timestamp, "count": 0}
+        user_map[p.user_id]["count"] += 1
+        if p.timestamp and (user_map[p.user_id]["first"] is None or p.timestamp < user_map[p.user_id]["first"]):
+            user_map[p.user_id]["first"] = p.timestamp
+    contributors = []
+    for uid, info in user_map.items():
+        u = User.query.get(uid)
+        if u:
+            contributors.append({"user": u, "first": info["first"], "count": info["count"]})
+    contributors.sort(key=lambda c: c["first"] or datetime.utcnow())
+
+    # Actions
+    actions = AgentAction.query.filter_by(canonical_url_id=canonical_id).order_by(AgentAction.created_at.desc()).limit(20).all()
+
+    # Propagation
+    propagations = UrlPropagation.query.filter_by(canonical_url_id=canonical_id).order_by(UrlPropagation.first_seen_in_topic).all()
+
+    return render_template(
+        "url_detail.html",
+        title=title,
+        cu=cu,
+        posts=posts,
+        topic_scores=topic_scores,
+        metadata=metadata,
+        contributors=contributors,
+        actions=actions,
+        propagations=propagations,
+    )
+
+
+@bp.route("/agent/<int:user_id>")
+def view_agent(user_id):
+    """Redirect to the user's profile page."""
+    user = User.query.get_or_404(user_id)
+    return redirect(url_for("user.user", username=user.username))
+
+
+@bp.route("/agents")
+def browse_agents():
+    """Browse all agents with trust scores."""
+    page = request.args.get("page", 1, type=int)
+    sort = request.args.get("sort", "trust")
+
+    query = User.query.filter_by(is_agent=True)
+    if sort == "trust":
+        query = query.order_by(User.trust_score.desc())
+    elif sort == "posts":
+        query = query.order_by(User.total_contributions.desc())
+    else:
+        query = query.order_by(User.id.desc())
+
+    agents = query.paginate(page=page, per_page=25, error_out=False)
+
+    return render_template(
+        "agents_browse.html",
+        title=_("Agents"),
+        agents=agents,
+        sort=sort,
+    )
+
+
+@bp.route("/domains")
+def browse_domains():
+    """Browse all tracked domains with credibility scores."""
+    from app.models import CanonicalUrl, DomainCredibility
+    from sqlalchemy import func
+
+    sort = request.args.get("sort", "credibility")
+
+    # Get all domains with URL counts
+    domain_stats = (
+        db.session.query(
+            CanonicalUrl.domain,
+            func.count(CanonicalUrl.id).label("url_count"),
+        )
+        .group_by(CanonicalUrl.domain)
+        .all()
+    )
+
+    domains = []
+    for domain, url_count in domain_stats:
+        if not domain:
+            continue
+        cred = DomainCredibility.query.filter_by(domain=domain, topic_id=None).first()
+        topic_creds = DomainCredibility.query.filter(
+            DomainCredibility.domain == domain, DomainCredibility.topic_id.isnot(None)
+        ).count()
+        domains.append({
+            "domain": domain,
+            "url_count": url_count,
+            "credibility": cred.credibility_score if cred else 0,
+            "topic_count": topic_creds,
+        })
+
+    if sort == "credibility":
+        domains.sort(key=lambda d: d["credibility"], reverse=True)
+    elif sort == "urls":
+        domains.sort(key=lambda d: d["url_count"], reverse=True)
+    else:
+        domains.sort(key=lambda d: d["domain"])
+
+    return render_template("domains_browse.html", title=_("Domains"), domains=domains, sort=sort)
+
+
+@bp.route("/domain/<path:domain>")
+def view_domain(domain):
+    """Domain detail page — publisher analytics."""
+    from collections import Counter
+    from app.models import (
+        AgentAction, CanonicalUrl, DomainCredibility, PostTopicTag,
+        Topic, UrlMetadata, UrlTopicScore,
+    )
+    from sqlalchemy import func
+    import json as json_mod
+
+    # All canonical URLs for this domain
+    urls = CanonicalUrl.query.filter_by(domain=domain).all()
+    url_ids = [u.id for u in urls]
+
+    if not url_ids:
+        return render_template("domain_detail.html", title=domain, domain=domain,
+                               found=False)
+
+    # Global credibility
+    global_cred = DomainCredibility.query.filter_by(domain=domain, topic_id=None).first()
+
+    # Per-topic credibility
+    topic_creds = (
+        DomainCredibility.query.filter(
+            DomainCredibility.domain == domain, DomainCredibility.topic_id.isnot(None)
+        )
+        .order_by(DomainCredibility.credibility_score.desc())
+        .all()
+    )
+
+    # Top URLs from this domain
+    top_urls = (
+        db.session.query(CanonicalUrl, UrlTopicScore)
+        .join(UrlTopicScore, UrlTopicScore.canonical_url_id == CanonicalUrl.id)
+        .filter(CanonicalUrl.domain == domain)
+        .order_by(UrlTopicScore.combined_score.desc())
+        .limit(15)
+        .all()
+    )
+    seen = set()
+    top_url_list = []
+    for cu, uts in top_urls:
+        if cu.id in seen:
+            continue
+        seen.add(cu.id)
+        sample_post = Post.query.filter_by(canonical_url_id=cu.id).first()
+        top_url_list.append({
+            "id": cu.id,
+            "url": cu.canonical_url,
+            "title": sample_post.body if sample_post else None,
+            "score": uts.combined_score,
+            "topic": uts.topic.name if uts.topic else None,
+            "submissions": cu.submission_count,
+        })
+
+    # Agent pickup — which agents submit URLs from this domain
+    agent_counts = (
+        db.session.query(User, func.count(Post.id).label("post_count"))
+        .join(Post, Post.user_id == User.id)
+        .filter(Post.canonical_url_id.in_(url_ids))
+        .group_by(User.id)
+        .order_by(func.count(Post.id).desc())
+        .limit(15)
+        .all()
+    )
+
+    # Extracted entities — aggregate from all metadata
+    all_metadata = UrlMetadata.query.filter(UrlMetadata.canonical_url_id.in_(url_ids)).all()
+    entity_counter = Counter()
+    for m in all_metadata:
+        if m.entities:
+            ents = m.entities if isinstance(m.entities, list) else json_mod.loads(m.entities) if isinstance(m.entities, str) else []
+            for e in ents:
+                entity_counter[str(e)] += 1
+    top_entities = entity_counter.most_common(30)
+
+    # Competitor comparison — for each topic, top domains alongside this one
+    competitors = []
+    for tc in topic_creds[:5]:
+        topic = Topic.query.get(tc.topic_id)
+        if not topic:
+            continue
+        rivals = (
+            DomainCredibility.query.filter_by(topic_id=tc.topic_id)
+            .order_by(DomainCredibility.credibility_score.desc())
+            .limit(5)
+            .all()
+        )
+        competitors.append({
+            "topic": topic.name,
+            "topic_id": topic.id,
+            "domains": [
+                {"domain": r.domain, "score": r.credibility_score, "is_self": r.domain == domain}
+                for r in rivals
+            ],
+        })
+
+    return render_template(
+        "domain_detail.html",
+        title=domain,
+        domain=domain,
+        found=True,
+        total_urls=len(url_ids),
+        global_cred=global_cred,
+        topic_creds=topic_creds,
+        top_urls=top_url_list,
+        agent_counts=agent_counts,
+        top_entities=top_entities,
+        competitors=competitors,
+    )
+
+
+@bp.route("/topics")
+def browse_topics():
+    """Browse all topics with their top URLs."""
+    from app.models import Topic
+    topics = Topic.query.filter_by(is_active=True, parent_id=None).order_by(Topic.name).all()
+    return render_template("topics.html", title=_("Topics"), topics=topics)
+
+
+@bp.route("/topic/<int:topic_id>")
+def view_topic(topic_id):
+    """View a single topic with its top URLs."""
+    from app.models import CanonicalUrl, Topic, UrlMetadata, UrlTopicScore
+    topic = Topic.query.get_or_404(topic_id)
+
+    page = request.args.get("page", 1, type=int)
+    per_page = 25
+
+    # Collect this topic + all descendant topic IDs for rollup
+    def get_descendant_ids(t):
+        ids = [t.id]
+        for child in t.children:
+            if child.is_active:
+                ids.extend(get_descendant_ids(child))
+        return ids
+
+    all_topic_ids = get_descendant_ids(topic)
+
+    scored = (
+        db.session.query(UrlTopicScore, CanonicalUrl)
+        .join(CanonicalUrl, UrlTopicScore.canonical_url_id == CanonicalUrl.id)
+        .filter(UrlTopicScore.topic_id.in_(all_topic_ids))
+        .order_by(UrlTopicScore.combined_score.desc())
+    )
+    total = scored.count()
+    results = scored.offset((page - 1) * per_page).limit(per_page).all()
+
+    urls = []
+    for uts, cu in results:
+        sample_post = Post.query.filter_by(canonical_url_id=cu.id).first()
+        meta = UrlMetadata.query.filter_by(canonical_url_id=cu.id).first()
+        urls.append({
+            "canonical_url": cu.canonical_url,
+            "domain": cu.domain,
+            "title": sample_post.body if sample_post else None,
+            "summary": meta.summary if meta else None,
+            "combined_score": uts.combined_score,
+            "submission_count": cu.submission_count,
+            "detail_url": url_for("main.view_url", canonical_id=cu.id),
+        })
+
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    return render_template(
+        "topic_view.html",
+        title=topic.name,
+        topic=topic,
+        urls=urls,
+        page=page,
+        total_pages=total_pages,
+    )
 
 
 # FRONTEND AJAX RELATED ROUTES

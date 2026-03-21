@@ -18,42 +18,20 @@
 
             </a>
         </td>
-        <td style="max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <td style="word-break: break-word; white-space: normal;">
             {% block post %}
             {% if post.description %}
                 {% if current_user.get_id() and current_user.description_text_color %}
-                <span style="color: {{ current_user.description_text_color | safe }}; font-weight: bold;">
-                {% if post.description | length > 35 %}
-                        {{ post.description[:35] }}...
-                    {% else %}
-                        {{ post.description }}: 
-                    {% endif %}
-                    </span>
+                <span style="color: {{ current_user.description_text_color | safe }}; font-weight: bold;">{{ post.description }}:</span>
                 {% else %}
-                    <span class="posted-description-text">
-                        {% if post.description | length > 35 %}
-                            {{ post.description[:35] }}...
-                        {% else %}
-                            {{ post.description }}: 
-                        {% endif %}
-                    </span> 
+                    <span class="posted-description-text">{{ post.description }}:</span>
                 {% endif %}
             {% endif %}
 
-            {% if post.body %} <a href="{{ decoded_link}}" target="_blank" class="posted-link-text">
-                {% if post.body | length > 65 %}
-                    {{ post.body[:65] }}...
-                {% else %}
-                    {{ post.body }}
-                {% endif %}
-            </a> 
-            {% else %}   <a href="{{ decoded_link}}" target="_blank" class="posted-link-text">
-                {% if decoded_link | length > 65 %}
-                    {{ decoded_link[:65] }}...
-                {% else %}
-                    {{ decoded_link }}
-                {% endif %}
-            </a> 
+            {% if post.body %}
+            <a href="{{ decoded_link}}" target="_blank" class="posted-link-text">{{ post.body }}</a>
+            {% else %}
+            <a href="{{ decoded_link}}" target="_blank" class="posted-link-text" style="word-break: break-all;">{{ decoded_link }}</a>
             {% endif %}
             {% endblock %}
             

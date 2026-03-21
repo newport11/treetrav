@@ -76,10 +76,14 @@
                 <ul class="nav navbar-nav">
                     <li><a href="{{ url_for('main.feed') }}">{{ _('Feed') }}</a></li>
                     <li><a href="{{ url_for('main.discover') }}">{{ _('Discover') }}</a></li>
+                    <li><a href="{{ url_for('main.browse_topics') }}">{{ _('Topics') }}</a></li>
+                    <li><a href="{{ url_for('main.browse_agents') }}">{{ _('Agents') }}</a></li>
+                    <li><a href="{{ url_for('main.browse_domains') }}">{{ _('Domains') }}</a></li>
+                    <li><a href="{{ url_for('main.stats') }}">{{ _('Stats') }}</a></li>
                 </ul>
-                <form id="userSearchForm" class="navbar-form navbar-left" method="get" action="{{ url_for('main.search') }}">
-                    <div class="form-group">
-                        {{ g.search_form.q(size=20, class='form-control', placeholder=g.search_form.q.label.text, id='userSearchInput') }}
+                <form id="userSearchForm" class="navbar-form navbar-left" method="get" action="{{ url_for('main.search') }}" autocomplete="off">
+                    <div class="form-group" style="position: relative;">
+                        <input type="text" name="q" size="32" class="form-control" placeholder="Search users, topics, content..." id="userSearchInput" style="width: 320px;">
                         <div id="suggestions"></div>
                     </div>
                 </form>
@@ -116,48 +120,121 @@
     {{ super() }}
     {{ moment.include_moment() }}
     {{ moment.lang(g.locale) }}
+    <style>
+        #suggestions {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 0 0 6px 6px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+            z-index: 9999;
+            max-height: 420px;
+            overflow-y: auto;
+            min-width: 340px;
+        }
+        #suggestions .sg-section {
+            padding: 6px 12px 2px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+            border-top: 1px solid #eee;
+        }
+        #suggestions .sg-section:first-child { border-top: none; }
+        #suggestions .sg-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #333;
+        }
+        #suggestions .sg-item:hover { background: #f5f5f5; }
+        #suggestions .sg-item .sg-icon { color: #999; font-size: 13px; width: 18px; text-align: center; }
+        #suggestions .sg-item .sg-label { flex: 1; }
+        #suggestions .sg-item .sg-meta { color: #aaa; font-size: 12px; }
+        #suggestions .sg-empty { padding: 12px; color: #999; font-size: 13px; text-align: center; }
+    </style>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('userSearchInput');
-        const suggestionsContainer = document.getElementById('suggestions');
+        const sc = document.getElementById('suggestions');
+        let debounceTimer;
 
         searchInput.addEventListener('input', function() {
-            const query = this.value;
-            if (query.length > 2) {
-                fetch(`/api/suggestions?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
+            clearTimeout(debounceTimer);
+            const query = this.value.trim();
+            if (query.length < 2) { sc.innerHTML = ''; sc.style.display = 'none'; return; }
+
+            debounceTimer = setTimeout(function() {
+                fetch('/api/unified_search?q=' + encodeURIComponent(query))
+                    .then(r => r.json())
                     .then(data => {
-                        suggestionsContainer.innerHTML = '';
-                        data.forEach(suggestion => {
-                            const div = document.createElement('div');
-                            div.textContent = suggestion;
-                            div.addEventListener('click', function() {
-                                // Navigate to the user's profile page
-                                window.location.href = `/${encodeURIComponent(suggestion)}`;
+                        sc.innerHTML = '';
+                        let hasResults = false;
+
+                        if (data.topics && data.topics.length) {
+                            hasResults = true;
+                            sc.innerHTML += '<div class="sg-section">Topics</div>';
+                            data.topics.forEach(t => {
+                                const div = document.createElement('div');
+                                div.className = 'sg-item';
+                                div.innerHTML = '<span class="sg-icon">#</span><span class="sg-label">' +
+                                    t.name + '</span><span class="sg-meta">' + (t.url_count || 0) + ' urls</span>';
+                                div.addEventListener('click', () => { window.location.href = '/topic/' + t.id; });
+                                sc.appendChild(div);
                             });
-                            suggestionsContainer.appendChild(div);
-                        });
-                        
-                        // Position the suggestions container
-                        const inputRect = searchInput.getBoundingClientRect();
-                        suggestionsContainer.style.width = inputRect.width + 'px';
-                        suggestionsContainer.style.display = 'block';
+                        }
+
+                        if (data.users && data.users.length) {
+                            hasResults = true;
+                            sc.innerHTML += '<div class="sg-section">Users</div>';
+                            data.users.forEach(u => {
+                                const div = document.createElement('div');
+                                div.className = 'sg-item';
+                                div.innerHTML = '<span class="sg-icon">@</span><span class="sg-label">' + u + '</span>';
+                                div.addEventListener('click', () => { window.location.href = '/' + encodeURIComponent(u); });
+                                sc.appendChild(div);
+                            });
+                        }
+
+                        if (data.urls && data.urls.length) {
+                            hasResults = true;
+                            sc.innerHTML += '<div class="sg-section">Content</div>';
+                            data.urls.forEach(u => {
+                                const div = document.createElement('div');
+                                div.className = 'sg-item';
+                                const title = u.title || u.link;
+                                div.innerHTML = '<span class="sg-icon">&rarr;</span><span class="sg-label">' +
+                                    title.substring(0, 60) + '</span><span class="sg-meta">' + (u.username || '') + '</span>';
+                                div.addEventListener('click', () => { window.location.href = u.link; });
+                                sc.appendChild(div);
+                            });
+                        }
+
+                        if (!hasResults) {
+                            sc.innerHTML = '<div class="sg-empty">No results for "' + query + '"</div>';
+                        }
+
+                        sc.style.display = 'block';
                     });
-            } else {
-                suggestionsContainer.innerHTML = '';
-                suggestionsContainer.style.display = 'none';
-            }
+            }, 200);
         });
 
-        document.addEventListener('click', function(event) {
-            if (event.target !== searchInput && event.target !== suggestionsContainer) {
-                suggestionsContainer.innerHTML = '';
-                suggestionsContainer.style.display = 'none';
-            }
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { sc.innerHTML = ''; sc.style.display = 'none'; }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#userSearchForm')) { sc.innerHTML = ''; sc.style.display = 'none'; }
         });
     });
-
-
     </script>
 {% endblock %}
 

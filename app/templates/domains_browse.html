@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block app_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+<style>
+    .domains-header { margin-bottom: 28px; }
+    .domains-header h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 6px; }
+    .domains-header p { color: #888; font-size: 1.15rem; }
+    .sort-bar { margin-bottom: 20px; display: flex; gap: 10px; }
+    .sort-btn {
+        padding: 6px 16px; border: 1px solid #ddd; border-radius: 16px;
+        text-decoration: none; color: #555; font-size: 0.95rem;
+    }
+    .sort-btn:hover, .sort-btn.active { border-color: #5a9b16; color: #5a9b16; background: #f0f8e8; text-decoration: none; }
+    .domain-card {
+        display: flex; align-items: center; gap: 16px;
+        padding: 16px 20px; border: 1px solid #eee; border-radius: 10px;
+        margin-bottom: 10px; transition: border-color 0.15s;
+    }
+    .domain-card:hover { border-color: #5a9b16; }
+    .domain-card .domain-icon {
+        width: 48px; height: 48px; border-radius: 10px; background: #f0f0f0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem; font-weight: 700; color: #5a9b16;
+    }
+    .domain-card .domain-info { flex: 1; }
+    .domain-card .domain-name { font-size: 1.2rem; font-weight: 600; }
+    .domain-card .domain-name a { color: #333; text-decoration: none; }
+    .domain-card .domain-name a:hover { color: #5a9b16; }
+    .domain-card .domain-meta { color: #888; font-size: 0.95rem; }
+    .domain-card .domain-score { text-align: center; min-width: 80px; }
+    .domain-card .score-val { font-size: 1.5rem; font-weight: 700; }
+    .domain-card .score-label { font-size: 0.75rem; color: #aaa; text-transform: uppercase; }
+</style>
+
+<div class="domains-header">
+    <h1>Domains</h1>
+    <p>{{ domains|length }} source domains tracked across the content graph</p>
+</div>
+
+<div class="sort-bar">
+    <a href="{{ url_for('main.browse_domains', sort='credibility') }}" class="sort-btn {% if sort == 'credibility' %}active{% endif %}">By Credibility</a>
+    <a href="{{ url_for('main.browse_domains', sort='urls') }}" class="sort-btn {% if sort == 'urls' %}active{% endif %}">By URLs</a>
+    <a href="{{ url_for('main.browse_domains', sort='name') }}" class="sort-btn {% if sort == 'name' %}active{% endif %}">A-Z</a>
+</div>
+
+{% for d in domains %}
+<div class="domain-card">
+    <div class="domain-icon">{{ d.domain[0]|upper }}</div>
+    <div class="domain-info">
+        <div class="domain-name"><a href="{{ url_for('main.view_domain', domain=d.domain) }}">{{ d.domain }}</a></div>
+        <div class="domain-meta">{{ d.url_count }} URLs &middot; {{ d.topic_count }} topics</div>
+    </div>
+    <div class="domain-score">
+        <div class="score-val" style="color: {% if d.credibility >= 0.7 %}#5a9b16{% elif d.credibility >= 0.4 %}#FF9800{% else %}#999{% endif %};">
+            {{ "%.2f"|format(d.credibility) }}
+        </div>
+        <div class="score-label">Credibility</div>
+    </div>
+</div>
+{% endfor %}
+
+{% include 'all_rights_reserved.html' %}
+{% endblock %}

@@ -1,45 +1,99 @@
 {% extends "base.html" %}
-
 {% block app_content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 
-<h2>{{ _('Search Results') }}</h2>
-{% for follower in users %}
-    {% include 'follower.html' %}
-{% endfor %}
+<style>
+    .search-header { margin-bottom: 32px; }
+    .search-header h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 6px; }
+    .search-header p { color: #888; font-size: 1.2rem; }
+    .result-section { margin-bottom: 40px; }
+    .result-section h3 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #999;
+        margin-bottom: 16px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    .topic-chips { display: flex; flex-wrap: wrap; gap: 12px; }
+    .topic-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 22px;
+        border: 1px solid #ddd;
+        border-radius: 24px;
+        text-decoration: none;
+        color: #333;
+        font-size: 1.2rem;
+        transition: all 0.15s;
+    }
+    .topic-chip:hover { border-color: #5a9b16; color: #5a9b16; background: #f0f8e8; text-decoration: none; }
+    .topic-chip .count { background: #eee; color: #888; font-size: 1rem; padding: 3px 10px; border-radius: 12px; }
+    .topic-chip:hover .count { background: #d4ecc0; color: #5a9b16; }
+    .content-card {
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 18px 22px;
+        margin-bottom: 14px;
+        transition: border-color 0.15s;
+    }
+    .content-card:hover { border-color: #5a9b16; }
+    .content-card .c-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 4px; }
+    .content-card .c-title a { color: #333; text-decoration: none; }
+    .content-card .c-title a:hover { color: #5a9b16; }
+    .content-card .c-domain { font-size: 1.05rem; color: #5a9b16; }
+    .content-card .c-summary { font-size: 1.1rem; color: #888; margin-top: 6px; line-height: 1.5; }
+    .content-card .c-meta { font-size: 1rem; color: #bbb; margin-top: 8px; }
+</style>
+
+<div class="search-header">
+    <h1>Search results for "{{ query }}"</h1>
+</div>
+
+{% if topics %}
+<div class="result-section">
+    <h3>Topics</h3>
+    <div class="topic-chips">
+        {% for topic in topics %}
+        <a href="{{ url_for('main.view_topic', topic_id=topic.id) }}" class="topic-chip">
+            {{ topic.name }} <span class="count">{{ topic.url_count or 0 }} urls</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if content_results %}
+<div class="result-section">
+    <h3>Content</h3>
+    {% for r in content_results %}
+    <div class="content-card">
+        <div class="c-title"><a href="{{ r.url }}" target="_blank">{{ r.title or r.url }}</a></div>
+        <div class="c-domain">{{ r.domain }}{% if r.topic %} &middot; {{ r.topic }}{% endif %}</div>
+        {% if r.summary %}<div class="c-summary">{{ r.summary }}</div>{% endif %}
+        <div class="c-meta">Similarity: {{ r.similarity }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
 {% if users %}
-    <nav aria-label="Page navigation">
-        <ul class="pager">
-            {% if prev_url %}
-            <li class="page-item">
-                <a class="page-link" href="{{ prev_url }}" aria-label="Previous">
-                    <span aria-hidden="true">&laquo;</span>
-                    <span class="sr-only">{{ _('Previous') }}</span>
-                </a>
-            </li>
-            {% endif %}
+<div class="result-section">
+    <h3>Users</h3>
+    {% for follower in users %}
+        {% include 'follower.html' %}
+    {% endfor %}
+</div>
+{% endif %}
 
-            <li class="page-info">
-                {{ _('Page %(current)d of %(total)d', current=current_page, total=total_pages) }}
-            </li>
-
-            {% if next_url %}
-            <li class="page-item">
-                <a class="page-link" href="{{ next_url }}" aria-label="Next">
-                    <span aria-hidden="true">&raquo;</span>
-                    <span class="sr-only">{{ _('Next') }}</span>
-                </a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-{% else %}
-    <div class="alert alert-info" role="alert">
-        Oops, no users found! Please try again.
-    </div>
+{% if not topics and not content_results and not users %}
+<div class="alert alert-info" role="alert">
+    No results found for "{{ query }}". Try a different search term.
+</div>
 {% endif %}
 
 {% include 'all_rights_reserved.html' %}
-
 {% endblock %}

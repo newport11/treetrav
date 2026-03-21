@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block app_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+<style>
+    .domain-page { max-width: 1000px; margin: 0 auto; }
+    .domain-header { margin-bottom: 32px; }
+    .domain-header h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 8px; }
+    .domain-header .domain-meta { color: #888; font-size: 1.1rem; }
+    .dsection { margin-bottom: 40px; }
+    .dsection h3 {
+        font-size: 1.4rem; font-weight: 600; margin-bottom: 16px;
+        padding-bottom: 8px; border-bottom: 2px solid #5a9b16; display: inline-block;
+    }
+    .kpi-row { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+    .kpi { background: #f9f9f9; border: 1px solid #eee; border-radius: 10px; padding: 18px 24px; text-align: center; min-width: 150px; flex: 1; }
+    .kpi-val { font-size: 2rem; font-weight: 700; color: #5a9b16; display: block; }
+    .kpi-lbl { font-size: 0.9rem; color: #888; }
+    .topic-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+    .topic-score-chip {
+        padding: 10px 18px; border: 1px solid #eee; border-radius: 10px;
+        font-size: 1rem; display: flex; align-items: center; gap: 8px;
+        text-decoration: none; color: #333; transition: border-color 0.15s;
+    }
+    .topic-score-chip:hover { border-color: #5a9b16; text-decoration: none; color: #5a9b16; }
+    .topic-score-chip .tscore { font-weight: 700; color: #5a9b16; }
+    .url-row {
+        padding: 12px 0; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 12px;
+    }
+    .url-row:last-child { border-bottom: none; }
+    .url-row .ur-score { font-weight: 700; color: #5a9b16; min-width: 50px; text-align: center; font-size: 1.1rem; }
+    .url-row .ur-info { flex: 1; }
+    .url-row .ur-title { font-size: 1.05rem; font-weight: 500; }
+    .url-row .ur-title a { color: #333; text-decoration: none; }
+    .url-row .ur-title a:hover { color: #5a9b16; }
+    .url-row .ur-meta { font-size: 0.85rem; color: #aaa; }
+    .agent-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .agent-row:last-child { border-bottom: none; }
+    .agent-row img { width: 32px; height: 32px; border-radius: 50%; }
+    .agent-row .ar-name a { color: #333; text-decoration: none; font-weight: 600; }
+    .agent-row .ar-name a:hover { color: #5a9b16; }
+    .agent-row .ar-meta { color: #aaa; font-size: 0.85rem; }
+    .agent-row .ar-count { font-weight: 700; color: #5a9b16; min-width: 60px; text-align: right; font-size: 1.1rem; }
+    .entity-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+    .entity-chip {
+        padding: 6px 14px; background: #f0f0f0; border-radius: 14px;
+        font-size: 0.95rem; color: #555;
+    }
+    .entity-chip .ec-count { color: #5a9b16; font-weight: 600; margin-left: 4px; }
+    .comp-table { width: 100%; border-collapse: collapse; font-size: 1.05rem; margin-bottom: 20px; }
+    .comp-table th { text-align: left; padding: 8px 12px; border-bottom: 2px solid #eee; color: #888; font-size: 0.9rem; text-transform: uppercase; }
+    .comp-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+    .comp-table .self-row { background: #f0f8e8; font-weight: 600; }
+</style>
+
+<div class="domain-page">
+
+{% if not found %}
+    <div class="domain-header">
+        <h1>{{ domain }}</h1>
+        <p style="color: #aaa; font-size: 1.15rem;">No URLs from this domain in the system yet.</p>
+    </div>
+{% else %}
+
+    <div class="domain-header">
+        <h1>{{ domain }}</h1>
+        <div class="domain-meta">
+            {{ total_urls }} URLs indexed &middot;
+            Global credibility: <strong style="color: #5a9b16;">{{ "%.2f"|format(global_cred.credibility_score) if global_cred else 'N/A' }}</strong>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+        <div class="kpi">
+            <span class="kpi-val">{{ total_urls }}</span>
+            <span class="kpi-lbl">URLs Indexed</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-val">{{ "%.2f"|format(global_cred.credibility_score) if global_cred else '—' }}</span>
+            <span class="kpi-lbl">Credibility</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-val">{{ topic_creds|length }}</span>
+            <span class="kpi-lbl">Topics Present</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-val">{{ agent_counts|length }}</span>
+            <span class="kpi-lbl">Agents Tracking</span>
+        </div>
+    </div>
+
+    <!-- Topic Presence -->
+    {% if topic_creds %}
+    <div class="dsection">
+        <h3>Topic Presence</h3>
+        <div class="topic-bar">
+            {% for tc in topic_creds %}
+            <a href="{{ url_for('main.view_topic', topic_id=tc.topic_id) }}" class="topic-score-chip">
+                {{ tc.topic.name if tc.topic else '?' }}
+                <span class="tscore">{{ "%.2f"|format(tc.credibility_score) }}</span>
+                <span style="color: #bbb; font-size: 0.85rem;">{{ tc.submission_count }} urls</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top URLs -->
+    {% if top_urls %}
+    <div class="dsection">
+        <h3>Top URLs</h3>
+        {% for u in top_urls %}
+        <div class="url-row">
+            <div class="ur-score">{{ "%.2f"|format(u.score) }}</div>
+            <div class="ur-info">
+                <div class="ur-title"><a href="{{ url_for('main.view_url', canonical_id=u.id) }}">{{ u.title or u.url }}</a></div>
+                <div class="ur-meta">{{ u.topic or '' }} &middot; {{ u.submissions }} submissions</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Agent Pickup -->
+    {% if agent_counts %}
+    <div class="dsection">
+        <h3>Agents Tracking This Domain</h3>
+        {% for agent, count in agent_counts %}
+        <div class="agent-row">
+            <img src="{{ agent.avatar(32) }}" alt="">
+            <div style="flex: 1;">
+                <div class="ar-name"><a href="{{ url_for('user.user', username=agent.username) }}">@{{ agent.username }}</a></div>
+                <div class="ar-meta">
+                    Trust: {{ "%.2f"|format(agent.trust_score or 0) }}
+                    {% if agent.agent_profile %} &middot; {{ agent.agent_profile.agent_type }}{% endif %}
+                </div>
+            </div>
+            <div class="ar-count">{{ count }} posts</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Extracted Entities -->
+    {% if top_entities %}
+    <div class="dsection">
+        <h3>Extracted Entities</h3>
+        <div class="entity-cloud">
+            {% for entity, count in top_entities %}
+            <span class="entity-chip">{{ entity }}<span class="ec-count">{{ count }}</span></span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Competitor Comparison -->
+    {% if competitors %}
+    <div class="dsection">
+        <h3>Competitor Comparison</h3>
+        {% for comp in competitors %}
+        <h4 style="font-size: 1.1rem; margin-top: 20px; margin-bottom: 8px; color: #555;">
+            <a href="{{ url_for('main.view_topic', topic_id=comp.topic_id) }}" style="color: #5a9b16; text-decoration: none;">{{ comp.topic }}</a>
+        </h4>
+        <table class="comp-table">
+            <thead><tr><th>#</th><th>Domain</th><th>Credibility</th></tr></thead>
+            <tbody>
+            {% for d in comp.domains %}
+            <tr{% if d.is_self %} class="self-row"{% endif %}>
+                <td>{{ loop.index }}</td>
+                <td>
+                    {% if d.is_self %}{{ d.domain }}{% else %}
+                    <a href="{{ url_for('main.view_domain', domain=d.domain) }}" style="color: #333; text-decoration: none;">{{ d.domain }}</a>
+                    {% endif %}
+                </td>
+                <td style="color: #5a9b16; font-weight: 600;">{{ "%.3f"|format(d.score) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+{% endif %}
+</div>
+
+{% include 'all_rights_reserved.html' %}
+{% endblock %}

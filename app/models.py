@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -117,6 +118,9 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
     verified = db.Column(db.Boolean, default=False)
     profile_pic = db.Column(db.String(500))
     private_mode = db.Column(db.Boolean, default=False)
+    is_agent = db.Column(db.Boolean, default=False)
+    trust_score = db.Column(db.Float, default=0.5)
+    total_contributions = db.Column(db.Integer, default=0)
     dark_mode = db.Column(db.Boolean, default=False)
     toggle_color = db.Column(db.String(10), default="#5a9b16")
     toggle_name = db.Column(db.String(8), default="pics")
@@ -264,7 +268,7 @@ class User(SearchableMixin, UserMixin, PaginatedAPIMixin, db.Model):
 
     def avatar(self, size):
         digest = md5(self.email.lower().encode("utf-8")).hexdigest()
-        return "https://www.gravatar.com/avatar/{}?d=identicon&s={}".format(
+        return "https://www.gravatar.com/avatar/{}?d=robohash&s={}".format(
             digest, size
         )
 
@@ -377,9 +381,14 @@ class Post(db.Model):
     is_shared = db.Column(db.Boolean)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    canonical_url_id = db.Column(
+        db.Integer, db.ForeignKey("canonical_url.id"), nullable=True, index=True
+    )
+    content_hash = db.Column(db.String(64), nullable=True, index=True)
 
     # New columns to link to Leaf
     leaves = db.relationship("Leaf", backref="post", lazy=True)
+    topic_tags = db.relationship("PostTopicTag", backref="post", lazy=True)
 
     def to_dict(self):
         data = {
@@ -392,7 +401,12 @@ class Post(db.Model):
             "favicon_file_name": self.favicon_file_name,
             "timestamp": self.timestamp,
             "user_id": self.user_id,
+            "canonical_url_id": self.canonical_url_id,
             "leaves": [leaf.to_dict() for leaf in self.leaves],
+            "topics": [
+                {"topic_id": t.topic_id, "confidence": t.confidence}
+                for t in self.topic_tags
+            ],
             "_links": {"self": url_for("api.get_post", id=self.id)},
         }
 
@@ -497,3 +511,481 @@ class Leaf(db.Model):
             "md_text": self.md_text,
             "post_id": self.post_id,
         }
+
+
+# ---------------------------------------------------------------------------
+# Agent Identity & Reputation
+# ---------------------------------------------------------------------------
+
+
+class AgentProfile(db.Model):
+    __tablename__ = "agent_profile"
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
+    agent_type = db.Column(db.String(50), default="curator")
+    description = db.Column(db.Text, nullable=True)
+    source_url = db.Column(db.String(2048), nullable=True)
+    api_key = db.Column(db.String(64), unique=True, index=True)
+    api_key_created = db.Column(db.DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    rate_limit_rpm = db.Column(db.Integer, default=60)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship("User", backref=db.backref("agent_profile", uselist=False))
+
+    def generate_api_key(self):
+        self.api_key = base64.urlsafe_b64encode(os.urandom(48)).decode("utf-8")[:64]
+        self.api_key_created = datetime.utcnow()
+        return self.api_key
+
+    def to_dict(self):
+        return {
+            "user_id": self.user_id,
+            "username": self.user.username,
+            "agent_type": self.agent_type,
+            "description": self.description,
+            "source_url": self.source_url,
+            "is_active": self.is_active,
+            "rate_limit_rpm": self.rate_limit_rpm,
+            "trust_score": self.user.trust_score if self.user.trust_score is not None else 0.3,
+            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+        }
+
+
+class AgentTrustEvent(db.Model):
+    __tablename__ = "agent_trust_event"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    event_type = db.Column(db.String(50))
+    delta = db.Column(db.Float)
+    reason = db.Column(db.Text, nullable=True)
+    related_post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=True)
+    related_topic_id = db.Column(db.Integer, db.ForeignKey("topic.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="trust_events")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "event_type": self.event_type,
+            "delta": self.delta,
+            "reason": self.reason,
+            "related_post_id": self.related_post_id,
+            "related_topic_id": self.related_topic_id,
+            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Topic Taxonomy
+# ---------------------------------------------------------------------------
+
+
+class Topic(db.Model):
+    __tablename__ = "topic"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), unique=True, index=True)
+    slug = db.Column(db.String(255), unique=True, index=True)
+    description = db.Column(db.Text, nullable=True)
+    parent_id = db.Column(db.Integer, db.ForeignKey("topic.id"), nullable=True, index=True)
+    depth = db.Column(db.Integer, default=0)
+    path = db.Column(db.String(1000), index=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    url_count = db.Column(db.Integer, default=0)
+    subscriber_count = db.Column(db.Integer, default=0)
+
+    children = db.relationship(
+        "Topic", backref=db.backref("parent", remote_side="Topic.id"), lazy=True
+    )
+    aliases = db.relationship("TopicAlias", backref="topic", lazy=True)
+    url_scores = db.relationship("UrlTopicScore", backref="topic", lazy="dynamic")
+    subscriptions = db.relationship("TopicSubscription", backref="topic", lazy="dynamic")
+
+    def to_dict(self, include_children=False):
+        data = {
+            "id": self.id,
+            "name": self.name,
+            "slug": self.slug,
+            "description": self.description,
+            "parent_id": self.parent_id,
+            "depth": self.depth,
+            "path": self.path,
+            "is_active": self.is_active,
+            "url_count": self.url_count,
+            "subscriber_count": self.subscriber_count,
+            "aliases": [a.alias_name for a in self.aliases],
+        }
+        if include_children:
+            data["children"] = [c.to_dict(include_children=True) for c in self.children]
+        return data
+
+    def __repr__(self):
+        return f"<Topic {self.name}>"
+
+
+class TopicAlias(db.Model):
+    __tablename__ = "topic_alias"
+    id = db.Column(db.Integer, primary_key=True)
+    alias_name = db.Column(db.String(255), index=True)
+    topic_id = db.Column(db.Integer, db.ForeignKey("topic.id"), index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# URL Deduplication & Canonicalization
+# ---------------------------------------------------------------------------
+
+
+class CanonicalUrl(db.Model):
+    __tablename__ = "canonical_url"
+    id = db.Column(db.Integer, primary_key=True)
+    canonical_url = db.Column(db.String(4096), unique=True, index=True)
+    url_hash = db.Column(db.String(64), unique=True, index=True)
+    domain = db.Column(db.String(255), index=True)
+    first_seen = db.Column(db.DateTime, default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+    submission_count = db.Column(db.Integer, default=0)
+    global_score = db.Column(db.Float, default=0.0)
+
+    posts = db.relationship("Post", backref="canonical", lazy="dynamic")
+    topic_scores = db.relationship("UrlTopicScore", backref="canonical_url", lazy="dynamic")
+    metadata_entries = db.relationship("UrlMetadata", backref="canonical_url", lazy="dynamic")
+    propagations = db.relationship("UrlPropagation", backref="canonical_url", lazy="dynamic")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "canonical_url": self.canonical_url,
+            "url_hash": self.url_hash,
+            "domain": self.domain,
+            "first_seen": self.first_seen.isoformat() + "Z" if self.first_seen else None,
+            "last_seen": self.last_seen.isoformat() + "Z" if self.last_seen else None,
+            "submission_count": self.submission_count,
+            "global_score": self.global_score,
+            "topic_scores": [
+                s.to_dict() for s in self.topic_scores.order_by(UrlTopicScore.combined_score.desc()).limit(20).all()
+            ],
+        }
+
+
+# ---------------------------------------------------------------------------
+# Relevance Scoring
+# ---------------------------------------------------------------------------
+
+
+class UrlTopicScore(db.Model):
+    __tablename__ = "url_topic_score"
+    id = db.Column(db.Integer, primary_key=True)
+    canonical_url_id = db.Column(db.Integer, db.ForeignKey("canonical_url.id"), index=True)
+    topic_id = db.Column(db.Integer, db.ForeignKey("topic.id"), index=True)
+    relevance_score = db.Column(db.Float, default=0.0)
+    quality_score = db.Column(db.Float, default=0.0)
+    combined_score = db.Column(db.Float, default=0.0)
+    vote_count = db.Column(db.Integer, default=0)
+    first_tagged_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint("canonical_url_id", "topic_id", name="uq_url_topic"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "canonical_url_id": self.canonical_url_id,
+            "topic_id": self.topic_id,
+            "topic_name": self.topic.name if self.topic else None,
+            "relevance_score": self.relevance_score,
+            "quality_score": self.quality_score,
+            "combined_score": self.combined_score,
+            "vote_count": self.vote_count,
+            "first_tagged_at": self.first_tagged_at.isoformat() + "Z" if self.first_tagged_at else None,
+        }
+
+
+class PostTopicTag(db.Model):
+    __tablename__ = "post_topic_tag"
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("post.id"), index=True)
+    topic_id = db.Column(db.Integer, db.ForeignKey("topic.id"), index=True)
+    tagged_by = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    confidence = db.Column(db.Float, default=1.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint("post_id", "topic_id", "tagged_by", name="uq_post_topic_tagger"),
+    )
+
+    topic = db.relationship("Topic", backref="post_tags")
+    tagger = db.relationship("User", backref="topic_tags_made")
+
+    def to_dict(self):
+        return {
+            "post_id": self.post_id,
+            "topic_id": self.topic_id,
+            "topic_name": self.topic.name if self.topic else None,
+            "tagged_by": self.tagged_by,
+            "confidence": self.confidence,
+            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Context Attachments (URL Metadata)
+# ---------------------------------------------------------------------------
+
+
+class UrlMetadata(db.Model):
+    __tablename__ = "url_metadata"
+    id = db.Column(db.Integer, primary_key=True)
+    canonical_url_id = db.Column(db.Integer, db.ForeignKey("canonical_url.id"), index=True)
+    submitted_by = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    summary = db.Column(db.Text, nullable=True)
+    entities = db.Column(db.JSON, nullable=True)
+    sentiment = db.Column(db.String(20), nullable=True)
+    relevance_justification = db.Column(db.Text, nullable=True)
+    source_credibility = db.Column(db.Float, nullable=True)
+    language = db.Column(db.String(10), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    submitter = db.relationship("User", backref="url_metadata_submitted")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "canonical_url_id": self.canonical_url_id,
+            "submitted_by": self.submitted_by,
+            "submitter_username": self.submitter.username if self.submitter else None,
+            "summary": self.summary,
+            "entities": self.entities if isinstance(self.entities, (list, dict)) else json.loads(self.entities) if self.entities else None,
+            "sentiment": self.sentiment,
+            "relevance_justification": self.relevance_justification,
+            "source_credibility": self.source_credibility,
+            "language": self.language,
+            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Subscriptions & Webhooks
+# ---------------------------------------------------------------------------
+
+
+class TopicSubscription(db.Model):
+    __tablename__ = "topic_subscription"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    topic_id = db.Column(db.Integer, db.ForeignKey("topic.id"), index=True)
+    min_score = db.Column(db.Float, default=0.5)
+    webhook_url = db.Column(db.String(2048), nullable=True)
+    webhook_secret = db.Column(db.String(128), nullable=True)
+    delivery_method = db.Column(db.String(20), default="poll")
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_delivered = db.Column(db.DateTime, nullable=True)
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "topic_id", name="uq_user_topic_sub"),
+    )
+
+    user = db.relationship("User", backref="subscriptions")
+
+    def generate_webhook_secret(self):
+        self.webhook_secret = base64.urlsafe_b64encode(os.urandom(32)).decode("utf-8")
+        return self.webhook_secret
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "topic_id": self.topic_id,
+            "topic_name": self.topic.name if self.topic else None,
+            "min_score": self.min_score,
+            "webhook_url": self.webhook_url,
+            "delivery_method": self.delivery_method,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+            "last_delivered": self.last_delivered.isoformat() + "Z" if self.last_delivered else None,
+        }
+
+
+class WebhookDelivery(db.Model):
+    __tablename__ = "webhook_delivery"
+    id = db.Column(db.Integer, primary_key=True)
+    subscription_id = db.Column(
+        db.Integer, db.ForeignKey("topic_subscription.id"), index=True
+    )
+    payload = db.Column(db.JSON)
+    status_code = db.Column(db.Integer, nullable=True)
+    response_body = db.Column(db.Text, nullable=True)
+    delivered_at = db.Column(db.DateTime, default=datetime.utcnow)
+    retry_count = db.Column(db.Integer, default=0)
+
+    subscription = db.relationship("TopicSubscription", backref="deliveries")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "subscription_id": self.subscription_id,
+            "status_code": self.status_code,
+            "delivered_at": self.delivered_at.isoformat() + "Z" if self.delivered_at else None,
+            "retry_count": self.retry_count,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Domain Credibility
+# ---------------------------------------------------------------------------
+
+
+class DomainCredibility(db.Model):
+    __tablename__ = "domain_credibility"
+    id = db.Column(db.Integer, primary_key=True)
+    domain = db.Column(db.String(255), index=True)
+    topic_id = db.Column(db.Integer, db.ForeignKey("topic.id"), nullable=True, index=True)
+    credibility_score = db.Column(db.Float, default=0.5)
+    submission_count = db.Column(db.Integer, default=0)
+    avg_quality_score = db.Column(db.Float, default=0.0)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint("domain", "topic_id", name="uq_domain_topic"),
+    )
+
+    topic = db.relationship("Topic", backref="domain_scores")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "domain": self.domain,
+            "topic_id": self.topic_id,
+            "topic_name": self.topic.name if self.topic else "global",
+            "credibility_score": self.credibility_score,
+            "submission_count": self.submission_count,
+            "avg_quality_score": self.avg_quality_score,
+            "last_updated": self.last_updated.isoformat() + "Z" if self.last_updated else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Temporal Intelligence
+# ---------------------------------------------------------------------------
+
+
+class UrlPropagation(db.Model):
+    __tablename__ = "url_propagation"
+    id = db.Column(db.Integer, primary_key=True)
+    canonical_url_id = db.Column(db.Integer, db.ForeignKey("canonical_url.id"), index=True)
+    topic_id = db.Column(db.Integer, db.ForeignKey("topic.id"), index=True)
+    first_seen_in_topic = db.Column(db.DateTime, default=datetime.utcnow)
+    submission_velocity = db.Column(db.Float, default=0.0)
+    peak_velocity_at = db.Column(db.DateTime, nullable=True)
+    first_submitted_by = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint("canonical_url_id", "topic_id", name="uq_url_topic_prop"),
+    )
+
+    topic = db.relationship("Topic", backref="propagations")
+    first_submitter = db.relationship("User", backref="first_discoveries")
+
+    def to_dict(self):
+        return {
+            "canonical_url_id": self.canonical_url_id,
+            "topic_id": self.topic_id,
+            "topic_name": self.topic.name if self.topic else None,
+            "first_seen_in_topic": self.first_seen_in_topic.isoformat() + "Z" if self.first_seen_in_topic else None,
+            "submission_velocity": self.submission_velocity,
+            "peak_velocity_at": self.peak_velocity_at.isoformat() + "Z" if self.peak_velocity_at else None,
+            "first_submitted_by": self.first_submitted_by,
+            "first_submitter_username": self.first_submitter.username if self.first_submitter else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Vector Embeddings for Semantic Search
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Agent Action Reporting & Query Sessions
+# ---------------------------------------------------------------------------
+
+
+class AgentAction(db.Model):
+    __tablename__ = "agent_action"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    canonical_url_id = db.Column(db.Integer, db.ForeignKey("canonical_url.id"), nullable=True, index=True)
+    action = db.Column(db.String(100))  # e.g. "extracted_table_data", "summarized", "cited", "shared", "ignored"
+    result_summary = db.Column(db.Text, nullable=True)
+    metadata_extra = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="actions")
+    canonical = db.relationship("CanonicalUrl", backref="actions")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "username": self.user.username if self.user else None,
+            "canonical_url_id": self.canonical_url_id,
+            "action": self.action,
+            "result_summary": self.result_summary,
+            "metadata": self.metadata_extra,
+            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+        }
+
+
+class AgentQueryLog(db.Model):
+    __tablename__ = "agent_query_log"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    endpoint = db.Column(db.String(255))
+    query_text = db.Column(db.Text, nullable=True)
+    topic_id = db.Column(db.Integer, db.ForeignKey("topic.id"), nullable=True)
+    canonical_url_id = db.Column(db.Integer, db.ForeignKey("canonical_url.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    user = db.relationship("User", backref="query_logs")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "endpoint": self.endpoint,
+            "query_text": self.query_text,
+            "topic_id": self.topic_id,
+            "canonical_url_id": self.canonical_url_id,
+            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+        }
+
+
+class UrlEmbedding(db.Model):
+    __tablename__ = "url_embedding"
+    id = db.Column(db.Integer, primary_key=True)
+    canonical_url_id = db.Column(
+        db.Integer, db.ForeignKey("canonical_url.id"), unique=True, index=True
+    )
+    text_content = db.Column(db.Text)
+    vector = db.Column(db.Text)  # JSON-serialized float array
+    model = db.Column(db.String(50), default="text-embedding-3-small")
+    dimensions = db.Column(db.Integer, default=1536)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    canonical = db.relationship("CanonicalUrl", backref=db.backref("embedding", uselist=False))
+
+    def get_vector(self):
+        if self.vector:
+            return json.loads(self.vector)
+        return None
+
+    def set_vector(self, vec):
+        self.vector = json.dumps(vec)

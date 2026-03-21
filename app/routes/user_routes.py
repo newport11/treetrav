@@ -18,169 +18,15 @@ from flask_login import current_user
 from sqlalchemy import or_, union_all
 
 from app import db
-from app.constants import POST_PICS_PATH
 from app.favicon import get_favicon
 from app.helpers.route_helpers import handle_route
 from app.main.forms import EmptyForm, PostForm
-from app.models import Leaf, Post, PostPic, User
+from app.models import Leaf, Post, User
 from app.openai import generate_link_summary
-from app.utils import get_webpage_title, image_preprocessing, is_subpath, top_crop
+from app.utils import get_webpage_title, is_subpath
 
 bp = Blueprint("user", __name__)
 # user_visit_counter_dict = {}
-
-
-@bp.route("/p/<username>", methods=["POST", "GET"])
-@bp.route("/p/<username>/", methods=["POST", "GET"])
-async def user_pics(username):
-    user = User.query.filter(User.username.ilike(username)).first_or_404()
-    followers = user.followers
-
-    if current_user.get_id():
-        is_following = current_user in followers
-    else:
-        is_following = False
-
-    if user.private_mode and user != current_user and not is_following:
-        return render_template("user_private.html", user=user, form=EmptyForm())
-
-    return await handle_route("user_pics", user=user, username=username)
-
-
-@bp.route("/p/<username>/<path:path>", methods=["POST", "GET"])
-async def user_pics_subfolder(username, path):
-    user = User.query.filter(User.username.ilike(username)).first_or_404()
-    followers = user.followers
-    empty_form = EmptyForm()
-    OPENAI_API_KEY = current_app.config["OPENAI_API_KEY"]
-
-    form = PostForm()
-
-    if request.method == "POST" and form.validate_on_submit():
-        folder_path = form.post_folder.data.strip()
-        if folder_path and folder_path != "/":
-            folder_path = folder_path.strip("/")
-        else:
-            folder_path = path
-        folder_path = folder_path if form.post_folder.data else path
-        post_pic = form.post_pic.data
-        if post_pic and post_pic != "":
-            try:
-                img = image_preprocessing(post_pic)
-
-                # Center crop, resize, and compress the image to 155x155
-                resized_picture = top_crop(img, (285, 285))
-                post = PostPic(
-                    link=urllib.parse.quote(form.post_link.data),
-                    body=form.post_body.data,
-                    description=form.post_description.data.strip(),
-                    folder_link=folder_path,
-                    author=current_user,
-                )
-                if not post.body:
-                    webpage_title = get_webpage_title(form.post_link.data)
-                    if webpage_title:
-                        post.body = webpage_title
-                    elif OPENAI_API_KEY:
-                        post.body = generate_link_summary(
-                            post.link, OPENAI_API_KEY
-                        ).rstrip(".")
-                db.session.add(post)
-                db.session.commit()
-                post_pic_filename = f"{current_user.id}_{post.id}"
-                resized_picture.save(
-                    os.path.join(POST_PICS_PATH, f"{post_pic_filename}.jpg"),
-                    "JPEG",
-                )
-                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                    return jsonify({"message": "Your link is now posted!"}), 200
-                flash(_("Your link is now posted!"))
-                return redirect(url_for("user.user_pic_subfolder"))
-            except Exception as e:
-                current_app.logger.error(f"Exception occurred. {e}")
-                flash(_("Error in uploading image. Please try again"), "error")
-        post = Post(
-            link=urllib.parse.quote(form.post_link.data),
-            body=form.post_body.data,
-            description=form.post_description.data.strip(),
-            folder_link=folder_path,
-            author=current_user,
-        )
-        # If post.body is None, try to set it to the webpage title
-        if not post.body:
-            webpage_title = get_webpage_title(form.post_link.data)
-            if webpage_title:
-                post.body = webpage_title
-            elif OPENAI_API_KEY:
-                post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
-        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
-        if favicon_file_name:
-            post.favicon_file_name = favicon_file_name
-
-        db.session.add(post)
-        db.session.commit()
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return jsonify({"message": "Your link is now posted!"}), 200
-        flash(_("Your link is now posted!"))
-        return redirect(url_for("user.user_pic_subfolder"))
-    elif request.method == "POST":
-        # If it's a POST request but validation failed, return errors as JSON
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return jsonify(form.errors), 400
-        # For non-AJAX requests, render the template with errors
-        return render_template(
-            "user_pic_subfolder.html", title=_(user.username), form=form
-        )
-
-    if current_user.get_id():
-        is_following = current_user in followers
-    else:
-        is_following = False
-    if user.private_mode == True and user != current_user and not is_following:
-        return render_template("user_private.html", user=user, form=empty_form)
-    else:
-        splitPath = path.rstrip("/").rsplit("/", 1)
-        prevPath = splitPath[0]
-        current_folder = splitPath[-1]
-        if len(path.split("/")) <= 1:
-            user_home_page = True
-        else:
-            user_home_page = False
-
-        posts = user.pic_posts.filter_by(folder_link=path).order_by(
-            PostPic.timestamp.desc()
-        )
-        folders_tmp = (
-            user.pic_posts.filter(PostPic.folder_link != path)
-            .order_by(PostPic.timestamp.desc())
-            .all()
-        )
-        folders = []
-        visited_folders = []
-        for post in folders_tmp:
-            if not is_subpath(path, post.folder_link):
-                continue
-            else:
-                post.folder_name = (
-                    post.folder_link.removeprefix(path).strip("/").split("/")[0]
-                )
-                post.folder_link = path + "/" + post.folder_name
-                if post.folder_name != "" and post.folder_name not in visited_folders:
-                    visited_folders.append(post.folder_name)
-                    folders.append(post)
-
-        return render_template(
-            "user_pics_subfolder.html",
-            user=user,
-            posts=posts,
-            form=form,
-            path=path,
-            empty_form=empty_form,
-            folders=folders,
-            prevPath=prevPath,
-            user_home_page=user_home_page,
-            current_folder=current_folder,
-        )
 
 
 # USER PROFILE ROUTE NEEDS TO BE AT BOTTOM SINCE IT ACTS AS A CATCH ALL ROUTE
@@ -199,42 +45,6 @@ async def user(username):
         else:
             folder_path = "/"
         folder_path = folder_path if form.post_folder.data else "/"
-        post_pic = form.post_pic.data
-        if post_pic and post_pic != "":
-            try:
-                img = image_preprocessing(post_pic)
-
-                # Center crop, resize, and compress the image to 155x155
-                resized_picture = top_crop(img, (285, 285))
-                post = PostPic(
-                    link=urllib.parse.quote(form.post_link.data),
-                    body=form.post_body.data,
-                    description=form.post_description.data.strip(),
-                    folder_link=folder_path,
-                    author=current_user,
-                )
-                if not post.body:
-                    webpage_title = get_webpage_title(form.post_link.data)
-                    if webpage_title:
-                        post.body = webpage_title
-                    elif OPENAI_API_KEY:
-                        post.body = generate_link_summary(
-                            post.link, OPENAI_API_KEY
-                        ).rstrip(".")
-                db.session.add(post)
-                db.session.commit()
-                post_pic_filename = f"{current_user.id}_{post.id}"
-                resized_picture.save(
-                    os.path.join(POST_PICS_PATH, f"{post_pic_filename}.jpg"),
-                    "JPEG",
-                )
-                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                    return jsonify({"message": "Your link is now posted!"}), 200
-                flash(_("Your link is now posted!"))
-                return redirect(url_for("user.user"))
-            except Exception as e:
-                current_app.logger.error(f"Exception occurred. {e}")
-                flash(_("Error in uploading image. Please try again"), "error")
         post = Post(
             link=urllib.parse.quote(form.post_link.data),
             body=form.post_body.data,
@@ -379,6 +189,46 @@ async def user(username):
         # user_visit_counter_dict[f"user_{user.id}"] = (
         #     user_visit_counter_dict.get(f"user_{user.id}", 0) + 1
         # )
+        # Agent data (if viewing an agent's profile)
+        agent_data = None
+        if user.is_agent:
+            from collections import defaultdict
+            from app.models import AgentAction, AgentTrustEvent, UrlTopicScore, Topic
+            from sqlalchemy import func
+
+            trust_events = AgentTrustEvent.query.filter_by(user_id=user.id).order_by(AgentTrustEvent.created_at.desc()).limit(10).all()
+
+            canonical_ids = [p.canonical_url_id for p in user.posts.all() if p.canonical_url_id]
+            topic_breakdown = []
+            if canonical_ids:
+                topic_stats = (
+                    db.session.query(
+                        UrlTopicScore.topic_id,
+                        func.count(UrlTopicScore.id),
+                        func.avg(UrlTopicScore.quality_score),
+                    )
+                    .filter(UrlTopicScore.canonical_url_id.in_(canonical_ids))
+                    .group_by(UrlTopicScore.topic_id)
+                    .order_by(func.count(UrlTopicScore.id).desc())
+                    .limit(10)
+                    .all()
+                )
+                for tid, count, avg_q in topic_stats:
+                    t = Topic.query.get(tid)
+                    if t:
+                        topic_breakdown.append({"topic": t, "count": count, "avg_quality": round(float(avg_q or 0), 3)})
+
+            action_summary = dict(
+                db.session.query(AgentAction.action, func.count(AgentAction.id))
+                .filter_by(user_id=user.id).group_by(AgentAction.action).all()
+            )
+
+            agent_data = {
+                "trust_events": trust_events,
+                "topic_breakdown": topic_breakdown,
+                "action_summary": action_summary,
+            }
+
         return render_template(
             "user.html",
             user=user,
@@ -391,6 +241,7 @@ async def user(username):
             folders=folders,
             current_page=current_page,
             total_pages=total_pages,
+            agent_data=agent_data,
         )
 
 
@@ -409,42 +260,6 @@ async def user_subfolder(username, path):
         else:
             folder_path = path
         folder_path = folder_path if form.post_folder.data else path
-        post_pic = form.post_pic.data
-        if post_pic and post_pic != "":
-            try:
-                img = image_preprocessing(post_pic)
-
-                # Center crop, resize, and compress the image to 155x155
-                resized_picture = top_crop(img, (285, 285))
-                post = PostPic(
-                    link=urllib.parse.quote(form.post_link.data),
-                    body=form.post_body.data,
-                    description=form.post_description.data.strip(),
-                    folder_link=folder_path,
-                    author=current_user,
-                )
-                if not post.body:
-                    webpage_title = get_webpage_title(form.post_link.data)
-                    if webpage_title:
-                        post.body = webpage_title
-                    elif OPENAI_API_KEY:
-                        post.body = generate_link_summary(
-                            post.link, OPENAI_API_KEY
-                        ).rstrip(".")
-                db.session.add(post)
-                db.session.commit()
-                post_pic_filename = f"{current_user.id}_{post.id}"
-                resized_picture.save(
-                    os.path.join(POST_PICS_PATH, f"{post_pic_filename}.jpg"),
-                    "JPEG",
-                )
-                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                    return jsonify({"message": "Your link is now posted!"}), 200
-                flash(_("Your link is now posted!"))
-                return redirect(url_for("user.user_subfolder"))
-            except Exception as e:
-                current_app.logger.error(f"Exception occurred. {e}")
-                flash(_("Error in uploading image. Please try again"), "error")
         post = Post(
             link=urllib.parse.quote(form.post_link.data),
             body=form.post_body.data,
