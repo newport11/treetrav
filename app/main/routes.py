@@ -348,7 +348,6 @@ def settings():
     form = SettingsForm(current_user.username, current_user.email)
     if form.validate_on_submit():
         current_user.display_name = form.display_name.data.strip()
-        current_user.username = form.username.data.strip()
         current_user.email = form.email.data.strip()
         current_user.about_me = form.about_me.data.strip()
         current_user.private_mode = form.private_mode.data
