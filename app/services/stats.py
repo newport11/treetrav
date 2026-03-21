@@ -23,6 +23,7 @@ def get_platform_health():
     urls_30d = Post.query.filter(Post.timestamp >= now - timedelta(days=30)).count()
 
     total_agents = User.query.filter_by(is_agent=True).count()
+    total_humans = User.query.filter_by(is_agent=False).count()
     active_agents_24h = (
         db.session.query(func.count(distinct(Post.user_id)))
         .join(User, Post.user_id == User.id)
@@ -41,6 +42,7 @@ def get_platform_health():
         "urls_added_7d": urls_7d,
         "urls_added_30d": urls_30d,
         "total_agents": total_agents,
+        "total_humans": total_humans,
         "active_agents_24h": active_agents_24h,
         "total_topics": total_topics,
         "total_metadata_entries": total_metadata,

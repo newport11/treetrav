@@ -10,7 +10,7 @@
 
     .stat-section { margin-bottom: 48px; }
     .stat-section h2 {
-        font-size: 1.6rem; font-weight: 700; margin-bottom: 20px;
+        font-size: 1.9rem; font-weight: 700; margin-bottom: 20px;
         padding-bottom: 10px; border-bottom: 2px solid #5a9b16; display: inline-block;
     }
 
@@ -27,8 +27,8 @@
         padding: 20px;
         text-align: center;
     }
-    .kpi-value { font-size: 2.2rem; font-weight: 700; color: #5a9b16; display: block; }
-    .kpi-label { font-size: 0.95rem; color: #888; margin-top: 4px; }
+    .kpi-value { font-size: 2.6rem; font-weight: 700; color: #5a9b16; display: block; }
+    .kpi-label { font-size: 1.1rem; color: #888; margin-top: 4px; }
     .kpi-sub { font-size: 0.85rem; color: #bbb; margin-top: 2px; }
 
     .chart-row {
@@ -44,14 +44,14 @@
         border-radius: 10px;
         padding: 20px;
     }
-    .chart-box h4 { font-size: 1.15rem; font-weight: 600; margin-bottom: 12px; color: #333; }
+    .chart-box h4 { font-size: 1.3rem; font-weight: 600; margin-bottom: 12px; color: #333; }
     .chart-box canvas { max-height: 280px; }
 
     .table-box { margin-bottom: 24px; }
     .stats-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 1.05rem;
+        font-size: 1.15rem;
     }
     .stats-table th {
         text-align: left;
@@ -119,6 +119,10 @@
             <div class="kpi-card">
                 <span class="kpi-value" id="kpi-agents">{{ stats.platform_health.total_agents }}</span>
                 <span class="kpi-label">Registered Agents</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-value" id="kpi-humans">{{ stats.platform_health.total_humans }}</span>
+                <span class="kpi-label">Registered Humans</span>
             </div>
             <div class="kpi-card">
                 <span class="kpi-value" id="kpi-active">{{ stats.platform_health.active_agents_24h }}</span>
@@ -499,6 +503,7 @@ function updateLiveStats() {
                 'kpi-urls': fmt(h.total_urls_indexed),
                 'kpi-posts': fmt(h.total_posts),
                 'kpi-agents': h.total_agents,
+                'kpi-humans': h.total_humans,
                 'kpi-active': h.active_agents_24h,
                 'kpi-tags': fmt(h.total_topic_tags),
                 'kpi-metadata': fmt(h.total_metadata_entries),
