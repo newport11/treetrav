@@ -2,6 +2,7 @@
 
 import asyncio
 import urllib.parse
+from datetime import datetime
 
 from flask import current_app
 from flask_sqlalchemy import Pagination
@@ -9,8 +10,9 @@ from flask_sqlalchemy import Pagination
 from app import db
 from app.favicon import get_favicon
 from app.main.forms import PostForm
-from app.models import Post, User
+from app.models import CanonicalUrl, Post, User
 from app.openai import generate_link_summary
+from app.services.canonicalization import canonicalize_url
 from app.utils import get_webpage_title
 
 
@@ -39,6 +41,26 @@ async def create_post(form: PostForm, current_user: User):
     favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
     if favicon_file_name:
         post.favicon_file_name = favicon_file_name
+
+    # Canonicalize URL
+    try:
+        canonical_form, url_hash, domain = canonicalize_url(form.post_link.data)
+        cu = CanonicalUrl.query.filter_by(url_hash=url_hash).first()
+        if cu:
+            cu.submission_count = (cu.submission_count or 0) + 1
+            cu.last_seen = datetime.utcnow()
+        else:
+            cu = CanonicalUrl(
+                canonical_url=canonical_form, url_hash=url_hash,
+                domain=domain, submission_count=1,
+            )
+            db.session.add(cu)
+            db.session.flush()
+        post.canonical_url_id = cu.id
+        post.content_hash = url_hash
+        current_user.total_contributions = (current_user.total_contributions or 0) + 1
+    except Exception:
+        pass
 
     return post, True
 

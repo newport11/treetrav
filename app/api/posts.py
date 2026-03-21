@@ -1,5 +1,6 @@
 import asyncio
 import urllib.parse
+from datetime import datetime
 
 from flask import abort, current_app, jsonify, request, url_for
 
@@ -8,9 +9,38 @@ from app.api import bp
 from app.api.auth import token_auth
 from app.api.errors import bad_request
 from app.favicon import get_domain_from_url, get_favicon, hash_url
-from app.models import Post, PostPic, User
+from app.models import CanonicalUrl, Post, PostPic, User
 from app.openai import generate_link_summary
+from app.services.canonicalization import canonicalize_url
 from app.utils import get_webpage_title, is_subpath
+
+
+def _canonicalize_post(post, raw_url):
+    """Canonicalize a URL and link it to the post. Creates CanonicalUrl record if needed."""
+    try:
+        canonical_form, url_hash, domain = canonicalize_url(raw_url)
+        cu = CanonicalUrl.query.filter_by(url_hash=url_hash).first()
+        if cu:
+            cu.submission_count = (cu.submission_count or 0) + 1
+            cu.last_seen = datetime.utcnow()
+        else:
+            cu = CanonicalUrl(
+                canonical_url=canonical_form,
+                url_hash=url_hash,
+                domain=domain,
+                submission_count=1,
+            )
+            db.session.add(cu)
+            db.session.flush()
+        post.canonical_url_id = cu.id
+        post.content_hash = url_hash
+
+        # Update user contribution count
+        user = User.query.get(post.user_id)
+        if user:
+            user.total_contributions = (user.total_contributions or 0) + 1
+    except Exception:
+        pass
 
 
 @bp.route("/posts/<int:id>", methods=["GET"])
@@ -173,6 +203,7 @@ async def post_link():
                     )
                     if favicon_file_name:
                         post.favicon_file_name = favicon_file_name
+                    _canonicalize_post(post, data["link"])
                     db.session.add(post)
                     db.session.commit()
                     response = jsonify(post.to_dict())
@@ -198,6 +229,7 @@ async def post_link():
     favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
     if favicon_file_name:
         post.favicon_file_name = favicon_file_name
+    _canonicalize_post(post, data["link"])
     db.session.add(post)
     db.session.commit()
     response = jsonify(post.to_dict())
@@ -252,6 +284,7 @@ async def post_multiple_links():
             favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
             if favicon_file_name:
                 post.favicon_file_name = favicon_file_name
+            _canonicalize_post(post, tab["url"])
             db.session.add(post)
             db.session.commit()
             successful_count += 1
