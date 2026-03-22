@@ -57,10 +57,22 @@
 <div class="result-section">
     <h3>Topics</h3>
     <div class="topic-chips">
+        {% set seen_names = [] %}
         {% for topic in topics %}
-        <a href="{{ url_for('main.view_topic', topic_id=topic.id) }}" class="topic-chip">
-            {{ topic.name }} <span class="count">{{ topic.url_count or 0 }} urls</span>
-        </a>
+            {% set name_lower = topic.name|lower %}
+            {% set same_name_count = topics|selectattr('name', 'equalto', topic.name)|list|length %}
+            {% if name_lower not in seen_names %}
+                {% if same_name_count > 1 %}
+                <a href="{{ url_for('main.view_topics_by_name', name=topic.name) }}" class="topic-chip">
+                    {{ topic.name }} (all {{ same_name_count }} sectors) <span class="count">{{ topic.url_count or 0 }}+ urls</span>
+                </a>
+                {% else %}
+                <a href="{{ url_for('main.view_topic', topic_id=topic.id) }}" class="topic-chip">
+                    {% if topic.parent %}{{ topic.parent.name }} / {% endif %}{{ topic.name }} <span class="count">{{ topic.url_count or 0 }} urls</span>
+                </a>
+                {% endif %}
+                {% if seen_names.append(name_lower) %}{% endif %}
+            {% endif %}
         {% endfor %}
     </div>
 </div>

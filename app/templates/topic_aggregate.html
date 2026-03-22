@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block app_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+<style>
+    .agg-header { margin-bottom: 28px; }
+    .agg-header h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 8px; }
+    .agg-header p { color: #888; font-size: 1.1rem; }
+    .parent-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+    .parent-chip {
+        padding: 8px 16px; border: 1px solid #ddd; border-radius: 18px;
+        font-size: 0.95rem; color: #555; text-decoration: none;
+    }
+    .parent-chip:hover { border-color: #5a9b16; color: #5a9b16; text-decoration: none; }
+    .url-card {
+        border: 1px solid #eee; border-radius: 8px; padding: 18px 22px;
+        margin-bottom: 12px; transition: border-color 0.15s;
+    }
+    .url-card:hover { border-color: #5a9b16; }
+    .url-card .url-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 4px; }
+    .url-card .url-title a { color: #333; text-decoration: none; }
+    .url-card .url-title a:hover { color: #5a9b16; }
+    .url-card .url-domain { font-size: 1rem; color: #5a9b16; margin-bottom: 6px; }
+    .url-card .url-summary { font-size: 1.05rem; color: #888; line-height: 1.5; }
+    .url-card .url-meta { display: flex; gap: 16px; margin-top: 8px; font-size: 0.95rem; color: #aaa; }
+</style>
+
+<div class="agg-header">
+    <h1>{{ aggregate_name }} (All Sectors)</h1>
+    <p>{{ total }} URLs across {{ parent_topics|length }} sector{{ 's' if parent_topics|length != 1 }}</p>
+</div>
+
+<div class="parent-chips">
+    {% for pt in parent_topics %}
+    <a href="{{ url_for('main.view_topic', topic_id=pt.topic.id) }}" class="parent-chip">
+        {% if pt.parent %}{{ pt.parent.name }} /{% endif %} {{ pt.topic.name }}
+        ({{ pt.topic.url_count or 0 }})
+    </a>
+    {% endfor %}
+</div>
+
+{% for url in urls %}
+<div class="url-card">
+    <div class="url-title"><a href="{{ url.detail_url }}">{{ url.title or url.canonical_url }}</a></div>
+    <div class="url-domain"><a href="{{ url_for('main.view_domain', domain=url.domain) }}" style="color: #5a9b16; text-decoration: none;">{{ url.domain }}</a></div>
+    {% if url.summary %}
+    <div class="url-summary">{{ url.summary[:200] }}{% if url.summary|length > 200 %}...{% endif %}</div>
+    {% endif %}
+    <div class="url-meta">
+        <span>Score: {{ "%.2f"|format(url.combined_score) }}</span>
+        <span>{{ url.submission_count }} submission{{ 's' if url.submission_count != 1 }}</span>
+    </div>
+</div>
+{% endfor %}
+
+{% if not urls %}
+<div class="alert alert-info">No URLs found.</div>
+{% endif %}
+
+{% if total_pages > 1 %}
+<nav style="margin-top: 24px;">
+    <ul class="pager">
+        {% if page > 1 %}
+        <li><a href="{{ url_for('main.view_topics_by_name', name=aggregate_name, page=page-1) }}">&laquo; Previous</a></li>
+        {% endif %}
+        <li class="page-info">Page {{ page }} of {{ total_pages }}</li>
+        {% if page < total_pages %}
+        <li><a href="{{ url_for('main.view_topics_by_name', name=aggregate_name, page=page+1) }}">Next &raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% include 'all_rights_reserved.html' %}
+{% endblock %}

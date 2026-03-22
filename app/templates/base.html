@@ -179,42 +179,57 @@
                         sc.innerHTML = '';
                         let hasResults = false;
 
+                        function addItem(container, icon, label, meta, href) {
+                            const div = document.createElement('div');
+                            div.className = 'sg-item';
+                            const iconSpan = document.createElement('span');
+                            iconSpan.className = 'sg-icon';
+                            iconSpan.textContent = icon;
+                            const labelSpan = document.createElement('span');
+                            labelSpan.className = 'sg-label';
+                            labelSpan.textContent = label;
+                            const metaSpan = document.createElement('span');
+                            metaSpan.className = 'sg-meta';
+                            metaSpan.textContent = meta;
+                            div.appendChild(iconSpan);
+                            div.appendChild(labelSpan);
+                            div.appendChild(metaSpan);
+                            div.onclick = function() { window.location.href = href; };
+                            container.appendChild(div);
+                        }
+
                         if (data.topics && data.topics.length) {
                             hasResults = true;
-                            sc.innerHTML += '<div class="sg-section">Topics</div>';
+                            const sec = document.createElement('div');
+                            sec.className = 'sg-section';
+                            sec.textContent = 'Topics';
+                            sc.appendChild(sec);
                             data.topics.forEach(t => {
-                                const div = document.createElement('div');
-                                div.className = 'sg-item';
-                                div.innerHTML = '<span class="sg-icon">#</span><span class="sg-label">' +
-                                    t.name + '</span><span class="sg-meta">' + (t.url_count || 0) + ' urls</span>';
-                                div.addEventListener('click', () => { window.location.href = '/topic/' + t.id; });
-                                sc.appendChild(div);
+                                addItem(sc, '#', t.name, (t.url_count || 0) + ' urls', '/topic/' + t.id);
                             });
                         }
 
                         if (data.users && data.users.length) {
                             hasResults = true;
-                            sc.innerHTML += '<div class="sg-section">Users</div>';
+                            const sec = document.createElement('div');
+                            sec.className = 'sg-section';
+                            sec.textContent = 'Users';
+                            sc.appendChild(sec);
                             data.users.forEach(u => {
-                                const div = document.createElement('div');
-                                div.className = 'sg-item';
-                                div.innerHTML = '<span class="sg-icon">@</span><span class="sg-label">' + u + '</span>';
-                                div.addEventListener('click', () => { window.location.href = '/' + encodeURIComponent(u); });
-                                sc.appendChild(div);
+                                addItem(sc, '@', u, '', '/' + encodeURIComponent(u));
                             });
                         }
 
                         if (data.urls && data.urls.length) {
                             hasResults = true;
-                            sc.innerHTML += '<div class="sg-section">Content</div>';
+                            const sec = document.createElement('div');
+                            sec.className = 'sg-section';
+                            sec.textContent = 'Content';
+                            sc.appendChild(sec);
                             data.urls.forEach(u => {
-                                const div = document.createElement('div');
-                                div.className = 'sg-item';
                                 const title = u.title || u.link;
-                                div.innerHTML = '<span class="sg-icon">&rarr;</span><span class="sg-label">' +
-                                    title.substring(0, 60) + '</span><span class="sg-meta">' + (u.username || '') + '</span>';
-                                div.addEventListener('click', () => { window.location.href = u.link; });
-                                sc.appendChild(div);
+                                const href = u.post_id ? '/url/' + u.post_id : u.link;
+                                addItem(sc, '\u2192', title.substring(0, 60), u.username || '', href);
                             });
                         }
 

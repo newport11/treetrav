@@ -869,7 +869,7 @@ def search():
     topics = Topic.query.filter(
         db.or_(Topic.name.ilike(pattern), Topic.description.ilike(pattern)),
         Topic.is_active == True,
-    ).limit(10).all()
+    ).order_by(Topic.url_count.desc()).limit(20).all()
 
     # Content — use semantic search if available
     content_results = []
@@ -1148,7 +1148,7 @@ def unified_search():
         .limit(5)
         .all()
     )
-    url_results = [{"id": p.id, "title": p.body, "link": p.link, "username": p.author.username if p.author else None} for p in posts]
+    url_results = [{"id": p.id, "title": p.body, "link": p.link, "username": p.author.username if p.author else None, "post_id": p.canonical_url_id} for p in posts]
 
     return jsonify({"users": users[:5], "topics": topic_results, "urls": url_results})
 
@@ -1455,6 +1455,65 @@ def view_domain(domain):
         agent_counts=agent_counts,
         top_entities=top_entities,
         competitors=competitors,
+    )
+
+
+@bp.route("/topics/all/<name>")
+def view_topics_by_name(name):
+    """Aggregate view — all topics with the same name across different parents."""
+    from app.models import CanonicalUrl, Topic, UrlMetadata, UrlTopicScore
+
+    topics = Topic.query.filter(
+        db.func.lower(Topic.name) == name.lower(), Topic.is_active == True
+    ).all()
+
+    if not topics:
+        return render_template("topic_view.html", title=name, topic=None,
+                               urls=[], page=1, total_pages=1, aggregate=True, aggregate_name=name, parent_topics=[])
+
+    topic_ids = [t.id for t in topics]
+    page = request.args.get("page", 1, type=int)
+    per_page = 25
+
+    scored = (
+        db.session.query(UrlTopicScore, CanonicalUrl)
+        .join(CanonicalUrl, UrlTopicScore.canonical_url_id == CanonicalUrl.id)
+        .filter(UrlTopicScore.topic_id.in_(topic_ids))
+        .order_by(UrlTopicScore.combined_score.desc())
+    )
+    total = scored.count()
+    results = scored.offset((page - 1) * per_page).limit(per_page).all()
+
+    seen = set()
+    urls = []
+    for uts, cu in results:
+        if cu.id in seen:
+            continue
+        seen.add(cu.id)
+        sample_post = Post.query.filter_by(canonical_url_id=cu.id).first()
+        meta = UrlMetadata.query.filter_by(canonical_url_id=cu.id).first()
+        urls.append({
+            "canonical_url": cu.canonical_url,
+            "domain": cu.domain,
+            "title": sample_post.body if sample_post else None,
+            "summary": meta.summary if meta else None,
+            "combined_score": uts.combined_score,
+            "submission_count": cu.submission_count,
+            "detail_url": url_for("main.view_url", canonical_id=cu.id),
+        })
+
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    parent_topics = [{"topic": t, "parent": t.parent} for t in topics]
+
+    return render_template(
+        "topic_aggregate.html",
+        title=f"All {name.title()}",
+        aggregate_name=name.title(),
+        urls=urls,
+        parent_topics=parent_topics,
+        page=page,
+        total_pages=total_pages,
+        total=total,
     )
 
 
