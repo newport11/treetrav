@@ -58,6 +58,15 @@ async def create_post(form: PostForm, current_user: User):
     except Exception:
         pass
 
+    # Auto-tag from folder path
+    try:
+        from app.api.posts import _auto_tag_from_folder
+        db.session.add(post)
+        db.session.flush()
+        _auto_tag_from_folder(post)
+    except Exception:
+        pass
+
     return post, True
 
 

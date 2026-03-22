@@ -43,6 +43,80 @@ def _canonicalize_post(post, raw_url):
         pass
 
 
+def _auto_tag_from_folder(post):
+    """Auto-create topics from folder path and tag the post."""
+    try:
+        folder = post.folder_link
+        if not folder or folder == "/":
+            return
+
+        from app.models import PostTopicTag, UrlTopicScore, UrlPropagation
+        from app.services.taxonomy import create_topic
+
+        parts = [p.strip() for p in folder.strip("/").split("/") if p.strip()]
+        if not parts:
+            return
+
+        # Build topic hierarchy from folder path
+        parent_id = None
+        last_topic = None
+        for part in parts:
+            # Convert folder name to topic name (replace hyphens/underscores with spaces, title case)
+            topic_name = part.replace("-", " ").replace("_", " ").title()
+            topic, _ = create_topic(topic_name, parent_id=parent_id)
+            parent_id = topic.id
+            last_topic = topic
+
+        # Tag the post with the deepest (most specific) topic
+        if last_topic and post.id:
+            existing = PostTopicTag.query.filter_by(
+                post_id=post.id, topic_id=last_topic.id, tagged_by=post.user_id
+            ).first()
+            if not existing:
+                tag = PostTopicTag(
+                    post_id=post.id,
+                    topic_id=last_topic.id,
+                    tagged_by=post.user_id,
+                    confidence=0.8,
+                )
+                db.session.add(tag)
+                last_topic.url_count = (last_topic.url_count or 0) + 1
+
+            # Create UrlTopicScore if canonical URL exists
+            if post.canonical_url_id:
+                score = UrlTopicScore.query.filter_by(
+                    canonical_url_id=post.canonical_url_id, topic_id=last_topic.id
+                ).first()
+                if not score:
+                    score = UrlTopicScore(
+                        canonical_url_id=post.canonical_url_id,
+                        topic_id=last_topic.id,
+                        relevance_score=0.5,
+                        quality_score=0.5,
+                        combined_score=0.5,
+                        vote_count=1,
+                    )
+                    db.session.add(score)
+                else:
+                    score.vote_count = (score.vote_count or 0) + 1
+
+                # Track propagation
+                prop = UrlPropagation.query.filter_by(
+                    canonical_url_id=post.canonical_url_id, topic_id=last_topic.id
+                ).first()
+                if not prop:
+                    prop = UrlPropagation(
+                        canonical_url_id=post.canonical_url_id,
+                        topic_id=last_topic.id,
+                        first_submitted_by=post.user_id,
+                    )
+                    db.session.add(prop)
+
+            db.session.commit()
+    except Exception:
+        pass
+
+
 @bp.route("/posts/<int:id>", methods=["GET"])
 @token_auth.login_required
 def get_post(id):
@@ -201,6 +275,7 @@ async def post_link():
                     _canonicalize_post(post, data["link"])
                     db.session.add(post)
                     db.session.commit()
+                    _auto_tag_from_folder(post)
                     response = jsonify(post.to_dict())
                     response.status_code = 201
                     response.headers["Location"] = url_for("api.get_post", id=post.id)
@@ -224,6 +299,7 @@ async def post_link():
     _canonicalize_post(post, data["link"])
     db.session.add(post)
     db.session.commit()
+    _auto_tag_from_folder(post)
     response = jsonify(post.to_dict())
     response.status_code = 201
     response.headers["Location"] = url_for("api.get_post", id=post.id)
@@ -276,6 +352,7 @@ async def post_multiple_links():
             _canonicalize_post(post, tab["url"])
             db.session.add(post)
             db.session.commit()
+            _auto_tag_from_folder(post)
             successful_count += 1
         except:
             pass
