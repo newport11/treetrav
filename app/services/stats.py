@@ -353,6 +353,158 @@ def get_realtime_signals():
     }
 
 
+def get_graph_data():
+    """Data for knowledge graph visualizations."""
+    now = datetime.utcnow()
+
+    # 1. Topic Galaxy — topics as nodes, shared URLs as edges
+    topics = Topic.query.filter_by(is_active=True).all()
+    # Only top 100 topics by URL count for visualization
+    top_topics = sorted(topics, key=lambda t: t.url_count or 0, reverse=True)[:100]
+    top_topic_ids = set(t.id for t in top_topics)
+    topic_nodes = [
+        {"id": t.id, "name": t.name, "url_count": t.url_count or 0,
+         "depth": t.depth or 0, "parent_id": t.parent_id}
+        for t in top_topics if (t.url_count or 0) > 0
+    ]
+
+    # Find cross-topic links — only for top topics, limited query
+    from collections import defaultdict
+    url_topics = defaultdict(set)
+    for score in UrlTopicScore.query.filter(UrlTopicScore.topic_id.in_(top_topic_ids)).all():
+        url_topics[score.canonical_url_id].add(score.topic_id)
+
+    edge_counts = defaultdict(int)
+    for url_id, tids in url_topics.items():
+        tids = list(tids)
+        for i in range(len(tids)):
+            for j in range(i + 1, len(tids)):
+                pair = tuple(sorted([tids[i], tids[j]]))
+                edge_counts[pair] += 1
+
+    topic_edges = [
+        {"source": s, "target": t, "weight": w}
+        for (s, t), w in sorted(edge_counts.items(), key=lambda x: x[1], reverse=True)[:100]
+    ]
+
+    # 2. Domain-Topic Network
+    domain_topic_links = (
+        db.session.query(
+            CanonicalUrl.domain,
+            UrlTopicScore.topic_id,
+            func.count(UrlTopicScore.id).label("count"),
+        )
+        .join(UrlTopicScore, UrlTopicScore.canonical_url_id == CanonicalUrl.id)
+        .group_by(CanonicalUrl.domain, UrlTopicScore.topic_id)
+        .having(func.count(UrlTopicScore.id) >= 2)
+        .order_by(func.count(UrlTopicScore.id).desc())
+        .limit(150)
+        .all()
+    )
+    domain_nodes = list(set(d for d, _, _ in domain_topic_links))
+    domain_topic_edges = [
+        {"domain": d, "topic_id": tid, "count": c}
+        for d, tid, c in domain_topic_links
+    ]
+
+    # 3. Agent Trust Landscape
+    agents = (
+        db.session.query(User)
+        .filter(User.is_agent == True)
+        .order_by(User.total_contributions.desc())
+        .limit(500)
+        .all()
+    )
+    agent_scatter = [
+        {"username": a.username, "user_id": a.id,
+         "contributions": a.total_contributions or 0,
+         "trust_score": round(a.trust_score or 0, 3),
+         "agent_type": a.agent_profile.agent_type if a.agent_profile else "unknown"}
+        for a in agents
+    ]
+
+    # 4. Topic Activity Heatmap — last 30 days
+    thirty_days_ago = now - timedelta(days=30)
+    daily_activity = (
+        db.session.query(
+            PostTopicTag.topic_id,
+            func.date(PostTopicTag.created_at).label("day"),
+            func.count(PostTopicTag.id).label("count"),
+        )
+        .filter(PostTopicTag.created_at >= thirty_days_ago)
+        .group_by(PostTopicTag.topic_id, func.date(PostTopicTag.created_at))
+        .all()
+    )
+    heatmap_data = [
+        {"topic_id": tid, "day": str(day), "count": c}
+        for tid, day, c in daily_activity
+    ]
+
+    # 5. URL Propagation examples — top 5 most propagated URLs
+    top_propagated = (
+        db.session.query(
+            UrlPropagation.canonical_url_id,
+            func.count(UrlPropagation.topic_id).label("topic_count"),
+        )
+        .group_by(UrlPropagation.canonical_url_id)
+        .order_by(func.count(UrlPropagation.topic_id).desc())
+        .limit(5)
+        .all()
+    )
+    propagation_flows = []
+    for cu_id, tc in top_propagated:
+        cu = CanonicalUrl.query.get(cu_id)
+        if not cu:
+            continue
+        props = (
+            UrlPropagation.query.filter_by(canonical_url_id=cu_id)
+            .order_by(UrlPropagation.first_seen_in_topic)
+            .all()
+        )
+        sample = Post.query.filter_by(canonical_url_id=cu_id).first()
+        propagation_flows.append({
+            "url": cu.canonical_url,
+            "domain": cu.domain,
+            "title": sample.body if sample else None,
+            "topic_count": tc,
+            "flow": [
+                {"topic": p.topic.name if p.topic else "?",
+                 "topic_id": p.topic_id,
+                 "time": p.first_seen_in_topic.isoformat() + "Z" if p.first_seen_in_topic else None}
+                for p in props
+            ],
+        })
+
+    # 6. Real-time flow — last 50 posts with their topics
+    recent = (
+        Post.query.order_by(Post.timestamp.desc()).limit(50).all()
+    )
+    realtime_flow = []
+    for p in recent:
+        tags = PostTopicTag.query.filter_by(post_id=p.id).all()
+        if tags:
+            realtime_flow.append({
+                "post_id": p.id,
+                "title": p.body,
+                "agent": p.author.username if p.author else None,
+                "timestamp": p.timestamp.isoformat() + "Z" if p.timestamp else None,
+                "topics": [{"id": t.topic_id, "name": t.topic.name if t.topic else "?"} for t in tags],
+            })
+
+    # Topic id->name map for frontend
+    topic_map = {t.id: t.name for t in topics}
+
+    return {
+        "topic_galaxy": {"nodes": topic_nodes, "edges": topic_edges},
+        "domain_topic_network": {"domains": domain_nodes, "edges": domain_topic_edges, "topic_map": topic_map},
+        "agent_landscape": agent_scatter,
+        "topic_heatmap": heatmap_data,
+        "propagation_flows": propagation_flows,
+        "realtime_flow": realtime_flow,
+        "topic_map": topic_map,
+    }
+
+
 def get_all_stats():
     """Get all stats in one call."""
     return {

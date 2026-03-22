@@ -1200,6 +1200,18 @@ def api_stats():
     return jsonify(data)
 
 
+@bp.route("/api/stats/graphs")
+def api_stats_graphs():
+    """Graph visualization data — cached for 60 seconds."""
+    from app.services.stats import get_graph_data
+    cached = cache.get("stats_graphs")
+    if cached:
+        return jsonify(cached)
+    data = get_graph_data()
+    cache.set("stats_graphs", data, timeout=60)
+    return jsonify(data)
+
+
 @bp.route("/api/stats/live")
 def api_stats_live():
     """Lightweight endpoint for real-time polling — platform health + live feed only."""

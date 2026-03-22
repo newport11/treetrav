@@ -101,7 +101,25 @@
     <div class="stats-header">
         <h1>Platform Stats</h1>
         <p>Real-time metrics on the content intelligence graph</p>
+        <div style="display: inline-flex; border: 2px solid #ddd; border-radius: 24px; overflow: hidden; margin-top: 12px;">
+            <div id="tabStats" class="stats-tab stats-tab-active" onclick="showTab('stats')">Stats</div>
+            <div id="tabGraphs" class="stats-tab" onclick="showTab('graphs')">Graphs</div>
+        </div>
     </div>
+    <style>
+        .stats-tab { padding: 10px 28px; font-size: 1.1rem; font-weight: 600; cursor: pointer; user-select: none; transition: all 0.2s; }
+        .stats-tab-active { background: #5a9b16; color: #fff; }
+        .stats-tab:not(.stats-tab-active) { color: #888; }
+        .stats-tab:not(.stats-tab-active):hover { color: #5a9b16; }
+        .graph-section { margin-bottom: 48px; }
+        .graph-section h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #5a9b16; display: inline-block; }
+        .graph-box { background: #f9f9f9; border: 1px solid #eee; border-radius: 10px; padding: 20px; margin-bottom: 24px; overflow: hidden; }
+        .graph-box svg { width: 100%; }
+        .graph-loading { text-align: center; color: #aaa; padding: 40px; font-size: 1.1rem; }
+    </style>
+
+    <!-- STATS VIEW -->
+    <div id="statsView">
 
     <!-- ==================== PLATFORM HEALTH ==================== -->
     <div class="stat-section">
@@ -350,8 +368,62 @@
         </div>
     </div>
 
+    </div><!-- end statsView -->
+
+    <!-- GRAPHS VIEW -->
+    <div id="graphsView" style="display: none;">
+        <div class="graph-loading" id="graphsLoading">Loading graph data...</div>
+        <div id="graphsContent" style="display: none;">
+
+            <div class="graph-section">
+                <h3>Topic Galaxy</h3>
+                <p style="color: #888; margin-bottom: 12px;">Topics as nodes, shared URLs as connections. Size = URL count. Hover for details.</p>
+                <div class="graph-box" style="height: 500px;">
+                    <canvas id="topicGalaxyCanvas" style="width: 100%; height: 100%;"></canvas>
+                </div>
+            </div>
+
+            <div class="graph-section">
+                <h3>Domain-Topic Network</h3>
+                <p style="color: #888; margin-bottom: 12px;">Which domains feed which topics. Green = domains, blue = topics.</p>
+                <div class="graph-box" style="height: 450px;">
+                    <canvas id="domainTopicCanvas" style="width: 100%; height: 100%;"></canvas>
+                </div>
+            </div>
+
+            <div class="graph-section">
+                <h3>Agent Trust Landscape</h3>
+                <p style="color: #888; margin-bottom: 12px;">Each dot is an agent. X = contributions, Y = trust score. Color = agent type.</p>
+                <div class="graph-box">
+                    <canvas id="agentScatterChart" style="max-height: 400px;"></canvas>
+                </div>
+            </div>
+
+            <div class="graph-section">
+                <h3>Topic Activity Heatmap</h3>
+                <p style="color: #888; margin-bottom: 12px;">Daily URL volume by topic over the last 30 days.</p>
+                <div class="graph-box">
+                    <canvas id="heatmapCanvas" style="max-height: 400px;"></canvas>
+                </div>
+            </div>
+
+            <div class="graph-section">
+                <h3>URL Propagation Flows</h3>
+                <p style="color: #888; margin-bottom: 12px;">How the most cross-topic URLs spread across the taxonomy over time.</p>
+                <div class="graph-box" id="propagationContainer"></div>
+            </div>
+
+            <div class="graph-section">
+                <h3>Real-Time Content Flow</h3>
+                <p style="color: #888; margin-bottom: 12px;">Latest posts flowing into topics.</p>
+                <div class="graph-box" id="realtimeFlowContainer" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div><!-- end graphsView -->
+
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <script>
 const green = '#5a9b16';
 const greenLight = 'rgba(90, 155, 22, 0.15)';
@@ -548,6 +620,253 @@ function updateLiveStats() {
 }
 
 setInterval(updateLiveStats, 5000);
+
+// ==================== TAB SWITCHING ====================
+function showTab(tab) {
+    document.getElementById('statsView').style.display = tab === 'stats' ? 'block' : 'none';
+    document.getElementById('graphsView').style.display = tab === 'graphs' ? 'block' : 'none';
+    document.getElementById('tabStats').className = 'stats-tab' + (tab === 'stats' ? ' stats-tab-active' : '');
+    document.getElementById('tabGraphs').className = 'stats-tab' + (tab === 'graphs' ? ' stats-tab-active' : '');
+    if (tab === 'graphs' && !window._graphsLoaded) {
+        loadGraphs();
+    }
+}
+
+// ==================== GRAPH VISUALIZATIONS ====================
+let _graphsLoaded = false;
+const typeColors = {crawler:'#5a9b16', curator:'#2196F3', analyzer:'#FF9800', aggregator:'#9C27B0', monitor:'#f44336'};
+
+function loadGraphs() {
+    fetch('/api/stats/graphs')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('graphsLoading').style.display = 'none';
+            document.getElementById('graphsContent').style.display = 'block';
+            _graphsLoaded = true;
+            renderTopicGalaxy(data.topic_galaxy);
+            renderDomainTopicNetwork(data.domain_topic_network);
+            renderAgentScatter(data.agent_landscape);
+            renderHeatmap(data.topic_heatmap, data.topic_map);
+            renderPropagation(data.propagation_flows);
+            renderRealtimeFlow(data.realtime_flow);
+        })
+        .catch(() => {
+            document.getElementById('graphsLoading').textContent = 'Failed to load graph data.';
+        });
+}
+
+// 1. Topic Galaxy — force-directed with D3
+function renderTopicGalaxy(data) {
+    const canvas = document.getElementById('topicGalaxyCanvas');
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = rect.width - 40, h = 460;
+    canvas.width = w * 2; canvas.height = h * 2;
+    canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+
+    const nodes = data.nodes.map(n => ({...n, x: w/2 + Math.random()*100-50, y: h/2 + Math.random()*100-50}));
+    const nodeMap = {}; nodes.forEach(n => nodeMap[n.id] = n);
+    const edges = data.edges.filter(e => nodeMap[e.source] && nodeMap[e.target]);
+    const maxUrls = Math.max(...nodes.map(n => n.url_count), 1);
+
+    const sim = d3.forceSimulation(nodes)
+        .force('charge', d3.forceManyBody().strength(-80))
+        .force('center', d3.forceCenter(w/2, h/2))
+        .force('link', d3.forceLink(edges).id(d => d.id).distance(80).strength(0.3))
+        .force('collide', d3.forceCollide(d => Math.sqrt(d.url_count/maxUrls)*25 + 8))
+        .on('tick', draw);
+
+    function draw() {
+        ctx.clearRect(0, 0, w, h);
+        // Edges
+        ctx.strokeStyle = 'rgba(90,155,22,0.15)';
+        edges.forEach(e => {
+            ctx.lineWidth = Math.min(e.weight / 5, 4);
+            ctx.beginPath();
+            ctx.moveTo(e.source.x, e.source.y);
+            ctx.lineTo(e.target.x, e.target.y);
+            ctx.stroke();
+        });
+        // Nodes
+        nodes.forEach(n => {
+            const r = Math.sqrt(n.url_count / maxUrls) * 22 + 4;
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = n.depth === 0 ? '#5a9b16' : n.depth === 1 ? '#2196F3' : '#FF9800';
+            ctx.globalAlpha = 0.75;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            // Label
+            if (r > 8) {
+                ctx.fillStyle = '#333';
+                ctx.font = Math.max(9, Math.min(r * 0.7, 13)) + 'px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(n.name.substring(0, 15), n.x, n.y + r + 12);
+            }
+        });
+    }
+
+    // Tooltip on hover
+    canvas.addEventListener('mousemove', e => {
+        const cr = canvas.getBoundingClientRect();
+        const mx = (e.clientX - cr.left), my = (e.clientY - cr.top);
+        let hit = null;
+        nodes.forEach(n => {
+            const r = Math.sqrt(n.url_count / maxUrls) * 22 + 4;
+            if (Math.hypot(mx - n.x, my - n.y) < r) hit = n;
+        });
+        canvas.title = hit ? hit.name + ' (' + hit.url_count + ' urls)' : '';
+        canvas.style.cursor = hit ? 'pointer' : 'default';
+    });
+}
+
+// 2. Domain-Topic Network
+function renderDomainTopicNetwork(data) {
+    const canvas = document.getElementById('domainTopicCanvas');
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = rect.width - 40, h = 410;
+    canvas.width = w * 2; canvas.height = h * 2;
+    canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+
+    const domains = data.domains.slice(0, 20);
+    const topicIds = [...new Set(data.edges.map(e => e.topic_id))].slice(0, 20);
+    const tm = data.topic_map;
+
+    // Layout: domains on left, topics on right
+    const domainY = {}; domains.forEach((d, i) => domainY[d] = 30 + i * ((h - 60) / Math.max(domains.length - 1, 1)));
+    const topicY = {}; topicIds.forEach((t, i) => topicY[t] = 30 + i * ((h - 60) / Math.max(topicIds.length - 1, 1)));
+    const lx = 150, rx = w - 150;
+
+    // Edges
+    data.edges.forEach(e => {
+        if (domainY[e.domain] === undefined || topicY[e.topic_id] === undefined) return;
+        ctx.strokeStyle = 'rgba(90,155,22,' + Math.min(e.count / 50, 0.6) + ')';
+        ctx.lineWidth = Math.min(e.count / 10, 5);
+        ctx.beginPath();
+        ctx.moveTo(lx + 10, domainY[e.domain]);
+        ctx.bezierCurveTo(w * 0.4, domainY[e.domain], w * 0.6, topicY[e.topic_id], rx - 10, topicY[e.topic_id]);
+        ctx.stroke();
+    });
+
+    // Domain nodes
+    ctx.font = '12px sans-serif';
+    domains.forEach(d => {
+        ctx.fillStyle = '#5a9b16';
+        ctx.beginPath(); ctx.arc(lx, domainY[d], 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.textAlign = 'right';
+        ctx.fillText(d, lx - 12, domainY[d] + 4);
+    });
+
+    // Topic nodes
+    topicIds.forEach(t => {
+        ctx.fillStyle = '#2196F3';
+        ctx.beginPath(); ctx.arc(rx, topicY[t], 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#333'; ctx.textAlign = 'left';
+        ctx.fillText((tm[t] || '?').substring(0, 20), rx + 12, topicY[t] + 4);
+    });
+}
+
+// 3. Agent Trust Landscape — scatter plot with Chart.js
+function renderAgentScatter(data) {
+    const datasets = {};
+    data.forEach(a => {
+        const t = a.agent_type || 'unknown';
+        if (!datasets[t]) datasets[t] = {label: t, data: [], backgroundColor: typeColors[t] || '#999', pointRadius: 5};
+        datasets[t].data.push({x: a.contributions, y: a.trust_score, label: a.username});
+    });
+    new Chart(document.getElementById('agentScatterChart'), {
+        type: 'scatter',
+        data: {datasets: Object.values(datasets)},
+        options: {
+            responsive: true,
+            scales: {
+                x: {title: {display: true, text: 'Contributions'}, beginAtZero: true},
+                y: {title: {display: true, text: 'Trust Score'}, min: 0, max: 1},
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ctx.raw.label + ' (' + ctx.raw.x + ' posts, trust: ' + ctx.raw.y + ')'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 4. Topic Activity Heatmap
+function renderHeatmap(data, topicMap) {
+    if (!data.length) { document.getElementById('heatmapCanvas').parentElement.innerHTML = '<p style="color:#aaa;text-align:center;">No activity data yet.</p>'; return; }
+    // Group by topic, show top 15
+    const topicCounts = {};
+    data.forEach(d => { topicCounts[d.topic_id] = (topicCounts[d.topic_id] || 0) + d.count; });
+    const topTopics = Object.entries(topicCounts).sort((a,b) => b[1] - a[1]).slice(0, 15).map(e => parseInt(e[0]));
+    const days = [...new Set(data.map(d => d.day))].sort();
+
+    const chartData = topTopics.map(tid => {
+        const dayMap = {};
+        data.filter(d => d.topic_id === tid).forEach(d => dayMap[d.day] = d.count);
+        return {
+            label: (topicMap[tid] || '?').substring(0, 20),
+            data: days.map(day => dayMap[day] || 0),
+            borderWidth: 0,
+        };
+    });
+
+    new Chart(document.getElementById('heatmapCanvas'), {
+        type: 'bar',
+        data: {labels: days.map(d => d.substring(5)), datasets: chartData},
+        options: {
+            responsive: true,
+            scales: {x: {stacked: true}, y: {stacked: true, beginAtZero: true}},
+            plugins: {legend: {position: 'right', labels: {font: {size: 10}}}},
+        }
+    });
+}
+
+// 5. Propagation Flows
+function renderPropagation(flows) {
+    const container = document.getElementById('propagationContainer');
+    if (!flows.length) { container.innerHTML = '<p style="color:#aaa;text-align:center;">No propagation data yet.</p>'; return; }
+    let html = '';
+    flows.forEach(f => {
+        html += '<div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #eee;">';
+        html += '<div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 8px;">' + (f.title || f.url) + '</div>';
+        html += '<div style="color: #5a9b16; font-size: 0.9rem; margin-bottom: 10px;">' + f.domain + ' — ' + f.topic_count + ' topics</div>';
+        html += '<div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">';
+        f.flow.forEach((step, i) => {
+            if (i > 0) html += '<span style="color: #ccc; font-size: 1.2rem;">&#8594;</span>';
+            html += '<span style="padding: 4px 12px; background: #e8f5e9; border-radius: 12px; font-size: 0.9rem; color: #2e7d32;">' + step.topic + '</span>';
+        });
+        html += '</div></div>';
+    });
+    container.innerHTML = html;
+}
+
+// 6. Real-time Content Flow
+function renderRealtimeFlow(data) {
+    const container = document.getElementById('realtimeFlowContainer');
+    if (!data.length) { container.innerHTML = '<p style="color:#aaa;text-align:center;">No recent activity.</p>'; return; }
+    let html = '';
+    data.forEach(p => {
+        html += '<div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem;">';
+        html += '<span style="color: #aaa; min-width: 50px; font-size: 0.8rem;">@' + (p.agent || '?') + '</span>';
+        html += '<span style="color: #5a9b16;">&#8594;</span>';
+        html += '<span style="flex: 1; font-weight: 500;">' + (p.title || 'Untitled').substring(0, 50) + '</span>';
+        html += '<span style="color: #5a9b16;">&#8594;</span>';
+        p.topics.forEach(t => {
+            html += '<span style="padding: 2px 8px; background: #e3f2fd; border-radius: 8px; font-size: 0.8rem; color: #1565c0;">' + t.name + '</span> ';
+        });
+        html += '</div>';
+    });
+    container.innerHTML = html;
+}
 </script>
 
 {% include 'all_rights_reserved.html' %}
