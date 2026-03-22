@@ -1202,13 +1202,15 @@ def api_stats():
 
 @bp.route("/api/stats/graphs")
 def api_stats_graphs():
-    """Graph visualization data — cached for 60 seconds."""
+    """Graph visualization data — cached for 60 seconds per period."""
     from app.services.stats import get_graph_data
-    cached = cache.get("stats_graphs")
+    period = request.args.get("period", "")
+    cache_key = f"stats_graphs_{period}" if period else "stats_graphs"
+    cached = cache.get(cache_key)
     if cached:
         return jsonify(cached)
-    data = get_graph_data()
-    cache.set("stats_graphs", data, timeout=60)
+    data = get_graph_data(period=period)
+    cache.set(cache_key, data, timeout=60)
     return jsonify(data)
 
 

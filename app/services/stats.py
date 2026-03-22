@@ -353,9 +353,25 @@ def get_realtime_signals():
     }
 
 
-def get_graph_data():
-    """Data for knowledge graph visualizations."""
+def _parse_hours(period):
+    if not period:
+        return None
+    period = period.strip().lower()
+    try:
+        if period.endswith("h"):
+            return int(period[:-1])
+        elif period.endswith("d"):
+            return int(period[:-1]) * 24
+        return int(period)
+    except (ValueError, IndexError):
+        return None
+
+
+def get_graph_data(period=""):
+    """Data for knowledge graph visualizations. Optional period filter."""
     now = datetime.utcnow()
+    hours = _parse_hours(period)
+    cutoff = now - timedelta(hours=hours) if hours else None
 
     # 1. Topic Galaxy — topics as nodes, shared URLs as edges
     topics = Topic.query.filter_by(is_active=True).all()
@@ -371,7 +387,10 @@ def get_graph_data():
     # Find cross-topic links — only for top topics, limited query
     from collections import defaultdict
     url_topics = defaultdict(set)
-    for score in UrlTopicScore.query.filter(UrlTopicScore.topic_id.in_(top_topic_ids)).all():
+    score_query = UrlTopicScore.query.filter(UrlTopicScore.topic_id.in_(top_topic_ids))
+    if cutoff:
+        score_query = score_query.filter(UrlTopicScore.first_tagged_at >= cutoff)
+    for score in score_query.all():
         url_topics[score.canonical_url_id].add(score.topic_id)
 
     edge_counts = defaultdict(int)

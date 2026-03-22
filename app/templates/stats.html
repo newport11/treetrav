@@ -377,8 +377,20 @@
 
             <div class="graph-section">
                 <h3>Topic Galaxy</h3>
-                <p style="color: #888; margin-bottom: 12px;">Topics as nodes, shared URLs as connections. Size = URL count. Hover for details.</p>
-                <div class="graph-box" style="height: 500px;">
+                <p style="color: #888; margin-bottom: 12px;">Topics as nodes, shared URLs as connections. Size = URL count. Drag nodes. Hover for details.</p>
+                <div style="margin-bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap;">
+                    <button class="galaxy-tf galaxy-tf-active" onclick="setGalaxyPeriod('',this)">All Time</button>
+                    <button class="galaxy-tf" onclick="setGalaxyPeriod('8760h',this)">1 Year</button>
+                    <button class="galaxy-tf" onclick="setGalaxyPeriod('720h',this)">1 Month</button>
+                    <button class="galaxy-tf" onclick="setGalaxyPeriod('168h',this)">1 Week</button>
+                    <button class="galaxy-tf" onclick="setGalaxyPeriod('24h',this)">24h</button>
+                    <button class="galaxy-tf" onclick="setGalaxyPeriod('1h',this)">1h</button>
+                </div>
+                <style>
+                    .galaxy-tf { padding: 6px 16px; border: 1px solid #ddd; border-radius: 16px; background: #fff; cursor: pointer; font-size: 0.9rem; color: #666; }
+                    .galaxy-tf:hover, .galaxy-tf-active { border-color: #5a9b16; color: #5a9b16; background: #f0f8e8; }
+                </style>
+                <div class="graph-box" style="height: 500px; position: relative;">
                     <canvas id="topicGalaxyCanvas" style="width: 100%; height: 100%;"></canvas>
                 </div>
             </div>
@@ -655,72 +667,91 @@ function loadGraphs() {
         });
 }
 
-// 1. Topic Galaxy — force-directed with D3
-function renderTopicGalaxy(data) {
-    const canvas = document.getElementById('topicGalaxyCanvas');
-    const rect = canvas.parentElement.getBoundingClientRect();
-    const w = rect.width - 40, h = 460;
-    canvas.width = w * 2; canvas.height = h * 2;
-    canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
-    const ctx = canvas.getContext('2d');
-    ctx.scale(2, 2);
+// 1. Topic Galaxy — force-directed with D3, draggable, hover tooltip, live pulse
+let _galaxyNodes, _galaxySim, _galaxyMaxUrls;
 
-    const nodes = data.nodes.map(n => ({...n, x: w/2 + Math.random()*100-50, y: h/2 + Math.random()*100-50}));
+function renderTopicGalaxy(data) {
+    const container = document.getElementById('topicGalaxyCanvas').parentElement;
+    container.innerHTML = '';
+    const w = container.clientWidth - 20, h = 460;
+
+    const svg = d3.select(container).append('svg').attr('width', w).attr('height', h);
+
+    const nodes = data.nodes.map(n => ({...n}));
     const nodeMap = {}; nodes.forEach(n => nodeMap[n.id] = n);
     const edges = data.edges.filter(e => nodeMap[e.source] && nodeMap[e.target]);
     const maxUrls = Math.max(...nodes.map(n => n.url_count), 1);
+    _galaxyNodes = nodes; _galaxyMaxUrls = maxUrls;
 
     const sim = d3.forceSimulation(nodes)
-        .force('charge', d3.forceManyBody().strength(-80))
+        .force('charge', d3.forceManyBody().strength(-100))
         .force('center', d3.forceCenter(w/2, h/2))
-        .force('link', d3.forceLink(edges).id(d => d.id).distance(80).strength(0.3))
-        .force('collide', d3.forceCollide(d => Math.sqrt(d.url_count/maxUrls)*25 + 8))
-        .on('tick', draw);
+        .force('link', d3.forceLink(edges).id(d => d.id).distance(90).strength(0.3))
+        .force('collide', d3.forceCollide(d => Math.sqrt(d.url_count/maxUrls)*25 + 10));
+    _galaxySim = sim;
 
-    function draw() {
-        ctx.clearRect(0, 0, w, h);
-        // Edges
-        ctx.strokeStyle = 'rgba(90,155,22,0.15)';
-        edges.forEach(e => {
-            ctx.lineWidth = Math.min(e.weight / 5, 4);
-            ctx.beginPath();
-            ctx.moveTo(e.source.x, e.source.y);
-            ctx.lineTo(e.target.x, e.target.y);
-            ctx.stroke();
-        });
-        // Nodes
-        nodes.forEach(n => {
-            const r = Math.sqrt(n.url_count / maxUrls) * 22 + 4;
-            ctx.beginPath();
-            ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-            ctx.fillStyle = n.depth === 0 ? '#5a9b16' : n.depth === 1 ? '#2196F3' : '#FF9800';
-            ctx.globalAlpha = 0.75;
-            ctx.fill();
-            ctx.globalAlpha = 1;
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            // Label
-            if (r > 8) {
-                ctx.fillStyle = '#333';
-                ctx.font = Math.max(9, Math.min(r * 0.7, 13)) + 'px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(n.name.substring(0, 15), n.x, n.y + r + 12);
-            }
-        });
-    }
+    // Edges
+    const link = svg.append('g').selectAll('line').data(edges).join('line')
+        .attr('stroke', 'rgba(90,155,22,0.2)')
+        .attr('stroke-width', d => Math.min(d.weight / 5, 4));
 
-    // Tooltip on hover
-    canvas.addEventListener('mousemove', e => {
-        const cr = canvas.getBoundingClientRect();
-        const mx = (e.clientX - cr.left), my = (e.clientY - cr.top);
-        let hit = null;
-        nodes.forEach(n => {
-            const r = Math.sqrt(n.url_count / maxUrls) * 22 + 4;
-            if (Math.hypot(mx - n.x, my - n.y) < r) hit = n;
-        });
-        canvas.title = hit ? hit.name + ' (' + hit.url_count + ' urls)' : '';
-        canvas.style.cursor = hit ? 'pointer' : 'default';
+    // Nodes
+    const depthColor = d => d.depth === 0 ? '#5a9b16' : d.depth === 1 ? '#2196F3' : '#FF9800';
+    const nodeR = d => Math.sqrt(d.url_count / maxUrls) * 22 + 5;
+
+    const node = svg.append('g').selectAll('circle').data(nodes).join('circle')
+        .attr('r', nodeR)
+        .attr('fill', depthColor)
+        .attr('fill-opacity', 0.8)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 1.5)
+        .attr('cursor', 'grab')
+        .call(d3.drag()
+            .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+            .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+            .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
+        );
+
+    // Labels
+    const label = svg.append('g').selectAll('text').data(nodes).join('text')
+        .text(d => nodeR(d) > 10 ? d.name.substring(0, 18) : '')
+        .attr('font-size', d => Math.max(9, Math.min(nodeR(d) * 0.6, 13)))
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#333')
+        .attr('pointer-events', 'none');
+
+    // Tooltip
+    const tooltip = d3.select(container).append('div')
+        .style('position', 'absolute')
+        .style('background', 'rgba(0,0,0,0.85)')
+        .style('color', '#fff')
+        .style('padding', '8px 14px')
+        .style('border-radius', '6px')
+        .style('font-size', '13px')
+        .style('pointer-events', 'none')
+        .style('opacity', 0)
+        .style('z-index', 100);
+
+    node.on('mouseover', (e, d) => {
+        tooltip.html('<strong>' + d.name + '</strong><br>' + d.url_count + ' urls')
+            .style('opacity', 1);
+        d3.select(e.target).attr('fill-opacity', 1).attr('stroke', '#333').attr('stroke-width', 3);
+    })
+    .on('mousemove', e => {
+        const cr = container.getBoundingClientRect();
+        tooltip.style('left', (e.clientX - cr.left + 14) + 'px').style('top', (e.clientY - cr.top - 10) + 'px');
+    })
+    .on('mouseout', (e, d) => {
+        tooltip.style('opacity', 0);
+        d3.select(e.target).attr('fill-opacity', 0.8).attr('stroke', '#fff').attr('stroke-width', 1.5);
+    });
+
+    sim.on('tick', () => {
+        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        node.attr('cx', d => d.x = Math.max(20, Math.min(w-20, d.x)))
+            .attr('cy', d => d.y = Math.max(20, Math.min(h-20, d.y)));
+        label.attr('x', d => d.x).attr('y', d => d.y + nodeR(d) + 13);
     });
 }
 
@@ -867,6 +898,43 @@ function renderRealtimeFlow(data) {
     });
     container.innerHTML = html;
 }
+
+// ==================== GALAXY TIME FILTER ====================
+function setGalaxyPeriod(period, btn) {
+    document.querySelectorAll('.galaxy-tf').forEach(b => b.classList.remove('galaxy-tf-active'));
+    btn.classList.add('galaxy-tf-active');
+    const url = '/api/stats/graphs' + (period ? '?period=' + period : '');
+    fetch(url)
+        .then(r => r.json())
+        .then(data => { renderTopicGalaxy(data.topic_galaxy); })
+        .catch(() => {});
+}
+
+// ==================== LIVE GRAPH UPDATES (every 10 seconds) ====================
+function updateGraphs() {
+    if (!_graphsLoaded) return;
+    fetch('/api/stats/graphs')
+        .then(r => r.json())
+        .then(data => {
+            // Update realtime flow
+            renderRealtimeFlow(data.realtime_flow);
+            // Pulse galaxy nodes if url_count changed
+            if (_galaxyNodes && data.topic_galaxy) {
+                const newMap = {};
+                data.topic_galaxy.nodes.forEach(n => newMap[n.id] = n.url_count);
+                // Update counts (d3 will re-render via tick)
+                _galaxyNodes.forEach(n => {
+                    if (newMap[n.id] && newMap[n.id] !== n.url_count) {
+                        n.url_count = newMap[n.id];
+                    }
+                });
+            }
+            // Update propagation
+            renderPropagation(data.propagation_flows);
+        })
+        .catch(() => {});
+}
+setInterval(updateGraphs, 10000);
 </script>
 
 {% include 'all_rights_reserved.html' %}
