@@ -24,15 +24,22 @@ def compute_path(topic):
 
 
 def create_topic(name, description=None, parent_id=None):
-    """Create a new topic in the taxonomy. Case-insensitive matching."""
+    """Create a new topic in the taxonomy. Case-insensitive, parent-aware matching."""
     slug = slugify(name)
 
-    existing = Topic.query.filter(
+    # Match by name AND parent — "Finance" under Business is different from root "Finance"
+    query = Topic.query.filter(
         db.or_(
             db.func.lower(Topic.name) == name.lower(),
             db.func.lower(Topic.slug) == slug.lower(),
         )
-    ).first()
+    )
+    if parent_id is not None:
+        query = query.filter(Topic.parent_id == parent_id)
+    else:
+        query = query.filter(Topic.parent_id.is_(None))
+
+    existing = query.first()
     if existing:
         return existing, False
 

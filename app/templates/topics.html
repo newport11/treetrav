@@ -64,11 +64,12 @@
         <a href="{{ url_for('main.view_topic', topic_id=topic.id) }}" class="topic-chip">
             All {{ topic.name }} <span class="count">{{ topic.url_count or 0 }}</span>
         </a>
-        {% for child in topic.children %}
+        {% for child in topic.children recursive %}
         {% if child.is_active %}
         <a href="{{ url_for('main.view_topic', topic_id=child.id) }}" class="topic-chip">
             {{ child.name }} <span class="count">{{ child.url_count or 0 }}</span>
         </a>
+        {% if child.children %}{{ loop(child.children) }}{% endif %}
         {% endif %}
         {% endfor %}
     </div>
