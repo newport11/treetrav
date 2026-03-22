@@ -13,10 +13,16 @@ def merge_topic(source_id, target_id):
     """Move all references from source topic to target, then delete source."""
     print(f"  Merging topic {source_id} -> {target_id}")
 
-    # Move post tags
-    PostTopicTag.query.filter_by(topic_id=source_id).update(
-        {"topic_id": target_id}, synchronize_session=False
-    )
+    # Move post tags — delete ones that would conflict, then move the rest
+    for tag in PostTopicTag.query.filter_by(topic_id=source_id).all():
+        existing = PostTopicTag.query.filter_by(
+            post_id=tag.post_id, topic_id=target_id, tagged_by=tag.tagged_by
+        ).first()
+        if existing:
+            db.session.delete(tag)
+        else:
+            tag.topic_id = target_id
+    db.session.flush()
 
     # Move URL scores (merge if both exist)
     for score in UrlTopicScore.query.filter_by(topic_id=source_id).all():
