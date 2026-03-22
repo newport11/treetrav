@@ -24,11 +24,14 @@ def compute_path(topic):
 
 
 def create_topic(name, description=None, parent_id=None):
-    """Create a new topic in the taxonomy."""
+    """Create a new topic in the taxonomy. Case-insensitive matching."""
     slug = slugify(name)
 
     existing = Topic.query.filter(
-        db.or_(Topic.name == name, Topic.slug == slug)
+        db.or_(
+            db.func.lower(Topic.name) == name.lower(),
+            db.func.lower(Topic.slug) == slug.lower(),
+        )
     ).first()
     if existing:
         return existing, False
