@@ -17,7 +17,7 @@ from flask_login import current_user, login_required
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
-from app import db
+from app import cache, db
 from app.constants import FORBIDDEN_USERNAMES, PROFILE_PICS_PATH
 from app.favicon import hash_profile_pic
 from app.helpers.route_helpers import handle_route
@@ -1180,24 +1180,39 @@ def agent_docs():
 @bp.route("/stats")
 def stats():
     from app.services.stats import get_all_stats
-    data = get_all_stats()
+    cached = cache.get("stats_full")
+    if cached:
+        data = cached
+    else:
+        data = get_all_stats()
+        cache.set("stats_full", data, timeout=30)
     return render_template("stats.html", title=_("Stats"), stats=data)
 
 
 @bp.route("/api/stats")
 def api_stats():
     from app.services.stats import get_all_stats
-    return jsonify(get_all_stats())
+    cached = cache.get("stats_full")
+    if cached:
+        return jsonify(cached)
+    data = get_all_stats()
+    cache.set("stats_full", data, timeout=30)
+    return jsonify(data)
 
 
 @bp.route("/api/stats/live")
 def api_stats_live():
     """Lightweight endpoint for real-time polling — platform health + live feed only."""
     from app.services.stats import get_platform_health, get_realtime_signals
-    return jsonify({
+    cached = cache.get("stats_live")
+    if cached:
+        return jsonify(cached)
+    data = {
         "platform_health": get_platform_health(),
         "realtime_signals": get_realtime_signals(),
-    })
+    }
+    cache.set("stats_live", data, timeout=5)
+    return jsonify(data)
 
 
 @bp.route("/url/<int:canonical_id>")

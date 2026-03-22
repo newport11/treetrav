@@ -198,11 +198,14 @@ async def post_link():
                                 post.link, OPENAI_API_KEY
                             ).rstrip(".")
 
-                    favicon_file_name = await asyncio.wait_for(
-                        get_favicon(post.link), 8
-                    )
-                    if favicon_file_name:
-                        post.favicon_file_name = favicon_file_name
+                    try:
+                        favicon_file_name = await asyncio.wait_for(
+                            get_favicon(post.link), 3
+                        )
+                        if favicon_file_name:
+                            post.favicon_file_name = favicon_file_name
+                    except Exception:
+                        pass
                     _canonicalize_post(post, data["link"])
                     db.session.add(post)
                     db.session.commit()
@@ -226,9 +229,12 @@ async def post_link():
         elif OPENAI_API_KEY:
             post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
 
-    favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
-    if favicon_file_name:
-        post.favicon_file_name = favicon_file_name
+    try:
+        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 3)
+        if favicon_file_name:
+            post.favicon_file_name = favicon_file_name
+    except Exception:
+        pass
     _canonicalize_post(post, data["link"])
     db.session.add(post)
     db.session.commit()
@@ -281,9 +287,12 @@ async def post_multiple_links():
                         "."
                     )
 
-            favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
-            if favicon_file_name:
-                post.favicon_file_name = favicon_file_name
+            try:
+                favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 3)
+                if favicon_file_name:
+                    post.favicon_file_name = favicon_file_name
+            except Exception:
+                pass
             _canonicalize_post(post, tab["url"])
             db.session.add(post)
             db.session.commit()

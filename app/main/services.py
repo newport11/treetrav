@@ -38,9 +38,12 @@ async def create_post(form: PostForm, current_user: User):
         elif OPENAI_API_KEY:
             post.body = generate_link_summary(post.link, OPENAI_API_KEY).rstrip(".")
 
-    favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 8)
-    if favicon_file_name:
-        post.favicon_file_name = favicon_file_name
+    try:
+        favicon_file_name = await asyncio.wait_for(get_favicon(post.link), 3)
+        if favicon_file_name:
+            post.favicon_file_name = favicon_file_name
+    except Exception:
+        pass
 
     # Canonicalize URL
     try:
