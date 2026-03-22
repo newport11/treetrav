@@ -83,7 +83,7 @@
                 </ul>
                 <form id="userSearchForm" class="navbar-form navbar-left" method="get" action="{{ url_for('main.search') }}" autocomplete="off">
                     <div class="form-group" style="position: relative;">
-                        <input type="text" name="q" size="32" class="form-control" placeholder="Search users, topics, content..." id="userSearchInput" style="width: 320px;">
+                        <input type="text" name="q" size="32" class="form-control" placeholder="Search users, topics, content..." id="userSearchInput" style="width: 320px; border-radius: 24px; padding-left: 16px; padding-right: 16px;">
                         <div id="suggestions"></div>
                     </div>
                 </form>
@@ -129,7 +129,7 @@
             right: 0;
             background: #fff;
             border: 1px solid #ddd;
-            border-radius: 0 0 6px 6px;
+            border-radius: 0 0 16px 16px;
             box-shadow: 0 6px 20px rgba(0,0,0,0.12);
             z-index: 9999;
             max-height: 420px;
