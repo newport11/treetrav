@@ -59,58 +59,59 @@ def _auto_tag_from_folder(post):
 
         # Build topic hierarchy from folder path
         parent_id = None
-        last_topic = None
+        all_topics = []
         for part in parts:
             # Convert folder name to topic name (replace hyphens/underscores with spaces, title case)
             topic_name = part.replace("-", " ").replace("_", " ").title()
             topic, _ = create_topic(topic_name, parent_id=parent_id)
             parent_id = topic.id
-            last_topic = topic
+            all_topics.append(topic)
 
-        # Tag the post with the deepest (most specific) topic
-        if last_topic and post.id:
-            existing = PostTopicTag.query.filter_by(
-                post_id=post.id, topic_id=last_topic.id, tagged_by=post.user_id
-            ).first()
-            if not existing:
-                tag = PostTopicTag(
-                    post_id=post.id,
-                    topic_id=last_topic.id,
-                    tagged_by=post.user_id,
-                    confidence=0.8,
-                )
-                db.session.add(tag)
-                last_topic.url_count = (last_topic.url_count or 0) + 1
-
-            # Create UrlTopicScore if canonical URL exists
-            if post.canonical_url_id:
-                score = UrlTopicScore.query.filter_by(
-                    canonical_url_id=post.canonical_url_id, topic_id=last_topic.id
+        # Tag the post with ALL topics in the path
+        if post.id and all_topics:
+            for topic in all_topics:
+                existing = PostTopicTag.query.filter_by(
+                    post_id=post.id, topic_id=topic.id, tagged_by=post.user_id
                 ).first()
-                if not score:
-                    score = UrlTopicScore(
-                        canonical_url_id=post.canonical_url_id,
-                        topic_id=last_topic.id,
-                        relevance_score=0.5,
-                        quality_score=0.5,
-                        combined_score=0.5,
-                        vote_count=1,
+                if not existing:
+                    tag = PostTopicTag(
+                        post_id=post.id,
+                        topic_id=topic.id,
+                        tagged_by=post.user_id,
+                        confidence=0.8,
                     )
-                    db.session.add(score)
-                else:
-                    score.vote_count = (score.vote_count or 0) + 1
+                    db.session.add(tag)
+                    topic.url_count = (topic.url_count or 0) + 1
 
-                # Track propagation
-                prop = UrlPropagation.query.filter_by(
-                    canonical_url_id=post.canonical_url_id, topic_id=last_topic.id
-                ).first()
-                if not prop:
-                    prop = UrlPropagation(
-                        canonical_url_id=post.canonical_url_id,
-                        topic_id=last_topic.id,
-                        first_submitted_by=post.user_id,
-                    )
-                    db.session.add(prop)
+                # Create UrlTopicScore if canonical URL exists
+                if post.canonical_url_id:
+                    score = UrlTopicScore.query.filter_by(
+                        canonical_url_id=post.canonical_url_id, topic_id=topic.id
+                    ).first()
+                    if not score:
+                        score = UrlTopicScore(
+                            canonical_url_id=post.canonical_url_id,
+                            topic_id=topic.id,
+                            relevance_score=0.5,
+                            quality_score=0.5,
+                            combined_score=0.5,
+                            vote_count=1,
+                        )
+                        db.session.add(score)
+                    else:
+                        score.vote_count = (score.vote_count or 0) + 1
+
+                    # Track propagation
+                    prop = UrlPropagation.query.filter_by(
+                        canonical_url_id=post.canonical_url_id, topic_id=topic.id
+                    ).first()
+                    if not prop:
+                        prop = UrlPropagation(
+                            canonical_url_id=post.canonical_url_id,
+                            topic_id=topic.id,
+                            first_submitted_by=post.user_id,
+                        )
+                        db.session.add(prop)
 
             db.session.commit()
     except Exception:
