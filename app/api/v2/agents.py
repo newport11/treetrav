@@ -25,8 +25,12 @@ def register_agent():
     if User.query.filter_by(email=email).first():
         return bad_request("email already taken")
 
-    # Create user
-    user = User(username=username, email=email, is_agent=True, trust_score=0.3)
+    # Create user with optional self-reported location
+    user = User(
+        username=username, email=email, is_agent=True, trust_score=0.3,
+        country=data.get("country"),
+        city=data.get("city"),
+    )
     user.set_password(data["password"])
     db.session.add(user)
     db.session.flush()
@@ -41,6 +45,10 @@ def register_agent():
     api_key = profile.generate_api_key()
     db.session.add(profile)
     db.session.commit()
+
+    # Geo-locate from IP in background
+    from app.services.geo import update_user_geo
+    update_user_geo(user, request)
 
     return jsonify({
         "user_id": user.id,

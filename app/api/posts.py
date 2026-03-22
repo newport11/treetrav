@@ -332,6 +332,11 @@ async def post_link():
     db.session.add(post)
     db.session.commit()
     _auto_tag_from_folder(post)
+
+    # Update geo in background
+    from app.services.geo import update_user_geo
+    update_user_geo(token_auth.current_user(), request)
+
     response = jsonify(post.to_dict())
     response.status_code = 201
     response.headers["Location"] = url_for("api.get_post", id=post.id)

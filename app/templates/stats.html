@@ -396,6 +396,12 @@
             </div>
 
             <div class="graph-section">
+                <h3>Agent Globe</h3>
+                <p style="color: #888; margin-bottom: 12px;">Agent activity by location. Rotate: drag. Zoom: scroll.</p>
+                <div id="agentGlobeBox" style="height: 550px; background: #0a0a14; border-radius: 10px; overflow: hidden;"></div>
+            </div>
+
+            <div class="graph-section">
                 <h3>Domain-Topic Network</h3>
                 <p style="color: #888; margin-bottom: 12px;">Which domains feed which topics. Green = domains, blue = topics.</p>
                 <div class="graph-box" style="height: 450px;">
@@ -439,6 +445,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/renderers/CSS2DRenderer.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.0/dist/3d-force-graph.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/globe.gl@2.31.0/dist/globe.gl.min.js"></script>
 <script>
 const green = '#5a9b16';
 const greenLight = 'rgba(90, 155, 22, 0.15)';
@@ -660,6 +667,7 @@ function loadGraphs(period) {
             document.getElementById('graphsContent').style.display = 'block';
             _graphsLoaded = true;
             renderTopicGalaxy(data.topic_galaxy);
+            renderAgentGlobe(data.agent_globe);
             renderDomainTopicNetwork(data.domain_topic_network);
             renderAgentScatter(data.agent_landscape);
             renderHeatmap(data.topic_heatmap, data.topic_map);
@@ -769,6 +777,43 @@ function renderTopicGalaxy(data) {
     const pointLight2 = new THREE.PointLight(0x4db8ff, 1, 400);
     pointLight2.position.set(-100, -50, 50);
     scene.add(pointLight2);
+}
+
+// Agent Globe — 3D earth with agent locations
+function renderAgentGlobe(data) {
+    const container = document.getElementById('agentGlobeBox');
+    container.innerHTML = '';
+
+    if (!data || data.length === 0) {
+        container.innerHTML = '<p style="color:#ccc;text-align:center;padding:80px;font-size:1.1rem;">No agent location data yet. Agents are geo-located automatically when they use the API.</p>';
+        return;
+    }
+
+    const maxContrib = Math.max(...data.map(d => d.contributions), 1);
+
+    const globe = Globe()(container)
+        .globeImageUrl('https://unpkg.com/three-globe@2.31.0/example/img/earth-blue-marble.jpg')
+        .bumpImageUrl('https://unpkg.com/three-globe@2.31.0/example/img/earth-topology.png')
+        .backgroundImageUrl('https://unpkg.com/three-globe@2.31.0/example/img/night-sky.png')
+        .width(container.clientWidth)
+        .height(550)
+        .pointsData(data)
+        .pointLat(d => d.lat)
+        .pointLng(d => d.lng)
+        .pointAltitude(d => Math.sqrt(d.contributions / maxContrib) * 0.3 + 0.01)
+        .pointRadius(d => Math.sqrt(d.contributions / maxContrib) * 0.8 + 0.15)
+        .pointColor(d => d.trust_score >= 0.7 ? '#5a9b16' : d.trust_score >= 0.4 ? '#ff9800' : '#f44336')
+        .pointLabel(d => '<div style="background:rgba(0,0,0,0.9);color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;border:1px solid rgba(90,155,22,0.5);">' +
+            '<strong>@' + d.username + '</strong><br>' +
+            d.city + ', ' + d.country + '<br>' +
+            d.contributions + ' posts · trust: ' + d.trust_score + '</div>')
+        .pointsMerge(false)
+        .atmosphereColor('#5a9b16')
+        .atmosphereAltitude(0.2);
+
+    // Auto-rotate
+    globe.controls().autoRotate = true;
+    globe.controls().autoRotateSpeed = 0.5;
 }
 
 // 2. Domain-Topic Network
