@@ -6,32 +6,47 @@
     .topics-header { margin-bottom: 36px; }
     .topics-header h1 { font-size: 2.6rem; font-weight: 700; margin-bottom: 10px; }
     .topics-header p { color: #666; font-size: 1.3rem; }
-    .topic-group { margin-bottom: 40px; }
-    .topic-group h3 {
-        font-size: 1.7rem;
-        font-weight: 600;
-        margin-bottom: 14px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #5a9b16;
-        display: inline-block;
+    .topics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
     }
-    .topic-group p { font-size: 1.1rem; }
+    @media (max-width: 768px) { .topics-grid { grid-template-columns: 1fr; } }
+    .topic-group {
+        background: #f9f9f9;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 24px;
+        transition: border-color 0.15s;
+    }
+    .topic-group:hover { border-color: #5a9b16; }
+    .topic-group h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #5a9b16;
+    }
+    .topic-group h3 a { color: inherit; text-decoration: none; }
+    .topic-group h3 a:hover { color: #5a9b16; }
+    .topic-group .topic-desc { font-size: 1rem; color: #888; margin-bottom: 14px; }
     .topic-children {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 8px;
     }
     .topic-chip {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 12px 22px;
+        gap: 6px;
+        padding: 8px 16px;
         border: 1px solid #ddd;
-        border-radius: 24px;
+        border-radius: 20px;
         text-decoration: none;
         color: #333;
-        font-size: 1.2rem;
+        font-size: 1.05rem;
         transition: all 0.15s;
+        background: #fff;
     }
     .topic-chip:hover {
         border-color: #5a9b16;
@@ -42,11 +57,16 @@
     .topic-chip .count {
         background: #eee;
         color: #888;
-        font-size: 1rem;
-        padding: 3px 10px;
-        border-radius: 12px;
+        font-size: 0.85rem;
+        padding: 2px 8px;
+        border-radius: 10px;
     }
     .topic-chip:hover .count { background: #d4ecc0; color: #5a9b16; }
+    .topic-chip-all {
+        font-weight: 600;
+        border-color: #5a9b16;
+        color: #5a9b16;
+    }
 </style>
 
 <div class="topics-header">
@@ -54,29 +74,31 @@
     <p>Browse the topic taxonomy. Click any topic to see its top URLs.</p>
 </div>
 
-{% for topic in topics %}
-<div class="topic-group">
-    <h3><a href="{{ url_for('main.view_topic', topic_id=topic.id) }}" style="color: inherit; text-decoration: none;">{{ topic.name }}</a></h3>
-    {% if topic.description %}
-    <p style="color: #888; margin-bottom: 12px; font-size: 0.9rem;">{{ topic.description }}</p>
-    {% endif %}
-    <div class="topic-children">
-        <a href="{{ url_for('main.view_topic', topic_id=topic.id) }}" class="topic-chip">
-            All {{ topic.name }} <span class="count">{{ topic.url_count or 0 }}</span>
-        </a>
-        {% for child in topic.children %}
-        {% if child.is_active %}
-        <a href="{{ url_for('main.view_topic', topic_id=child.id) }}" class="topic-chip">
-            {{ child.name }} <span class="count">{{ child.url_count or 0 }}</span>
-        </a>
+<div class="topics-grid">
+    {% for topic in topics %}
+    <div class="topic-group">
+        <h3><a href="{{ url_for('main.view_topic', topic_id=topic.id) }}">{{ topic.name }}</a></h3>
+        {% if topic.description %}
+        <p class="topic-desc">{{ topic.description }}</p>
         {% endif %}
-        {% endfor %}
+        <div class="topic-children">
+            <a href="{{ url_for('main.view_topic', topic_id=topic.id) }}" class="topic-chip topic-chip-all">
+                All <span class="count">{{ topic.url_count or 0 }}</span>
+            </a>
+            {% for child in topic.children %}
+            {% if child.is_active %}
+            <a href="{{ url_for('main.view_topic', topic_id=child.id) }}" class="topic-chip">
+                {{ child.name }} <span class="count">{{ child.url_count or 0 }}</span>
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
     </div>
+    {% endfor %}
 </div>
-{% endfor %}
 
 {% if total_pages > 1 %}
-<nav style="margin-top: 24px;">
+<nav style="margin-top: 28px;">
     <ul class="pager">
         {% if page > 1 %}
         <li><a href="{{ url_for('main.browse_topics', page=page-1) }}">&laquo; Previous</a></li>
