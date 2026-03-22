@@ -1309,40 +1309,48 @@ def browse_domains():
     from sqlalchemy import func
 
     sort = request.args.get("sort", "credibility")
+    page = request.args.get("page", 1, type=int)
+    per_page = 30
 
-    # Get all domains with URL counts
-    domain_stats = (
+    # Single query: domain + url count + credibility via left join
+    query = (
         db.session.query(
             CanonicalUrl.domain,
             func.count(CanonicalUrl.id).label("url_count"),
+            func.coalesce(DomainCredibility.credibility_score, 0).label("credibility"),
         )
-        .group_by(CanonicalUrl.domain)
-        .all()
+        .outerjoin(
+            DomainCredibility,
+            db.and_(
+                DomainCredibility.domain == CanonicalUrl.domain,
+                DomainCredibility.topic_id.is_(None),
+            ),
+        )
+        .filter(CanonicalUrl.domain.isnot(None))
+        .group_by(CanonicalUrl.domain, DomainCredibility.credibility_score)
     )
 
-    domains = []
-    for domain, url_count in domain_stats:
-        if not domain:
-            continue
-        cred = DomainCredibility.query.filter_by(domain=domain, topic_id=None).first()
-        topic_creds = DomainCredibility.query.filter(
-            DomainCredibility.domain == domain, DomainCredibility.topic_id.isnot(None)
-        ).count()
-        domains.append({
-            "domain": domain,
-            "url_count": url_count,
-            "credibility": cred.credibility_score if cred else 0,
-            "topic_count": topic_creds,
-        })
-
     if sort == "credibility":
-        domains.sort(key=lambda d: d["credibility"], reverse=True)
+        query = query.order_by(func.coalesce(DomainCredibility.credibility_score, 0).desc())
     elif sort == "urls":
-        domains.sort(key=lambda d: d["url_count"], reverse=True)
+        query = query.order_by(func.count(CanonicalUrl.id).desc())
     else:
-        domains.sort(key=lambda d: d["domain"])
+        query = query.order_by(CanonicalUrl.domain)
 
-    return render_template("domains_browse.html", title=_("Domains"), domains=domains, sort=sort)
+    total = query.count()
+    results = query.offset((page - 1) * per_page).limit(per_page).all()
+
+    domains = [
+        {"domain": domain, "url_count": url_count, "credibility": float(cred), "topic_count": 0}
+        for domain, url_count, cred in results
+    ]
+
+    total_pages = max(1, (total + per_page - 1) // per_page)
+
+    return render_template(
+        "domains_browse.html", title=_("Domains"), domains=domains,
+        sort=sort, page=page, total_pages=total_pages, total=total,
+    )
 
 
 @bp.route("/domain/<path:domain>")
@@ -1521,8 +1529,19 @@ def view_topics_by_name(name):
 def browse_topics():
     """Browse all topics with their top URLs."""
     from app.models import Topic
-    topics = Topic.query.filter_by(is_active=True, parent_id=None).order_by(Topic.name).all()
-    return render_template("topics.html", title=_("Topics"), topics=topics)
+    page = request.args.get("page", 1, type=int)
+    per_page = 10
+
+    pagination = (
+        Topic.query.filter_by(is_active=True, parent_id=None)
+        .order_by(Topic.name)
+        .paginate(page=page, per_page=per_page, error_out=False)
+    )
+
+    return render_template(
+        "topics.html", title=_("Topics"), topics=pagination.items,
+        page=page, total_pages=pagination.pages or 1,
+    )
 
 
 @bp.route("/topic/<int:topic_id>")

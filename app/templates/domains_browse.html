@@ -34,7 +34,7 @@
 
 <div class="domains-header">
     <h1>Domains</h1>
-    <p>{{ domains|length }} source domains tracked across the content graph</p>
+    <p>{{ total }} source domains tracked across the content graph</p>
 </div>
 
 <div class="sort-bar">
@@ -58,6 +58,20 @@
     </div>
 </div>
 {% endfor %}
+
+{% if total_pages > 1 %}
+<nav style="margin-top: 24px;">
+    <ul class="pager">
+        {% if page > 1 %}
+        <li><a href="{{ url_for('main.browse_domains', sort=sort, page=page-1) }}">&laquo; Previous</a></li>
+        {% endif %}
+        <li class="page-info">Page {{ page }} of {{ total_pages }}</li>
+        {% if page < total_pages %}
+        <li><a href="{{ url_for('main.browse_domains', sort=sort, page=page+1) }}">Next &raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 
 {% include 'all_rights_reserved.html' %}
 {% endblock %}

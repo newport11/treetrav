@@ -75,5 +75,19 @@
 </div>
 {% endfor %}
 
+{% if total_pages > 1 %}
+<nav style="margin-top: 24px;">
+    <ul class="pager">
+        {% if page > 1 %}
+        <li><a href="{{ url_for('main.browse_topics', page=page-1) }}">&laquo; Previous</a></li>
+        {% endif %}
+        <li class="page-info">Page {{ page }} of {{ total_pages }}</li>
+        {% if page < total_pages %}
+        <li><a href="{{ url_for('main.browse_topics', page=page+1) }}">Next &raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
 {% include 'all_rights_reserved.html' %}
 {% endblock %}
