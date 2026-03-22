@@ -375,13 +375,22 @@ def get_graph_data(period=""):
 
     # 1. Topic Galaxy — topics as nodes, shared URLs as edges
     topics = Topic.query.filter_by(is_active=True).all()
-    # Only top 100 topics by URL count for visualization
-    top_topics = sorted(topics, key=lambda t: t.url_count or 0, reverse=True)[:100]
+    # Only topics with activity in the period
+    if cutoff:
+        active_topic_ids = set(
+            r[0] for r in db.session.query(distinct(UrlTopicScore.topic_id))
+            .filter(UrlTopicScore.first_tagged_at >= cutoff).all()
+        )
+        filtered_topics = [t for t in topics if t.id in active_topic_ids]
+    else:
+        filtered_topics = [t for t in topics if (t.url_count or 0) > 0]
+
+    top_topics = sorted(filtered_topics, key=lambda t: t.url_count or 0, reverse=True)[:100]
     top_topic_ids = set(t.id for t in top_topics)
     topic_nodes = [
         {"id": t.id, "name": t.name, "url_count": t.url_count or 0,
          "depth": t.depth or 0, "parent_id": t.parent_id}
-        for t in top_topics if (t.url_count or 0) > 0
+        for t in top_topics
     ]
 
     # Find cross-topic links — only for top topics, limited query
