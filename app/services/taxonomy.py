@@ -43,21 +43,29 @@ def create_topic(name, description=None, parent_id=None):
     if existing:
         return existing, False
 
-    topic = Topic(name=name, slug=slug, description=description, parent_id=parent_id)
+    try:
+        topic = Topic(name=name, slug=slug, description=description, parent_id=parent_id)
 
-    if parent_id:
-        parent = Topic.query.get(parent_id)
-        if parent:
-            topic.depth = parent.depth + 1
-    else:
-        topic.depth = 0
+        if parent_id:
+            parent = Topic.query.get(parent_id)
+            if parent:
+                topic.depth = parent.depth + 1
+        else:
+            topic.depth = 0
 
-    db.session.add(topic)
-    db.session.flush()
+        db.session.add(topic)
+        db.session.flush()
 
-    topic.path = compute_path(topic)
-    db.session.commit()
-    return topic, True
+        topic.path = compute_path(topic)
+        db.session.commit()
+        return topic, True
+    except Exception:
+        db.session.rollback()
+        # Race condition — another request created it. Find and return it.
+        existing = query.first()
+        if existing:
+            return existing, False
+        return None, False
 
 
 def merge_topics(source_id, target_id):

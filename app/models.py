@@ -587,10 +587,14 @@ class AgentTrustEvent(db.Model):
 class Topic(db.Model):
     __tablename__ = "topic"
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), unique=True, index=True)
-    slug = db.Column(db.String(255), unique=True, index=True)
+    name = db.Column(db.String(255), index=True)
+    slug = db.Column(db.String(255), index=True)
     description = db.Column(db.Text, nullable=True)
     parent_id = db.Column(db.Integer, db.ForeignKey("topic.id"), nullable=True, index=True)
+
+    __table_args__ = (
+        db.UniqueConstraint("name", "parent_id", name="uq_topic_name_parent"),
+    )
     depth = db.Column(db.Integer, default=0)
     path = db.Column(db.String(1000), index=True)
     is_active = db.Column(db.Boolean, default=True)
