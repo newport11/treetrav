@@ -390,8 +390,7 @@
                     .galaxy-tf { padding: 6px 16px; border: 1px solid #ddd; border-radius: 16px; background: #fff; cursor: pointer; font-size: 0.9rem; color: #666; }
                     .galaxy-tf:hover, .galaxy-tf-active { border-color: #5a9b16; color: #5a9b16; background: #f0f8e8; }
                 </style>
-                <div class="graph-box" style="height: 500px; position: relative;">
-                    <canvas id="topicGalaxyCanvas" style="width: 100%; height: 100%;"></canvas>
+                <div class="graph-box" style="height: 500px; position: relative;" id="topicGalaxyBox">
                 </div>
             </div>
 
@@ -672,12 +671,12 @@ function loadGraphs(period) {
 let _galaxyNodes, _galaxySim, _galaxyMaxUrls;
 
 function renderTopicGalaxy(data) {
-    const container = document.getElementById('topicGalaxyCanvas').parentElement;
+    const container = document.getElementById('topicGalaxyBox');
+    container.innerHTML = '';
     if (!data.nodes || data.nodes.length === 0) {
         container.innerHTML = '<p style="color:#aaa;text-align:center;padding:60px;">No topic activity in this time period.</p>';
         return;
     }
-    container.innerHTML = '';
     const w = container.clientWidth - 20, h = 460;
 
     const svg = d3.select(container).append('svg').attr('width', w).attr('height', h);
