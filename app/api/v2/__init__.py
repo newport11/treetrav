@@ -10,6 +10,7 @@ from app.api.v2 import (
     metadata,
     scoring,
     search,
+    social,
     subscriptions,
     topics,
     transparency,
