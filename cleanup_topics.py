@@ -1,5 +1,4 @@
-"""Clean up duplicate topics from multiple backfill runs.
-Keeps the ROOT-level topics and merges the Business/seeded duplicates into them."""
+"""Clean up ALL duplicate topics — finds any parent with duplicate children and merges them."""
 from app import create_app, db
 from app.models import (
     DomainCredibility, Post, PostTopicTag, Topic, TopicAlias,
@@ -11,9 +10,12 @@ app = create_app()
 
 def merge_topic(source_id, target_id):
     """Move all references from source topic to target, then delete source."""
-    print(f"  Merging topic {source_id} -> {target_id}")
+    if source_id == target_id:
+        return
 
-    # Move post tags — delete ones that would conflict, then move the rest
+    print(f"    Merging id={source_id} -> id={target_id}")
+
+    # Move post tags — delete conflicts first
     for tag in PostTopicTag.query.filter_by(topic_id=source_id).all():
         existing = PostTopicTag.query.filter_by(
             post_id=tag.post_id, topic_id=target_id, tagged_by=tag.tagged_by
@@ -22,9 +24,8 @@ def merge_topic(source_id, target_id):
             db.session.delete(tag)
         else:
             tag.topic_id = target_id
-    db.session.flush()
 
-    # Move URL scores (merge if both exist)
+    # Move URL scores
     for score in UrlTopicScore.query.filter_by(topic_id=source_id).all():
         existing = UrlTopicScore.query.filter_by(
             canonical_url_id=score.canonical_url_id, topic_id=target_id
@@ -66,86 +67,87 @@ def merge_topic(source_id, target_id):
         else:
             dc.topic_id = target_id
 
-    # Move children to target
-    for child in Topic.query.filter_by(parent_id=source_id).all():
-        # Check if target already has a child with the same name
-        existing_child = Topic.query.filter(
-            db.func.lower(Topic.name) == child.name.lower(),
-            Topic.parent_id == target_id,
-        ).first()
-        if existing_child:
-            merge_topic(child.id, existing_child.id)
-        else:
-            child.parent_id = target_id
+    db.session.flush()
 
-    # Transfer url_count
+    # Recursively merge children
     source = Topic.query.get(source_id)
     target = Topic.query.get(target_id)
-    if source and target:
-        target.url_count = (target.url_count or 0) + (source.url_count or 0)
 
-    # Delete source
-    TopicAlias.query.filter_by(topic_id=source_id).delete()
     if source:
-        db.session.delete(source)
+        for child in list(source.children):
+            existing_child = Topic.query.filter(
+                db.func.lower(Topic.name) == child.name.lower(),
+                Topic.parent_id == target_id,
+                Topic.id != child.id,
+            ).first()
+            if existing_child:
+                merge_topic(child.id, existing_child.id)
+            else:
+                child.parent_id = target_id
 
-    db.session.flush()
+        db.session.flush()
+
+        # Transfer url_count
+        if target:
+            target.url_count = (target.url_count or 0) + (source.url_count or 0)
+
+        # Delete aliases and source
+        TopicAlias.query.filter_by(topic_id=source_id).delete()
+        db.session.delete(source)
+        db.session.flush()
 
 
 with app.app_context():
-    # Find duplicate root topics that also exist under Business
-    # Keep the ROOT versions, merge the Business children into them
+    print("=== Finding ALL duplicate topics ===\n")
 
-    business = Topic.query.filter_by(name="Business", parent_id=None).first()
-    if not business:
-        print("No Business topic found")
-    else:
-        print(f"Business topic id={business.id}")
+    # Get every parent (including None for root)
+    parent_ids = set([t.parent_id for t in Topic.query.all()])
 
-    # Find all root topics
-    root_topics = Topic.query.filter_by(parent_id=None).all()
-    print(f"Root topics: {[t.name for t in root_topics]}")
+    total_merged = 0
 
-    # For each root topic, check if Business has a child with the same name
-    if business:
-        for root_topic in root_topics:
-            if root_topic.id == business.id:
-                continue
-            business_child = Topic.query.filter(
-                db.func.lower(Topic.name) == root_topic.name.lower(),
-                Topic.parent_id == business.id,
-            ).first()
-            if business_child:
-                print(f"\nDuplicate found: '{root_topic.name}'")
-                print(f"  ROOT id={root_topic.id} (urls={root_topic.url_count})")
-                print(f"  Business child id={business_child.id} (urls={business_child.url_count})")
-                merge_topic(business_child.id, root_topic.id)
+    for parent_id in parent_ids:
+        if parent_id is not None:
+            children = Topic.query.filter_by(parent_id=parent_id).all()
+        else:
+            children = Topic.query.filter_by(parent_id=None).all()
 
-    # Also check for duplicate Startups at root vs under Business
-    seeded_startups = Topic.query.filter_by(name="Startups", parent_id=business.id if business else None).first()
-    root_startups = Topic.query.filter_by(name="Startups", parent_id=None).first()
-    if seeded_startups and root_startups and seeded_startups.id != root_startups.id:
-        print(f"\nDuplicate Startups found")
-        merge_topic(seeded_startups.id, root_startups.id)
+        # Group by lowercase name
+        name_groups = {}
+        for child in children:
+            key = child.name.lower()
+            if key not in name_groups:
+                name_groups[key] = []
+            name_groups[key].append(child)
+
+        # Merge duplicates (keep the one with lowest id)
+        for name, group in name_groups.items():
+            if len(group) > 1:
+                parent_name = Topic.query.get(parent_id).name if parent_id else "ROOT"
+                print(f"  Duplicate '{name}' under '{parent_name}': {[t.id for t in group]}")
+                keep = min(group, key=lambda t: t.id)
+                for dup in group:
+                    if dup.id != keep.id:
+                        merge_topic(dup.id, keep.id)
+                        total_merged += 1
 
     db.session.commit()
 
-    # Remove empty seeded topics that have no URLs and no children
-    empty = Topic.query.filter(
-        Topic.url_count <= 0,
-        ~Topic.children.any(),
-    ).all()
-    print(f"\nEmpty leaf topics: {len(empty)}")
-    for t in empty:
-        # Only delete if truly orphaned (no tags, no scores)
-        tags = PostTopicTag.query.filter_by(topic_id=t.id).count()
-        scores = UrlTopicScore.query.filter_by(topic_id=t.id).count()
-        if tags == 0 and scores == 0:
-            print(f"  Deleting empty topic: {t.name} (parent={t.parent.name if t.parent else 'ROOT'})")
-            db.session.delete(t)
+    # Clean up empty topics with no children, no tags, no scores
+    empty_deleted = 0
+    for t in Topic.query.all():
+        if (t.url_count or 0) <= 0 and not t.children:
+            tags = PostTopicTag.query.filter_by(topic_id=t.id).count()
+            scores = UrlTopicScore.query.filter_by(topic_id=t.id).count()
+            if tags == 0 and scores == 0:
+                print(f"  Deleting empty: '{t.name}' (parent={t.parent.name if t.parent else 'ROOT'})")
+                db.session.delete(t)
+                empty_deleted += 1
 
     db.session.commit()
 
     remaining = Topic.query.count()
     roots = Topic.query.filter_by(parent_id=None).count()
-    print(f"\nDone. {remaining} topics remaining ({roots} root topics)")
+    print(f"\n=== Done ===")
+    print(f"Merged: {total_merged} duplicates")
+    print(f"Deleted: {empty_deleted} empty topics")
+    print(f"Remaining: {remaining} topics ({roots} root)")
