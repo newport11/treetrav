@@ -198,7 +198,7 @@ async def post_link():
                                 post.link, OPENAI_API_KEY
                             ).rstrip(".")
 
-                                    _canonicalize_post(post, data["link"])
+                    _canonicalize_post(post, data["link"])
                     db.session.add(post)
                     db.session.commit()
                     response = jsonify(post.to_dict())
