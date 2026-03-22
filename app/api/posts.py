@@ -1,4 +1,5 @@
 import asyncio
+import threading
 import urllib.parse
 from datetime import datetime
 
@@ -114,8 +115,38 @@ def _auto_tag_from_folder(post):
                         db.session.add(prop)
 
             db.session.commit()
+
+        # Recompute domain credibility in background
+        if post.canonical_url_id:
+            _recompute_credibility_async(post.canonical_url_id)
     except Exception:
         pass
+
+
+def _recompute_credibility_async(canonical_url_id):
+    """Recompute domain credibility in a background thread."""
+    from flask import current_app
+    app = current_app._get_current_object()
+
+    def run():
+        with app.app_context():
+            try:
+                cu = CanonicalUrl.query.get(canonical_url_id)
+                if cu and cu.domain:
+                    from app.services.scoring import recompute_domain_credibility
+                    recompute_domain_credibility(cu.domain)
+                    # Also per-topic
+                    from app.models import UrlTopicScore
+                    topic_ids = set(
+                        r[0] for r in db.session.query(UrlTopicScore.topic_id)
+                        .filter_by(canonical_url_id=canonical_url_id).all()
+                    )
+                    for tid in topic_ids:
+                        recompute_domain_credibility(cu.domain, tid)
+            except Exception:
+                pass
+
+    threading.Thread(target=run, daemon=True).start()
 
 
 @bp.route("/posts/<int:id>", methods=["GET"])
