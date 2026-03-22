@@ -648,8 +648,9 @@ function showTab(tab) {
 let _graphsLoaded = false;
 const typeColors = {crawler:'#5a9b16', curator:'#2196F3', analyzer:'#FF9800', aggregator:'#9C27B0', monitor:'#f44336'};
 
-function loadGraphs() {
-    fetch('/api/stats/graphs')
+function loadGraphs(period) {
+    const url = '/api/stats/graphs' + (period ? '?period=' + period : '');
+    fetch(url)
         .then(r => r.json())
         .then(data => {
             document.getElementById('graphsLoading').style.display = 'none';
@@ -672,6 +673,10 @@ let _galaxyNodes, _galaxySim, _galaxyMaxUrls;
 
 function renderTopicGalaxy(data) {
     const container = document.getElementById('topicGalaxyCanvas').parentElement;
+    if (!data.nodes || data.nodes.length === 0) {
+        container.innerHTML = '<p style="color:#aaa;text-align:center;padding:60px;">No topic activity in this time period.</p>';
+        return;
+    }
     container.innerHTML = '';
     const w = container.clientWidth - 20, h = 460;
 
@@ -903,11 +908,8 @@ function renderRealtimeFlow(data) {
 function setGalaxyPeriod(period, btn) {
     document.querySelectorAll('.galaxy-tf').forEach(b => b.classList.remove('galaxy-tf-active'));
     btn.classList.add('galaxy-tf-active');
-    const url = '/api/stats/graphs' + (period ? '?period=' + period : '');
-    fetch(url)
-        .then(r => r.json())
-        .then(data => { renderTopicGalaxy(data.topic_galaxy); })
-        .catch(() => {});
+    // Reload ALL graphs with the new period
+    loadGraphs(period);
 }
 
 // ==================== LIVE GRAPH UPDATES (every 10 seconds) ====================
