@@ -376,8 +376,8 @@
         <div id="graphsContent" style="display: none;">
 
             <div class="graph-section">
-                <h3>Topic Galaxy</h3>
-                <p style="color: #888; margin-bottom: 12px;">Topics as nodes, shared URLs as connections. Size = URL count. Drag nodes. Hover for details.</p>
+                <h3>Topic Galaxy 3D</h3>
+                <p style="color: #888; margin-bottom: 12px;">Rotate: drag. Zoom: scroll. Click node to focus. Hover for details.</p>
                 <div style="margin-bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap;">
                     <button class="galaxy-tf galaxy-tf-active" onclick="setGalaxyPeriod('',this)">All Time</button>
                     <button class="galaxy-tf" onclick="setGalaxyPeriod('8760h',this)">1 Year</button>
@@ -389,8 +389,9 @@
                 <style>
                     .galaxy-tf { padding: 6px 16px; border: 1px solid #ddd; border-radius: 16px; background: #fff; cursor: pointer; font-size: 0.9rem; color: #666; }
                     .galaxy-tf:hover, .galaxy-tf-active { border-color: #5a9b16; color: #5a9b16; background: #f0f8e8; }
+                    #topicGalaxyBox { background: #0a0a14; border-radius: 10px; overflow: hidden; }
                 </style>
-                <div class="graph-box" style="height: 500px; position: relative;" id="topicGalaxyBox">
+                <div id="topicGalaxyBox" style="height: 600px; position: relative;">
                 </div>
             </div>
 
@@ -435,6 +436,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/renderers/CSS2DRenderer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.0/dist/3d-force-graph.min.js"></script>
 <script>
 const green = '#5a9b16';
 const greenLight = 'rgba(90, 155, 22, 0.15)';
@@ -667,96 +671,104 @@ function loadGraphs(period) {
         });
 }
 
-// 1. Topic Galaxy — force-directed with D3, draggable, hover tooltip, live pulse
-let _galaxyNodes, _galaxySim, _galaxyMaxUrls;
+// 1. Topic Galaxy 3D — using 3d-force-graph + Three.js
+let _galaxy3d = null;
 
 function renderTopicGalaxy(data) {
     const container = document.getElementById('topicGalaxyBox');
     container.innerHTML = '';
+
     if (!data.nodes || data.nodes.length === 0) {
-        container.innerHTML = '<p style="color:#aaa;text-align:center;padding:60px;">No topic activity in this time period.</p>';
+        container.innerHTML = '<p style="color:#ccc;text-align:center;padding:80px;font-size:1.1rem;">No topic activity in this time period.</p>';
         return;
     }
-    const w = container.clientWidth - 20, h = 460;
 
-    const svg = d3.select(container).append('svg').attr('width', w).attr('height', h);
+    const maxUrls = Math.max(...data.nodes.map(n => n.url_count), 1);
+    const depthColor = d => d.depth === 0 ? '#5a9b16' : d.depth === 1 ? '#4db8ff' : '#ff9800';
 
-    const nodes = data.nodes.map(n => ({...n}));
-    const nodeMap = {}; nodes.forEach(n => nodeMap[n.id] = n);
-    const edges = data.edges.filter(e => nodeMap[e.source] && nodeMap[e.target]);
-    const maxUrls = Math.max(...nodes.map(n => n.url_count), 1);
-    _galaxyNodes = nodes; _galaxyMaxUrls = maxUrls;
+    const graphData = {
+        nodes: data.nodes.map(n => ({...n, val: Math.sqrt(n.url_count / maxUrls) * 8 + 2})),
+        links: data.edges.map(e => ({source: e.source, target: e.target, weight: e.weight})),
+    };
 
-    const sim = d3.forceSimulation(nodes)
-        .force('charge', d3.forceManyBody().strength(-100))
-        .force('center', d3.forceCenter(w/2, h/2))
-        .force('link', d3.forceLink(edges).id(d => d.id).distance(90).strength(0.3))
-        .force('collide', d3.forceCollide(d => Math.sqrt(d.url_count/maxUrls)*25 + 10));
-    _galaxySim = sim;
+    _galaxy3d = ForceGraph3D()(container)
+        .graphData(graphData)
+        .backgroundColor('#0a0a14')
+        .width(container.clientWidth)
+        .height(600)
+        // Nodes
+        .nodeVal(n => n.val)
+        .nodeColor(depthColor)
+        .nodeOpacity(0.9)
+        .nodeLabel(n => '<div style="background:rgba(0,0,0,0.9);color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;border:1px solid rgba(90,155,22,0.5);">' +
+            '<strong>' + n.name + '</strong><br>' + n.url_count + ' urls</div>')
+        .nodeThreeObject(node => {
+            // Glowing sphere
+            const group = new THREE.Group();
+            const r = node.val;
+            const geo = new THREE.SphereGeometry(r, 16, 16);
+            const mat = new THREE.MeshPhongMaterial({
+                color: depthColor(node),
+                transparent: true,
+                opacity: 0.85,
+                shininess: 100,
+            });
+            const sphere = new THREE.Mesh(geo, mat);
+            group.add(sphere);
 
-    // Edges
-    const link = svg.append('g').selectAll('line').data(edges).join('line')
-        .attr('stroke', 'rgba(90,155,22,0.2)')
-        .attr('stroke-width', d => Math.min(d.weight / 5, 4));
+            // Glow
+            const glowGeo = new THREE.SphereGeometry(r * 1.4, 16, 16);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: depthColor(node),
+                transparent: true,
+                opacity: 0.15,
+            });
+            group.add(new THREE.Mesh(glowGeo, glowMat));
 
-    // Nodes
-    const depthColor = d => d.depth === 0 ? '#5a9b16' : d.depth === 1 ? '#2196F3' : '#FF9800';
-    const nodeR = d => Math.sqrt(d.url_count / maxUrls) * 22 + 5;
+            // Text label
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const label = node.name.substring(0, 20);
+            const fontSize = Math.max(24, Math.min(r * 6, 48));
+            canvas.width = 512; canvas.height = 64;
+            ctx.font = fontSize + 'px sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, 256, 48);
+            const tex = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({map: tex, transparent: true, opacity: 0.9});
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.scale.set(r * 6, r * 1.2, 1);
+            sprite.position.set(0, -r - 4, 0);
+            group.add(sprite);
 
-    const node = svg.append('g').selectAll('circle').data(nodes).join('circle')
-        .attr('r', nodeR)
-        .attr('fill', depthColor)
-        .attr('fill-opacity', 0.8)
-        .attr('stroke', '#fff')
-        .attr('stroke-width', 1.5)
-        .attr('cursor', 'grab')
-        .call(d3.drag()
-            .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-            .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
-            .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
-        );
+            return group;
+        })
+        // Links
+        .linkWidth(l => Math.min(l.weight / 8, 2.5))
+        .linkColor(() => 'rgba(90,155,22,0.3)')
+        .linkOpacity(0.6)
+        // Interaction
+        .onNodeClick(node => {
+            const distance = 120;
+            const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+            _galaxy3d.cameraPosition(
+                {x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio},
+                node, 1500
+            );
+        })
+        // Lighting
+        .onEngineTick(() => {});
 
-    // Labels
-    const label = svg.append('g').selectAll('text').data(nodes).join('text')
-        .text(d => nodeR(d) > 10 ? d.name.substring(0, 18) : '')
-        .attr('font-size', d => Math.max(9, Math.min(nodeR(d) * 0.6, 13)))
-        .attr('text-anchor', 'middle')
-        .attr('fill', '#333')
-        .attr('pointer-events', 'none');
-
-    // Tooltip
-    const tooltip = d3.select(container).append('div')
-        .style('position', 'absolute')
-        .style('background', 'rgba(0,0,0,0.85)')
-        .style('color', '#fff')
-        .style('padding', '8px 14px')
-        .style('border-radius', '6px')
-        .style('font-size', '13px')
-        .style('pointer-events', 'none')
-        .style('opacity', 0)
-        .style('z-index', 100);
-
-    node.on('mouseover', (e, d) => {
-        tooltip.html('<strong>' + d.name + '</strong><br>' + d.url_count + ' urls')
-            .style('opacity', 1);
-        d3.select(e.target).attr('fill-opacity', 1).attr('stroke', '#333').attr('stroke-width', 3);
-    })
-    .on('mousemove', e => {
-        const cr = container.getBoundingClientRect();
-        tooltip.style('left', (e.clientX - cr.left + 14) + 'px').style('top', (e.clientY - cr.top - 10) + 'px');
-    })
-    .on('mouseout', (e, d) => {
-        tooltip.style('opacity', 0);
-        d3.select(e.target).attr('fill-opacity', 0.8).attr('stroke', '#fff').attr('stroke-width', 1.5);
-    });
-
-    sim.on('tick', () => {
-        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-            .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
-        node.attr('cx', d => d.x = Math.max(20, Math.min(w-20, d.x)))
-            .attr('cy', d => d.y = Math.max(20, Math.min(h-20, d.y)));
-        label.attr('x', d => d.x).attr('y', d => d.y + nodeR(d) + 13);
-    });
+    // Add ambient + point lights
+    const scene = _galaxy3d.scene();
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const pointLight = new THREE.PointLight(0x5a9b16, 1.5, 500);
+    pointLight.position.set(0, 100, 100);
+    scene.add(pointLight);
+    const pointLight2 = new THREE.PointLight(0x4db8ff, 1, 400);
+    pointLight2.position.set(-100, -50, 50);
+    scene.add(pointLight2);
 }
 
 // 2. Domain-Topic Network
@@ -919,16 +931,13 @@ function updateGraphs() {
         .then(data => {
             // Update realtime flow
             renderRealtimeFlow(data.realtime_flow);
-            // Pulse galaxy nodes if url_count changed
-            if (_galaxyNodes && data.topic_galaxy) {
-                const newMap = {};
-                data.topic_galaxy.nodes.forEach(n => newMap[n.id] = n.url_count);
-                // Update counts (d3 will re-render via tick)
-                _galaxyNodes.forEach(n => {
-                    if (newMap[n.id] && newMap[n.id] !== n.url_count) {
-                        n.url_count = newMap[n.id];
-                    }
-                });
+            // Update 3D galaxy if data changed
+            if (_galaxy3d && data.topic_galaxy && data.topic_galaxy.nodes.length > 0) {
+                // Check if node count changed — if so, re-render
+                const currentNodes = _galaxy3d.graphData().nodes;
+                if (currentNodes.length !== data.topic_galaxy.nodes.length) {
+                    renderTopicGalaxy(data.topic_galaxy);
+                }
             }
             // Update propagation
             renderPropagation(data.propagation_flows);
