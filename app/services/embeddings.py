@@ -103,18 +103,30 @@ def cosine_similarity(a, b):
 
 
 def _get_tfidf_vectorizer():
-    """Get or rebuild the TF-IDF vectorizer from stored embeddings."""
+    """Get or rebuild the TF-IDF vectorizer from stored embeddings or existing posts."""
     global _tfidf_vectorizer, _tfidf_texts, _tfidf_ids
 
     if _tfidf_vectorizer is not None:
         return _tfidf_vectorizer, _tfidf_texts, _tfidf_ids
 
     embeddings = UrlEmbedding.query.all()
-    if not embeddings:
-        return None, None, None
-
-    _tfidf_texts = [e.text_content or "" for e in embeddings]
-    _tfidf_ids = [e.canonical_url_id for e in embeddings]
+    if embeddings:
+        _tfidf_texts = [e.text_content or "" for e in embeddings]
+        _tfidf_ids = [e.canonical_url_id for e in embeddings]
+    else:
+        # No embeddings yet — build vectorizer from existing canonical URLs
+        all_urls = CanonicalUrl.query.limit(10000).all()
+        if not all_urls:
+            return None, None, None
+        _tfidf_texts = []
+        _tfidf_ids = []
+        for cu in all_urls:
+            text = build_text_for_url(cu.id)
+            if text:
+                _tfidf_texts.append(text)
+                _tfidf_ids.append(cu.id)
+        if not _tfidf_texts:
+            return None, None, None
 
     _tfidf_vectorizer = TfidfVectorizer(max_features=512, stop_words="english", sublinear_tf=True)
     _tfidf_vectorizer.fit(_tfidf_texts)
@@ -146,8 +158,46 @@ def semantic_search(query, api_key=None, limit=10, min_score=0.0):
         return []
 
 
+def _backfill_embeddings_if_needed():
+    """If there are canonical URLs without embeddings, generate them."""
+    try:
+        total_urls = CanonicalUrl.query.count()
+        total_embs = UrlEmbedding.query.count()
+        if total_urls > 0 and total_embs < total_urls * 0.5:
+            # More than half missing — backfill
+            vectorizer, _, _ = _get_tfidf_vectorizer()
+            if not vectorizer:
+                return
+            from sqlalchemy import not_
+            missing = CanonicalUrl.query.filter(
+                not_(CanonicalUrl.id.in_(
+                    db.session.query(UrlEmbedding.canonical_url_id)
+                ))
+            ).limit(1000).all()
+            for cu in missing:
+                text = build_text_for_url(cu.id)
+                if text:
+                    vec = vectorizer.transform([text]).toarray()[0].tolist()
+                    emb = UrlEmbedding(
+                        canonical_url_id=cu.id,
+                        text_content=text[:2000],
+                        model="tfidf-512",
+                        dimensions=len(vec),
+                    )
+                    emb.set_vector(vec)
+                    db.session.add(emb)
+            db.session.commit()
+    except Exception:
+        pass
+
+
 def _tfidf_search(query, embeddings, limit, min_score):
     """Search using TF-IDF vectorizer — fully local, no API needed."""
+    # Auto-backfill if needed
+    if UrlEmbedding.query.count() == 0:
+        _backfill_embeddings_if_needed()
+        embeddings = UrlEmbedding.query.all()
+
     vectorizer, texts, ids = _get_tfidf_vectorizer()
     if vectorizer is None:
         return []
