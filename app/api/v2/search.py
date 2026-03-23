@@ -79,14 +79,14 @@ def search_urls():
 
     # Default minimum similarity so garbage results don't show
     if min_score <= 0:
-        min_score = 0.05
+        min_score = 0.15
 
     # Auto-backfill embeddings if none exist but there are URLs
     if not has_embeddings:
         from app.models import CanonicalUrl
         if CanonicalUrl.query.first() is not None:
-            from app.services.embeddings import _backfill_embeddings_if_needed
-            _backfill_embeddings_if_needed()
+            from app.services.embeddings import backfill_embeddings
+            backfill_embeddings()
             has_embeddings = UrlEmbedding.query.first() is not None
 
     # Log query for session inference

@@ -1153,6 +1153,11 @@ def unified_search():
     return jsonify({"users": users[:5], "topics": topic_results, "urls": url_results})
 
 
+@bp.route("/docs/search")
+def search_docs():
+    return render_template("search_docs.html", title=_("Search Documentation"))
+
+
 @bp.route("/docs/agents")
 @bp.route("/for-agents")
 def agent_docs():

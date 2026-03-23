@@ -144,26 +144,8 @@ def _recompute_credibility_async(canonical_url_id):
                         recompute_domain_credibility(cu.domain, tid)
 
                 # Auto-generate embedding for this URL
-                from app.models import UrlEmbedding
-                existing_emb = UrlEmbedding.query.filter_by(canonical_url_id=canonical_url_id).first()
-                if not existing_emb:
-                    from app.services.embeddings import build_text_for_url
-                    text = build_text_for_url(canonical_url_id)
-                    if text:
-                        # Check if TF-IDF vectorizer is available
-                        from app.services.embeddings import _get_tfidf_vectorizer
-                        vectorizer, _, _ = _get_tfidf_vectorizer()
-                        if vectorizer:
-                            vec = vectorizer.transform([text]).toarray()[0].tolist()
-                            emb = UrlEmbedding(
-                                canonical_url_id=canonical_url_id,
-                                text_content=text[:2000],
-                                model="tfidf-512",
-                                dimensions=len(vec),
-                            )
-                            emb.set_vector(vec)
-                            db.session.add(emb)
-                            db.session.commit()
+                from app.services.embeddings import embed_url
+                embed_url(canonical_url_id)
             except Exception:
                 pass
 
