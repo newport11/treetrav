@@ -83,7 +83,7 @@
         <div class="url-title"><a href="{{ url.detail_url }}">{{ url.title or url.canonical_url }}</a></div>
         <div class="url-domain"><a href="{{ url_for('main.view_domain', domain=url.domain) }}" style="color: #5a9b16; text-decoration: none;">{{ url.domain }}</a></div>
         {% if url.summary %}
-        <div class="url-summary">{{ url.summary[:200] }}{% if url.summary|length > 200 %}...{% endif %}</div>
+        <div class="url-summary">{{ url.summary }}</div>
         {% endif %}
         <div class="url-meta">
             <span>Score: {{ "%.2f"|format(url.combined_score) }}</span>

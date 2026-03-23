@@ -892,7 +892,7 @@ def search():
                         "url": cu.canonical_url,
                         "domain": cu.domain,
                         "title": sample_post.body if sample_post else None,
-                        "summary": meta.summary[:150] if meta and meta.summary else None,
+                        "summary": meta.summary if meta and meta.summary else None,
                         "topic": best_score.topic.name if best_score and best_score.topic else None,
                         "similarity": round(similarity, 3),
                     })
