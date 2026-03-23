@@ -67,12 +67,13 @@ def search_urls():
     api_key = current_app.config.get("OPENAI_API_KEY") if use_openai else None
     has_embeddings = UrlEmbedding.query.first() is not None
 
-    # If USE_OPENAI_EMBEDDING is True and we have an API key, regenerate embeddings with OpenAI on first search
-    if use_openai and api_key and has_embeddings:
-        first_emb = UrlEmbedding.query.first()
-        if first_emb and first_emb.model and "tfidf" in first_emb.model:
-            # Embeddings are TF-IDF but config says use OpenAI — flag it in response
-            pass  # Will still work, just uses TF-IDF until seed_embeddings.py is run
+    # Auto-backfill embeddings if none exist but there are URLs
+    if not has_embeddings:
+        from app.models import CanonicalUrl
+        if CanonicalUrl.query.first() is not None:
+            from app.services.embeddings import _backfill_embeddings_if_needed
+            _backfill_embeddings_if_needed()
+            has_embeddings = UrlEmbedding.query.first() is not None
 
     # Log query for session inference
     _log_query("search", query_text=q, topic_id=topic_id)
