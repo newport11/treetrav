@@ -311,6 +311,20 @@
 
         <div class="chart-row">
             <div class="chart-box">
+                <h4>Trending Queries</h4>
+                {% if stats.trending_queries %}
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    {% for tq in stats.trending_queries[:15] %}
+                    <a href="{{ url_for('main.search', q=tq.query) }}" style="padding: 6px 14px; background: #f0f8e8; border-radius: 16px; font-size: 0.95rem; color: #2e7d32; text-decoration: none; border: 1px solid #d4ecc0;">
+                        {{ tq.query[:40] }} <span style="color: #5a9b16; font-weight: 600;">{{ tq.count }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <span style="color: #aaa;">No search queries yet.</span>
+                {% endif %}
+            </div>
+            <div class="chart-box">
                 <h4>Fastest Spreading URLs (24h)</h4>
                 {% if stats.realtime_signals.fastest_spreading %}
                 <table class="stats-table">

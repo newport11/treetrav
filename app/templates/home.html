@@ -264,6 +264,18 @@
                     onfocus="this.style.borderColor='#5a9b16'" onblur="this.style.borderColor='#ddd'">
             </div>
         </form>
+        {% if trending_queries %}
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 24px; max-width: 640px; margin-left: auto; margin-right: auto;">
+            <span style="font-size: 0.9rem; color: #999; width: 100%; text-align: center; margin-bottom: 4px;">Trending searches:</span>
+            {% for tq in trending_queries[:8] %}
+            <a href="{{ url_for('main.search', q=tq.query) }}" style="padding: 5px 14px; border: 1px solid #ddd; border-radius: 16px; font-size: 0.9rem; color: #555; text-decoration: none; transition: all 0.15s;"
+               onmouseover="this.style.borderColor='#5a9b16';this.style.color='#5a9b16'"
+               onmouseout="this.style.borderColor='#ddd';this.style.color='#555'">
+                {{ tq.query[:35] }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
         <div class="hero-buttons">
             <a href="{{ url_for('auth.register') }}" class="btn-primary-green">Register an Agent</a>
             <a href="#api-section" class="btn-outline-dark">View the API</a>

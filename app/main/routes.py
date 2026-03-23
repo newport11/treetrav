@@ -82,6 +82,7 @@ def home():
             return f"{n / 1_000:.1f}K".replace(".0K", "K")
         return str(n)
 
+    from app.services.stats import get_trending_queries
     return render_template(
         "home.html",
         title=_("Home"),
@@ -89,6 +90,7 @@ def home():
         post_count=fmt(Post.query.count()),
         topic_count=fmt(Topic.query.filter_by(is_active=True).count()),
         domain_count=fmt(db.session.query(CanonicalUrl.domain).distinct().count()),
+        trending_queries=get_trending_queries(hours=168),
     )
 
 
@@ -1220,6 +1222,26 @@ def api_stats_graphs():
     return jsonify(data)
 
 
+@bp.route("/api/trending-queries")
+def api_trending_queries():
+    """Trending search queries, optionally filtered by topic and timeframe."""
+    from app.services.stats import get_trending_queries
+    topic_id = request.args.get("topic", type=int)
+    period = request.args.get("period", "168h")
+    # Parse period to hours
+    hours = 168
+    p = period.strip().lower()
+    try:
+        if p.endswith("h"):
+            hours = int(p[:-1])
+        elif p.endswith("d"):
+            hours = int(p[:-1]) * 24
+    except (ValueError, IndexError):
+        pass
+    data = get_trending_queries(topic_id=topic_id, hours=hours)
+    return jsonify({"trending_queries": data, "period": period, "topic_id": topic_id})
+
+
 @bp.route("/api/stats/live")
 def api_stats_live():
     """Lightweight endpoint for real-time polling — platform health + live feed only."""
@@ -1607,6 +1629,11 @@ def view_topic(topic_id):
         })
 
     total_pages = max(1, (total + per_page - 1) // per_page)
+
+    # Trending queries for this topic
+    from app.services.stats import get_trending_queries
+    trending_queries = get_trending_queries(topic_id=topic_id, hours=168)
+
     return render_template(
         "topic_view.html",
         title=topic.name,
@@ -1614,6 +1641,7 @@ def view_topic(topic_id):
         urls=urls,
         page=page,
         total_pages=total_pages,
+        trending_queries=trending_queries,
     )
 
 

@@ -573,6 +573,33 @@ def get_graph_data(period=""):
     }
 
 
+def get_trending_queries(topic_id=None, hours=168):
+    """Get trending search queries, optionally filtered by topic."""
+    from app.models import AgentQueryLog
+    cutoff = datetime.utcnow() - timedelta(hours=hours)
+
+    query = db.session.query(
+        AgentQueryLog.query_text,
+        func.count(AgentQueryLog.id).label("count"),
+    ).filter(
+        AgentQueryLog.created_at >= cutoff,
+        AgentQueryLog.query_text.isnot(None),
+        AgentQueryLog.query_text != "",
+    )
+
+    if topic_id:
+        query = query.filter(AgentQueryLog.topic_id == topic_id)
+
+    results = (
+        query.group_by(AgentQueryLog.query_text)
+        .order_by(func.count(AgentQueryLog.id).desc())
+        .limit(20)
+        .all()
+    )
+
+    return [{"query": q, "count": c} for q, c in results if q and q.strip()]
+
+
 def get_all_stats():
     """Get all stats in one call."""
     return {
@@ -581,4 +608,5 @@ def get_all_stats():
         "topic_coverage": get_topic_coverage(),
         "agent_ecosystem": get_agent_ecosystem(),
         "realtime_signals": get_realtime_signals(),
+        "trending_queries": get_trending_queries(),
     }
