@@ -233,7 +233,8 @@
                         }
 
                         if (!hasResults) {
-                            sc.innerHTML = '<div class="sg-empty">No results for "' + query + '"</div>';
+                            sc.style.display = 'none';
+                            return;
                         }
 
                         sc.style.display = 'block';
