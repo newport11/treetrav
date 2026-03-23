@@ -879,7 +879,8 @@ def search():
             has_embeddings = UrlEmbedding.query.first() is not None
             if has_embeddings:
                 from app.services.embeddings import semantic_search as sem_search
-                raw = sem_search(query, limit=10)
+                api_key = current_app.config.get("OPENAI_API_KEY")
+                raw = sem_search(query, api_key=api_key, limit=10)
                 for canonical_url_id, similarity in raw:
                     cu = CanonicalUrl.query.get(canonical_url_id)
                     if not cu:
