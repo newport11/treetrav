@@ -69,6 +69,14 @@ def build_text_for_url(canonical_url_id):
     parts = []
     if cu.domain:
         parts.append(cu.domain)
+    # Extract keywords from URL path
+    if cu.canonical_url:
+        import re
+        url_path = cu.canonical_url.split("//", 1)[-1].split("?")[0]
+        url_words = re.sub(r'[^a-zA-Z0-9]', ' ', url_path)
+        url_words = " ".join(w for w in url_words.split() if len(w) > 2)
+        if url_words:
+            parts.append(url_words)
 
     posts = Post.query.filter_by(canonical_url_id=canonical_url_id).limit(5).all()
     for p in posts:
@@ -77,6 +85,11 @@ def build_text_for_url(canonical_url_id):
             parts.append(p.body)  # double-weight titles
         if p.description:
             parts.append(p.description)
+        # Folder path is a strong signal — "finance/equity/semiconductors/earnings"
+        if p.folder_link and p.folder_link != "/":
+            folder_words = p.folder_link.replace("/", " ").replace("-", " ").replace("_", " ")
+            parts.append(folder_words)
+            parts.append(folder_words)  # double-weight folder path
 
     metas = UrlMetadata.query.filter_by(canonical_url_id=canonical_url_id).limit(3).all()
     for m in metas:
