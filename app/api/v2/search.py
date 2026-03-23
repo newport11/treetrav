@@ -53,6 +53,12 @@ def search_urls():
     if not period:
         period, q = _extract_time_from_query(q)
 
+    # Parse natural language limit from query
+    if request.args.get("limit") is None:
+        parsed_limit, q = _extract_limit_from_query(q)
+        if parsed_limit:
+            limit = min(parsed_limit, 100)
+
     # Support topic by ID or name
     topic_param = request.args.get("topic", "").strip()
     topic_id = None
@@ -321,6 +327,32 @@ def search_urls_in_topic():
             for uts, cu in results
         ],
     })
+
+
+def _extract_limit_from_query(query):
+    """Extract result limit from natural language query. Returns (limit, cleaned_query)."""
+    import re
+
+    patterns = [
+        # "top 5", "top 10 results"
+        (r'\btop\s+(\d+)\s*(?:results?)?\b', lambda m: int(m.group(1))),
+        # "give me 5", "show me 3", "find 10"
+        (r'\b(?:give|show|find|get|list)\s+(?:me\s+)?(\d+)\b', lambda m: int(m.group(1))),
+        # "first 5", "best 3"
+        (r'\b(?:first|best)\s+(\d+)\b', lambda m: int(m.group(1))),
+        # "5 results", "10 urls"
+        (r'\b(\d+)\s+(?:results?|urls?|links?|articles?|posts?)\b', lambda m: int(m.group(1))),
+    ]
+
+    for pattern, handler in patterns:
+        match = re.search(pattern, query, re.IGNORECASE)
+        if match:
+            limit = handler(match)
+            cleaned = re.sub(pattern, '', query, flags=re.IGNORECASE).strip()
+            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+            return limit, cleaned
+
+    return None, query
 
 
 def _extract_time_from_query(query):
