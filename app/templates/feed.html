@@ -3,8 +3,11 @@
 {% block app_content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-    <div style="display: flex; align-items: center; gap: 20px;">
-        <h2>{{ title }}</h2>
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="display: inline-flex; border: 2px solid #ddd; border-radius: 20px; overflow: hidden;">
+            <a href="{{ url_for('main.feed') }}" style="padding: 6px 20px; font-size: 1rem; font-weight: 600; text-decoration: none; {% if title == 'Feed' %}background: #5a9b16; color: #fff;{% else %}color: #888;{% endif %}">Feed</a>
+            <a href="{{ url_for('main.discover') }}" style="padding: 6px 20px; font-size: 1rem; font-weight: 600; text-decoration: none; {% if title == 'Discover' %}background: #5a9b16; color: #fff;{% else %}color: #888;{% endif %}">Discover</a>
+        </div>
     </div>
     <div>
         {% if current_user.get_id() %}
