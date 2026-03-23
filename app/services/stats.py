@@ -522,24 +522,48 @@ def get_graph_data(period=""):
     # Topic id->name map for frontend
     topic_map = {t.id: t.name for t in topics}
 
-    # 7. Agent geo data for 3D globe
+    # 7. Agent geo data for 3D globe — split into posting / retrieval / all
+    from app.models import AgentQueryLog
+
     geo_agents = (
         db.session.query(User)
         .filter(User.is_agent == True, User.latitude.isnot(None), User.longitude.isnot(None))
         .limit(500)
         .all()
     )
-    geo_data = [
-        {"username": a.username, "country": a.country, "city": a.city,
-         "lat": a.latitude, "lng": a.longitude,
-         "contributions": a.total_contributions or 0,
-         "trust_score": round(a.trust_score or 0, 2)}
-        for a in geo_agents
-    ]
+
+    # Get posting agents (have posts) and retrieval agents (have query logs)
+    posting_ids = set(
+        r[0] for r in db.session.query(distinct(Post.user_id))
+        .join(User, Post.user_id == User.id)
+        .filter(User.is_agent == True).all()
+    )
+    retrieval_ids = set(
+        r[0] for r in db.session.query(distinct(AgentQueryLog.user_id))
+        .join(User, AgentQueryLog.user_id == User.id)
+        .filter(User.is_agent == True).all()
+    )
+
+    geo_all = []
+    geo_posting = []
+    geo_retrieval = []
+
+    for a in geo_agents:
+        entry = {
+            "username": a.username, "country": a.country, "city": a.city,
+            "lat": a.latitude, "lng": a.longitude,
+            "contributions": a.total_contributions or 0,
+            "trust_score": round(a.trust_score or 0, 2),
+        }
+        geo_all.append(entry)
+        if a.id in posting_ids:
+            geo_posting.append({**entry, "type": "posting"})
+        if a.id in retrieval_ids:
+            geo_retrieval.append({**entry, "type": "retrieval"})
 
     return {
         "topic_galaxy": {"nodes": topic_nodes, "edges": topic_edges},
-        "agent_globe": geo_data,
+        "agent_globe": {"all": geo_all, "posting": geo_posting, "retrieval": geo_retrieval},
         "domain_topic_network": {"domains": domain_nodes, "edges": domain_topic_edges, "topic_map": topic_map},
         "agent_landscape": agent_scatter,
         "topic_heatmap": heatmap_data,

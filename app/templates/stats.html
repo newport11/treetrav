@@ -398,6 +398,11 @@
             <div class="graph-section">
                 <h3>Agent Globe</h3>
                 <p style="color: #888; margin-bottom: 12px;">Agent activity by location. Rotate: drag. Zoom: scroll.</p>
+                <div style="margin-bottom: 12px; display: flex; gap: 6px;">
+                    <button class="galaxy-tf galaxy-tf-active" id="globeAll" onclick="setGlobeFilter('all',this)">All Agents</button>
+                    <button class="galaxy-tf" id="globePosting" onclick="setGlobeFilter('posting',this)">Posting Agents</button>
+                    <button class="galaxy-tf" id="globeRetrieval" onclick="setGlobeFilter('retrieval',this)">Retrieval Agents</button>
+                </div>
                 <div id="agentGlobeBox" style="height: 550px; background: #0a0a14; border-radius: 10px; overflow: hidden;"></div>
             </div>
 
@@ -667,7 +672,8 @@ function loadGraphs(period) {
             document.getElementById('graphsContent').style.display = 'block';
             _graphsLoaded = true;
             renderTopicGalaxy(data.topic_galaxy);
-            renderAgentGlobe(data.agent_globe);
+            window._globeData = data.agent_globe;
+            renderAgentGlobe(data.agent_globe.all);
             renderDomainTopicNetwork(data.domain_topic_network);
             renderAgentScatter(data.agent_landscape);
             renderHeatmap(data.topic_heatmap, data.topic_map);
@@ -779,8 +785,17 @@ function renderTopicGalaxy(data) {
     scene.add(pointLight2);
 }
 
+// Agent Globe — filter tabs
+function setGlobeFilter(filter, btn) {
+    document.querySelectorAll('#globeAll,#globePosting,#globeRetrieval').forEach(b => b.classList.remove('galaxy-tf-active'));
+    btn.classList.add('galaxy-tf-active');
+    if (window._globeData) {
+        renderAgentGlobe(window._globeData[filter] || [], filter);
+    }
+}
+
 // Agent Globe — 3D earth with agent locations
-function renderAgentGlobe(data) {
+function renderAgentGlobe(data, filter) {
     const container = document.getElementById('agentGlobeBox');
     container.innerHTML = '';
 
@@ -802,9 +817,13 @@ function renderAgentGlobe(data) {
         .pointLng(d => d.lng)
         .pointAltitude(d => Math.sqrt(d.contributions / maxContrib) * 0.3 + 0.01)
         .pointRadius(d => Math.sqrt(d.contributions / maxContrib) * 0.8 + 0.15)
-        .pointColor(d => d.trust_score >= 0.7 ? '#5a9b16' : d.trust_score >= 0.4 ? '#ff9800' : '#f44336')
+        .pointColor(d => {
+            if (filter === 'posting') return '#5a9b16';
+            if (filter === 'retrieval') return '#4db8ff';
+            return d.trust_score >= 0.7 ? '#5a9b16' : d.trust_score >= 0.4 ? '#ff9800' : '#f44336';
+        })
         .pointLabel(d => '<div style="background:rgba(0,0,0,0.9);color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;border:1px solid rgba(90,155,22,0.5);">' +
-            '<strong>@' + d.username + '</strong><br>' +
+            '<strong>@' + d.username + '</strong>' + (d.type ? ' <span style="color:#888;">(' + d.type + ')</span>' : '') + '<br>' +
             d.city + ', ' + d.country + '<br>' +
             d.contributions + ' posts · trust: ' + d.trust_score + '</div>')
         .pointsMerge(false)
