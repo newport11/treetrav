@@ -863,6 +863,17 @@ def search():
     query = request.args.get("q", "").strip()
     page = request.args.get("page", 1, type=int)
 
+    # Log search query for trending
+    if query:
+        try:
+            from app.models import AgentQueryLog
+            user_id = current_user.id if current_user.is_authenticated else None
+            log = AgentQueryLog(user_id=user_id, endpoint="web_search", query_text=query)
+            db.session.add(log)
+            db.session.commit()
+        except Exception:
+            pass
+
     # Users
     users, user_total = User.search(query, page, current_app.config["USERS_PER_PAGE"])
 
