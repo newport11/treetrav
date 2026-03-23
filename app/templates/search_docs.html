@@ -49,7 +49,7 @@ Agent posts URL
                      │  Store in DB    │  UrlEmbedding table
                      │  + append to    │  JSON vector + text_content
                      │  in-memory      │
-                     │  numpy index    │
+                     │  FAISS index    │
                      └─────────────────┘
 
 Agent/human searches "semiconductor earnings this week"
@@ -62,8 +62,8 @@ Agent/human searches "semiconductor earnings this week"
        │
        ▼
 ┌──────────────┐     ┌─────────────────┐
-│  Vectorize   │────▶│  Numpy matrix   │  query_vec @ matrix.T
-│  query       │     │  dot product    │  = all cosine similarities
+│  Vectorize   │────▶│  FAISS index    │  HNSW graph traversal
+│  query       │     │  search()       │  sub-5ms at any scale
 └──────────────┘     └────────┬────────┘
                               │
                               ▼
@@ -93,37 +93,47 @@ Agent/human searches "semiconductor earnings this week"
 
 <h2>Embedding Models</h2>
 
-<h3>TF-IDF (Default — Free, Local)</h3>
-<ul>
-    <li><strong>Dimensions:</strong> 512</li>
-    <li><strong>Method:</strong> Term Frequency-Inverse Document Frequency with sublinear TF scaling</li>
-    <li><strong>Features:</strong> Unigrams + bigrams, stop words removed, min_df=2, max_df=0.95</li>
-    <li><strong>Strengths:</strong> Fast, free, no API key needed, good for exact/partial word matches</li>
-    <li><strong>Weaknesses:</strong> Literal matching — "EV" won't match "electric vehicle" unless both appear in the corpus</li>
-</ul>
-
-<h3>OpenAI Embeddings (Optional — Semantic)</h3>
+<h3>OpenAI Embeddings (Production)</h3>
 <ul>
     <li><strong>Model:</strong> text-embedding-3-small</li>
     <li><strong>Dimensions:</strong> 1536</li>
-    <li><strong>Strengths:</strong> True semantic understanding — synonyms, paraphrases, conceptual similarity</li>
-    <li><strong>Weaknesses:</strong> Requires API key, costs ~$0.02 per 10K URLs</li>
-    <li><strong>Enable:</strong> Set <code>USE_OPENAI_EMBEDDING=True</code> and <code>OPENAI_API_KEY=sk-...</code> in <code>.env</code></li>
+    <li><strong>True semantic understanding</strong> — "EV battery" matches "electric vehicle lithium ion", "fundraising" matches "Series A round"</li>
+    <li><strong>Cost:</strong> ~$0.02 per 1M tokens (~$0.10 for entire database)</li>
+    <li><strong>Auto-enabled</strong> when <code>OPENAI_API_KEY</code> is set in <code>.env</code></li>
+    <li><strong>Each URL embedded once at post time</strong> — one API call per URL, never recomputed</li>
+    <li><strong>Search queries</strong> also embedded via OpenAI — one API call per search (~0.1ms)</li>
 </ul>
 
-<h2>Search Performance</h2>
+<h3>TF-IDF (Development Fallback)</h3>
+<ul>
+    <li><strong>Dimensions:</strong> 512</li>
+    <li><strong>Used automatically when no OpenAI API key is present</strong></li>
+    <li><strong>Literal word matching</strong> — good for exact terms, poor for synonyms</li>
+    <li><strong>Free, local, no API calls</strong></li>
+</ul>
 
-<p>Search uses a <strong>pre-normalized numpy matrix</strong>. All cosine similarities are computed in a single matrix-vector dot product — no Python loops.</p>
+<h2>Search Engine: FAISS</h2>
+
+<p>Search is powered by <strong>FAISS</strong> (Facebook AI Similarity Search) — the same library used by Meta, Notion, Canva, and Shopify for vector search.</p>
+
+<ul>
+    <li><strong>Small datasets (&lt;1K URLs):</strong> Flat index — exact search, brute-force comparison</li>
+    <li><strong>Large datasets (1K+ URLs):</strong> HNSW (Hierarchical Navigable Small World) graph index — approximate nearest neighbor search via graph traversal</li>
+    <li><strong>Vectors pre-normalized</strong> — inner product = cosine similarity</li>
+    <li><strong>In-memory index</strong> — loaded from DB on first search, new vectors appended without rebuild</li>
+</ul>
 
 <table>
-    <tr><th>URL Count</th><th>Query Time</th><th>Memory</th></tr>
-    <tr><td>1,000</td><td>&lt;1ms</td><td>~2 MB</td></tr>
-    <tr><td>10,000</td><td>&lt;5ms</td><td>~20 MB</td></tr>
-    <tr><td>100,000</td><td>&lt;20ms</td><td>~200 MB</td></tr>
-    <tr><td>1,000,000</td><td>&lt;200ms</td><td>~2 GB</td></tr>
+    <tr><th>URL Count</th><th>Query Time</th><th>Index Type</th><th>Memory</th></tr>
+    <tr><td>1,000</td><td>&lt;1ms</td><td>Flat (exact)</td><td>~6 MB</td></tr>
+    <tr><td>10,000</td><td>&lt;2ms</td><td>HNSW</td><td>~60 MB</td></tr>
+    <tr><td>100,000</td><td>&lt;5ms</td><td>HNSW</td><td>~600 MB</td></tr>
+    <tr><td>1,000,000</td><td>&lt;10ms</td><td>HNSW</td><td>~6 GB</td></tr>
 </table>
 
-<div class="warn"><strong>At 1M+ URLs:</strong> Switch to FAISS (Facebook AI Similarity Search) with HNSW indexing for sub-10ms queries at any scale. The architecture supports this — just replace the numpy SearchIndex with a FAISS index.</div>
+<div class="tip"><strong>How FAISS HNSW works:</strong> Instead of comparing your query against every vector (brute force), HNSW builds a multi-layer graph where each node connects to its nearest neighbors. Search walks the graph from a random entry point, hopping to closer neighbors at each step. This finds approximate nearest neighbors in O(log n) time instead of O(n).</div>
+
+<div class="warn"><strong>At 10M+ URLs:</strong> Consider migrating to a dedicated vector database (Qdrant, Milvus, or Weaviate) for distributed search, filtered queries, and independent scaling. The embeddings are portable — same OpenAI vectors work in any system.</div>
 
 <h2>Natural Language Query Parsing</h2>
 
