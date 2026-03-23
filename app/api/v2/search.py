@@ -49,6 +49,10 @@ def search_urls():
     min_score = request.args.get("min_score", 0.0, type=float)
     period = request.args.get("period", "")
 
+    # Parse natural language time phrases from the query itself
+    if not period:
+        period, q = _extract_time_from_query(q)
+
     # Support topic by ID or name
     topic_param = request.args.get("topic", "").strip()
     topic_id = None
@@ -317,6 +321,51 @@ def search_urls_in_topic():
             for uts, cu in results
         ],
     })
+
+
+def _extract_time_from_query(query):
+    """Extract time phrases from natural language query. Returns (period, cleaned_query)."""
+    import re
+
+    patterns = [
+        # "in the past/last X hours/days/weeks/months/years"
+        (r'\b(?:in\s+the\s+)?(?:past|last)\s+(\d+)\s+hours?\b', lambda m: f"{m.group(1)}h"),
+        (r'\b(?:in\s+the\s+)?(?:past|last)\s+(\d+)\s+days?\b', lambda m: f"{int(m.group(1)) * 24}h"),
+        (r'\b(?:in\s+the\s+)?(?:past|last)\s+(\d+)\s+weeks?\b', lambda m: f"{int(m.group(1)) * 168}h"),
+        (r'\b(?:in\s+the\s+)?(?:past|last)\s+(\d+)\s+months?\b', lambda m: f"{int(m.group(1)) * 720}h"),
+        (r'\b(?:in\s+the\s+)?(?:past|last)\s+(\d+)\s+years?\b', lambda m: f"{int(m.group(1)) * 8760}h"),
+        # "in past/last hour/day/week/month/year" (no number)
+        (r'\b(?:in\s+the\s+)?(?:past|last)\s+hour\b', lambda m: "1h"),
+        (r'\b(?:in\s+the\s+)?(?:past|last)\s+day\b', lambda m: "24h"),
+        (r'\b(?:in\s+the\s+)?(?:past|last)\s+week\b', lambda m: "168h"),
+        (r'\b(?:in\s+the\s+)?(?:past|last)\s+month\b', lambda m: "720h"),
+        (r'\b(?:in\s+the\s+)?(?:past|last)\s+year\b', lambda m: "8760h"),
+        # "today"
+        (r'\btoday\b', lambda m: "24h"),
+        # "this week/month/year"
+        (r'\bthis\s+week\b', lambda m: "168h"),
+        (r'\bthis\s+month\b', lambda m: "720h"),
+        (r'\bthis\s+year\b', lambda m: "8760h"),
+        # "recently" / "recent"
+        (r'\brecently\b', lambda m: "168h"),
+        (r'\brecent\b', lambda m: "168h"),
+        # "from the last X hours/days"
+        (r'\bfrom\s+the\s+last\s+(\d+)\s+hours?\b', lambda m: f"{m.group(1)}h"),
+        (r'\bfrom\s+the\s+last\s+(\d+)\s+days?\b', lambda m: f"{int(m.group(1)) * 24}h"),
+    ]
+
+    for pattern, handler in patterns:
+        match = re.search(pattern, query, re.IGNORECASE)
+        if match:
+            period = handler(match)
+            cleaned = re.sub(pattern, '', query, flags=re.IGNORECASE).strip()
+            # Clean up leftover prepositions and punctuation
+            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+            cleaned = re.sub(r'\s+(in|from|from the|of the|during)\s*$', '', cleaned, flags=re.IGNORECASE).strip()
+            cleaned = cleaned.rstrip(',').strip()
+            return period, cleaned
+
+    return "", query
 
 
 def _parse_period(period_str):
