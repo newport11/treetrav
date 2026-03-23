@@ -77,6 +77,10 @@ def search_urls():
     api_key = current_app.config.get("OPENAI_API_KEY") if use_openai else None
     has_embeddings = UrlEmbedding.query.first() is not None
 
+    # Default minimum similarity so garbage results don't show
+    if min_score <= 0:
+        min_score = 0.05
+
     # Auto-backfill embeddings if none exist but there are URLs
     if not has_embeddings:
         from app.models import CanonicalUrl

@@ -107,15 +107,20 @@ def _get_tfidf_vectorizer():
     global _tfidf_vectorizer, _tfidf_texts, _tfidf_ids
 
     if _tfidf_vectorizer is not None:
-        return _tfidf_vectorizer, _tfidf_texts, _tfidf_ids
+        # Check if we need to rebuild (new URLs added since last fit)
+        current_count = CanonicalUrl.query.count()
+        if _tfidf_ids and len(_tfidf_ids) >= current_count * 0.8:
+            return _tfidf_vectorizer, _tfidf_texts, _tfidf_ids
+        # Stale — rebuild
+        _tfidf_vectorizer = None
 
     embeddings = UrlEmbedding.query.all()
     if embeddings:
         _tfidf_texts = [e.text_content or "" for e in embeddings]
         _tfidf_ids = [e.canonical_url_id for e in embeddings]
     else:
-        # No embeddings yet — build vectorizer from existing canonical URLs
-        all_urls = CanonicalUrl.query.limit(10000).all()
+        # No embeddings yet — build vectorizer from ALL existing canonical URLs
+        all_urls = CanonicalUrl.query.all()
         if not all_urls:
             return None, None, None
         _tfidf_texts = []
@@ -173,7 +178,7 @@ def _backfill_embeddings_if_needed():
                 not_(CanonicalUrl.id.in_(
                     db.session.query(UrlEmbedding.canonical_url_id)
                 ))
-            ).limit(1000).all()
+            ).all()
             for cu in missing:
                 text = build_text_for_url(cu.id)
                 if text:
