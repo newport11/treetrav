@@ -145,7 +145,7 @@ def _recompute_credibility_async(canonical_url_id):
 
                 # Auto-generate embedding for this URL
                 from app.services.embeddings import embed_url
-                embed_url(canonical_url_id)
+                embed_url(canonical_url_id, api_key=app.config.get("OPENAI_API_KEY"))
             except Exception:
                 pass
 

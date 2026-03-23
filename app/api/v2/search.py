@@ -73,8 +73,7 @@ def search_urls():
             if match:
                 topic_id = match.id
 
-    use_openai = current_app.config.get("USE_OPENAI_EMBEDDING", False)
-    api_key = current_app.config.get("OPENAI_API_KEY") if use_openai else None
+    api_key = current_app.config.get("OPENAI_API_KEY")
     has_embeddings = UrlEmbedding.query.first() is not None
 
     # Default minimum similarity so garbage results don't show
@@ -86,7 +85,7 @@ def search_urls():
         from app.models import CanonicalUrl
         if CanonicalUrl.query.first() is not None:
             from app.services.embeddings import backfill_embeddings
-            backfill_embeddings()
+            backfill_embeddings(api_key=api_key)
             has_embeddings = UrlEmbedding.query.first() is not None
 
     # Log query for session inference

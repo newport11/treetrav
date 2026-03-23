@@ -47,7 +47,7 @@ class Config(object):
     IS_PROD = os.environ.get("IS_PROD")
     ADMINS = ["treetrav.info@gmail.com"]
     ELASTICSEARCH_URL = os.environ.get("ELASTICSEARCH_URL")
-    USE_OPENAI_EMBEDDING = os.environ.get("USE_OPENAI_EMBEDDING", "False").lower() == "true"
+    # Semantic search auto-detects: if OPENAI_API_KEY is set, uses OpenAI embeddings. Otherwise TF-IDF.
 
     # Redis — used for caching and Celery broker when available
     REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
