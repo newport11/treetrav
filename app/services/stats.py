@@ -111,12 +111,6 @@ def get_topic_coverage():
         .limit(10)
         .all()
     )
-    fastest_growing = []
-    for topic_id, count in growth:
-        t = Topic.query.get(topic_id)
-        if t:
-            fastest_growing.append({"id": t.id, "name": t.name, "new_tags_this_week": count})
-
     # Topics with highest average score (agent consensus)
     consensus = (
         db.session.query(
@@ -130,9 +124,20 @@ def get_topic_coverage():
         .limit(10)
         .all()
     )
+
+    # Batch-load all needed topics in one query
+    needed_ids = set(tid for tid, _ in growth) | set(tid for tid, _, _ in consensus)
+    topic_by_id = {t.id: t for t in Topic.query.filter(Topic.id.in_(needed_ids)).all()} if needed_ids else {}
+
+    fastest_growing = []
+    for topic_id, count in growth:
+        t = topic_by_id.get(topic_id)
+        if t:
+            fastest_growing.append({"id": t.id, "name": t.name, "new_tags_this_week": count})
+
     top_consensus = []
     for topic_id, avg_score, url_count in consensus:
-        t = Topic.query.get(topic_id)
+        t = topic_by_id.get(topic_id)
         if t:
             top_consensus.append({
                 "id": t.id, "name": t.name,
@@ -154,11 +159,22 @@ def get_topic_coverage():
         .all()
     )
 
-    # Count topic pair co-occurrences
+    # Count topic pair co-occurrences (single batch query)
+    cross_url_ids = [cu_id for cu_id, _ in cross_topic]
+    url_topic_names = defaultdict(list)
+    if cross_url_ids:
+        all_scores = (
+            db.session.query(UrlTopicScore.canonical_url_id, Topic.name)
+            .join(Topic, UrlTopicScore.topic_id == Topic.id)
+            .filter(UrlTopicScore.canonical_url_id.in_(cross_url_ids))
+            .all()
+        )
+        for cu_id, tname in all_scores:
+            url_topic_names[cu_id].append(tname)
+
     pair_counts = defaultdict(int)
     for cu_id, _ in cross_topic:
-        scores = UrlTopicScore.query.filter_by(canonical_url_id=cu_id).all()
-        topic_names = [s.topic.name for s in scores if s.topic]
+        topic_names = url_topic_names.get(cu_id, [])
         for i in range(len(topic_names)):
             for j in range(i + 1, len(topic_names)):
                 pair = tuple(sorted([topic_names[i], topic_names[j]]))
@@ -288,11 +304,13 @@ def get_realtime_signals():
         .limit(5)
         .all()
     )
+    trending_ids = [tid for tid, _ in trending_hour]
+    trending_topic_map = {t.id: t.name for t in Topic.query.filter(Topic.id.in_(trending_ids)).all()} if trending_ids else {}
     trending = []
     for topic_id, count in trending_hour:
-        t = Topic.query.get(topic_id)
-        if t:
-            trending.append({"name": t.name, "tags_this_hour": count})
+        name = trending_topic_map.get(topic_id)
+        if name:
+            trending.append({"name": name, "tags_this_hour": count})
 
     # Fastest spreading URL (highest submission count in last 24h)
     fastest = (
@@ -317,21 +335,34 @@ def get_realtime_signals():
             "submissions_24h": count,
         })
 
-    # Biggest mover topics (most new tags vs baseline)
+    # Biggest mover topics (most new tags vs baseline) — 2 aggregate queries
     day_ago = now - timedelta(days=1)
     week_ago = now - timedelta(days=7)
 
+    today_counts = dict(
+        db.session.query(PostTopicTag.topic_id, func.count(PostTopicTag.id))
+        .filter(PostTopicTag.created_at >= day_ago)
+        .group_by(PostTopicTag.topic_id)
+        .all()
+    )
+    prior_counts = dict(
+        db.session.query(PostTopicTag.topic_id, func.count(PostTopicTag.id))
+        .filter(PostTopicTag.created_at >= week_ago, PostTopicTag.created_at < day_ago)
+        .group_by(PostTopicTag.topic_id)
+        .all()
+    )
+
+    # Load topic names for all relevant IDs in one query
+    mover_ids = set(today_counts.keys()) | set(prior_counts.keys())
+    mover_topics = {t.id: t.name for t in Topic.query.filter(Topic.id.in_(mover_ids), Topic.is_active == True).all()} if mover_ids else {}
+
     movers = []
-    for topic in Topic.query.filter_by(is_active=True).all():
-        tags_today = PostTopicTag.query.filter(
-            PostTopicTag.topic_id == topic.id,
-            PostTopicTag.created_at >= day_ago,
-        ).count()
-        tags_week_avg = PostTopicTag.query.filter(
-            PostTopicTag.topic_id == topic.id,
-            PostTopicTag.created_at >= week_ago,
-            PostTopicTag.created_at < day_ago,
-        ).count() / 6.0  # avg per day over prior 6 days
+    for tid in mover_ids:
+        name = mover_topics.get(tid)
+        if not name:
+            continue
+        tags_today = today_counts.get(tid, 0)
+        tags_week_avg = prior_counts.get(tid, 0) / 6.0
 
         if tags_week_avg > 0:
             change = ((tags_today - tags_week_avg) / tags_week_avg) * 100
@@ -341,7 +372,7 @@ def get_realtime_signals():
             change = 0
 
         if abs(change) > 0:
-            movers.append({"name": topic.name, "today": tags_today, "avg": round(tags_week_avg, 1), "change_pct": round(change, 1)})
+            movers.append({"name": name, "today": tags_today, "avg": round(tags_week_avg, 1), "change_pct": round(change, 1)})
 
     movers.sort(key=lambda x: abs(x["change_pct"]), reverse=True)
 

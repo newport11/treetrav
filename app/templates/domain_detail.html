@@ -169,7 +169,7 @@
                 <td>{{ loop.index }}</td>
                 <td>
                     {% if d.is_self %}{{ d.domain }}{% else %}
-                    <a href="{{ url_for('main.view_domain', domain=d.domain) }}" style="color: #333; text-decoration: none;">{{ d.domain }}</a>
+                    <a href="{{ url_for('main.view_domain', domain=d.domain) }}" style="text-decoration: none;">{{ d.domain }}</a>
                     {% endif %}
                 </td>
                 <td style="color: #5a9b16; font-weight: 600;">{{ "%.3f"|format(d.score) }}</td>

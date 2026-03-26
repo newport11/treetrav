@@ -1169,7 +1169,7 @@ def unified_search():
 
 @bp.route("/docs/search")
 def search_docs():
-    return render_template("search_docs.html", title=_("Search Documentation"))
+    return redirect(url_for("main.agent_docs"))
 
 
 @bp.route("/docs/agents")
@@ -1204,7 +1204,7 @@ def stats():
         data = cached
     else:
         data = get_all_stats()
-        cache.set("stats_full", data, timeout=30)
+        cache.set("stats_full", data, timeout=60)
     return render_template("stats.html", title=_("Stats"), stats=data)
 
 
@@ -1215,7 +1215,7 @@ def api_stats():
     if cached:
         return jsonify(cached)
     data = get_all_stats()
-    cache.set("stats_full", data, timeout=30)
+    cache.set("stats_full", data, timeout=60)
     return jsonify(data)
 
 

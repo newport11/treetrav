@@ -73,7 +73,7 @@
         <div class="score-bar">
             {% for ts in topic_scores %}
             <div class="score-chip">
-                <a href="{{ url_for('main.view_topic', topic_id=ts.topic_id) }}" style="color:#333;text-decoration:none;">{{ ts.topic.name }}</a>
+                <a href="{{ url_for('main.view_topic', topic_id=ts.topic_id) }}" style="text-decoration:none;">{{ ts.topic.name }}</a>
                 <span class="score-val">{{ "%.2f"|format(ts.combined_score) }}</span>
             </div>
             {% endfor %}

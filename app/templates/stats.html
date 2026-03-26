@@ -332,7 +332,7 @@
                     <tbody>
                     {% for u in stats.realtime_signals.fastest_spreading %}
                     <tr>
-                        <td><a href="{{ u.url }}" target="_blank" style="color: #333;">{{ u.title or u.url[:50] }}</a></td>
+                        <td><a href="{{ u.url }}" target="_blank">{{ u.title or u.url[:50] }}</a></td>
                         <td style="color: #5a9b16;">{{ u.domain }}</td>
                         <td><strong>{{ u.submissions_24h }}</strong></td>
                     </tr>

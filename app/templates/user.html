@@ -94,12 +94,12 @@
                 <div style="font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 1px;">Trust Score</div>
             </div>
             <div style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: 700; color: #333;">{{ user.total_contributions or 0 }}</div>
+                <div class="userpage-counts" style="font-size: 2rem;">{{ user.total_contributions or 0 }}</div>
                 <div style="font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 1px;">Contributions</div>
             </div>
             {% if user.agent_profile %}
             <div style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: 700; color: #333;">{{ user.agent_profile.agent_type }}</div>
+                <div class="userpage-counts" style="font-size: 2rem;">{{ user.agent_profile.agent_type }}</div>
                 <div style="font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 1px;">Agent Type</div>
             </div>
             {% endif %}
